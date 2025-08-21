@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
-#include <math.h>
+#include <cstring>
 #include <random>
 #include <ranges>
 #include <vector>
@@ -96,28 +96,24 @@ public:
         return *this;
     }
 
-    class tensor_view : public base_tensor {
+    class transposed_view : public base_tensor {
     public:
         friend class tensor;
 
         float &operator()(const int row, const int col) override {
-            if (transposed_view_)
-                return parent_.data_[col * parent_.cols_ + row];
-            return parent_.data_[row * parent_.cols_ + col];
+            return parent_.data_[col * parent_.cols_ + row];
         }
 
         const float &operator()(const int row, const int col) const override {
-            if (transposed_view_)
-                return parent_.data_[col * parent_.cols_ + row];
-            return parent_.data_[row * parent_.cols_ + col];
+            return parent_.data_[col * parent_.cols_ + row];
         }
 
         int rows() const override {
-            return transposed_view_ ? parent_.cols_ : parent_.rows_;
+            return parent_.cols_;
         }
 
         int cols() const override {
-            return transposed_view_ ? parent_.rows_ : parent_.cols_;
+            return parent_.rows_;
         }
 
         tensor operator+(const base_tensor &other) const override {
@@ -134,18 +130,12 @@ public:
 
     private:
         const tensor &parent_;
-        bool transposed_view_;
 
-        explicit tensor_view(const tensor &parent, bool transposed_view): parent_(parent),
-                                                                          transposed_view_(transposed_view) {}
+        explicit transposed_view(const tensor &parent): parent_(parent) {}
     };
 
-    explicit operator tensor_view() const {
-        return tensor_view(*this, false);
-    }
-
-    tensor_view operator~() const {
-        return tensor_view(*this, true);
+    transposed_view operator~() const {
+        return transposed_view(*this);
     }
 
     tensor operator+(const base_tensor &other) const override {
@@ -249,8 +239,8 @@ tensor base_tensor::operator*(const base_tensor &other) const {
     tensor result(rows(), other.cols());
     for (int i = 0; i < rows(); ++i) {
         for (int j = 0; j < other.cols(); ++j) {
-            result(i, j) = 0;
-            for (int k = 0; k < cols(); ++k)
+            result(i, j) = (*this)(i, 0) * other(0, j);
+            for (int k = 1; k < cols(); ++k)
                 result(i, j) += (*this)(i, k) * other(k, j);
         }
     }
@@ -292,10 +282,9 @@ public:
 
     tensor back_propagation(const tensor &output_grad, float learning_rate) override {
         const tensor weight_grad = output_grad * ~input_;
-        const tensor &bias_grad = output_grad;
         weight_ -= weight_grad * learning_rate;
-        bias_ -= bias_grad * learning_rate;
-        tensor input_grad = ~weight_ * output_grad;
+        bias_ -= output_grad * learning_rate;
+        const tensor input_grad = ~weight_ * output_grad;
         return input_grad;
     }
 
@@ -351,14 +340,15 @@ tensor cross_entropy_grad(const tensor &input_softmax, const tensor &tag) {
 
 class progress_bar {
 public:
-    progress_bar(uint32_t steps, uint32_t length): steps_(steps), length_(length), current_step_(0), current_length_(0) {}
+    progress_bar(uint32_t steps, uint32_t length): steps_(steps), length_(length), current_step_(0),
+                                                   current_length_(0) {}
 
     void step() {
         ++current_step_;
         uint32_t new_length = current_step_ * length_ / steps_;
         if (new_length > current_length_) {
             current_length_ = new_length;
-            std::cout << "=";
+            std::cout << "=" << std::flush;
         }
         if (current_step_ == steps_)
             std::cout << std::endl;
@@ -468,10 +458,11 @@ int main() {
     relu_layer relu;
     std::vector<nn_layer *> layers{&fc_0, &relu, &fc_1};
 
-    int train_loops = 50;
+    int train_loops = 1;
     float learning_rate = 0.001f;
 
     for (int i = 0; i < train_loops; ++i) {
+        int start_time = clock();
         std::cout << "train loop: " << i + 1 << std::endl;
         learning_rate *= 0.99;
         progress_bar train_progress(train_dataset.size(), 20);
@@ -499,6 +490,7 @@ int main() {
         }
         std::cout << "correct: " << static_cast<double>(correct) / static_cast<double>(test_dataset.size()) * 100.0 <<
                 "%" << std::endl;
+        std::cout << "time elapsed: " << (clock() - start_time) / 1000.0 << "s" <<  std::endl;
     }
     return 0;
 }
