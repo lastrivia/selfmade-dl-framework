@@ -7,15 +7,17 @@
 #include <ranges>
 #include <vector>
 
+typedef float fp_type;
+
 class tensor;
 
 class base_tensor {
 public:
     virtual ~base_tensor() = default;
 
-    virtual float &operator()(int, int) = 0;
+    virtual fp_type &operator()(int, int) = 0;
 
-    virtual const float &operator()(int, int) const = 0;
+    virtual const fp_type &operator()(int, int) const = 0;
 
     virtual int rows() const = 0;
 
@@ -33,40 +35,40 @@ public:
     explicit tensor(const int rows): rows_(rows), cols_(1) {
         if (rows <= 0)
             throw std::invalid_argument("invalid size");
-        data_ = new float[rows];
+        data_ = new fp_type[rows];
     }
 
     tensor(const int rows, const int cols): rows_(rows), cols_(cols) {
         if (rows <= 0 || cols <= 0)
             throw std::invalid_argument("invalid size");
-        data_ = new float[rows * cols];
+        data_ = new fp_type[rows * cols];
     }
 
     ~tensor() override {
         delete[] data_;
     }
 
-    float &operator()(const int row, const int col) override {
+    fp_type &operator()(const int row, const int col) override {
         return data_[row * cols_ + col];
     }
 
-    const float &operator()(const int row, const int col) const override {
+    const fp_type &operator()(const int row, const int col) const override {
         return data_[row * cols_ + col];
     }
 
-    float &operator()(const int index) {
+    fp_type &operator()(const int index) {
         return data_[index];
     }
 
-    const float &operator()(const int index) const {
+    const fp_type &operator()(const int index) const {
         return data_[index];
     }
 
     tensor(const tensor &other) {
         rows_ = other.rows_;
         cols_ = other.cols_;
-        data_ = new float[cols_ * rows_];
-        memcpy(data_, other.data_, cols_ * rows_ * sizeof(float));
+        data_ = new fp_type[cols_ * rows_];
+        memcpy(data_, other.data_, cols_ * rows_ * sizeof(fp_type));
     }
 
     tensor(tensor &&other) noexcept {
@@ -82,8 +84,8 @@ public:
         rows_ = other.rows_;
         cols_ = other.cols_;
         delete[] data_;
-        data_ = new float[cols_ * rows_];
-        memcpy(data_, other.data_, cols_ * rows_ * sizeof(float));
+        data_ = new fp_type[cols_ * rows_];
+        memcpy(data_, other.data_, cols_ * rows_ * sizeof(fp_type));
         return *this;
     }
 
@@ -100,11 +102,11 @@ public:
     public:
         friend class tensor;
 
-        float &operator()(const int row, const int col) override {
+        fp_type &operator()(const int row, const int col) override {
             return parent_.data_[col * parent_.cols_ + row];
         }
 
-        const float &operator()(const int row, const int col) const override {
+        const fp_type &operator()(const int row, const int col) const override {
             return parent_.data_[col * parent_.cols_ + row];
         }
 
@@ -168,7 +170,7 @@ public:
         return *this;
     }
 
-    tensor operator*(const float scalar) const {
+    tensor operator*(const fp_type scalar) const {
         tensor result(rows_, cols_);
         for (int i = 0; i < rows_; i++)
             for (int j = 0; j < cols_; j++)
@@ -176,7 +178,7 @@ public:
         return result;
     }
 
-    tensor &operator*=(const float scalar) {
+    tensor &operator*=(const fp_type scalar) {
         for (int i = 0; i < rows_ * cols_; ++i)
             data_[i] *= scalar;
         return *this;
@@ -208,7 +210,7 @@ public:
 
 private:
     int rows_, cols_;
-    float *data_;
+    fp_type *data_;
 
     // tensor() = default;
 };
@@ -247,26 +249,212 @@ tensor base_tensor::operator*(const base_tensor &other) const {
     return result;
 }
 
+tensor softmax(const tensor &input) {
+    tensor result(input.rows());
+    fp_type max_val = input(0);
+    for (int i = 1; i < input.rows(); ++i) {
+        if (input(i) > max_val)
+            max_val = input(i);
+    }
+    fp_type sum = 0.0;
+    for (int i = 0; i < input.rows(); ++i) {
+        fp_type exp_result = std::exp(input(i) - max_val);
+        result(i) = exp_result;
+        sum += exp_result;
+    }
+    for (int i = 0; i < input.rows(); ++i)
+        result(i) /= sum;
+    return result;
+}
+
+tensor per_element_sqr(const tensor &input) {
+    tensor result(input.rows(), input.cols());
+    for (int i = 0; i < result.rows(); ++i)
+        for (int j = 0; j < result.cols(); ++j)
+            result(i, j) = input(i, j) * input(i, j);
+    return result;
+}
+
+tensor cross_entropy_grad(const tensor &input_softmax, const tensor &tag) {
+    return input_softmax - tag;
+}
+
+class param {
+public:
+    tensor data;
+    tensor grad;
+    int reg_index;
+
+    explicit param(const int rows): data(rows), grad(rows), reg_index(-1) {}
+
+    param(const int rows, const int cols): data(rows, cols), grad(rows, cols), reg_index(-1) {}
+
+    int rows() const {
+        return data.rows();
+    }
+
+    int cols() const {
+        return data.cols();
+    }
+};
+
 class nn_layer {
 public:
     virtual ~nn_layer() = default;
 
     virtual tensor forward_propagation(const tensor &activation) = 0;
 
-    virtual tensor back_propagation(const tensor &gradient, float learning_rate) = 0;
+    virtual tensor back_propagation(const tensor &gradient) = 0;
+
+    virtual std::vector<param *> enum_params() = 0;
+};
+
+class nn_optimizer {
+public:
+    explicit nn_optimizer(fp_type init_learning_rate) : learning_rate_(init_learning_rate) {}
+
+    virtual ~nn_optimizer() = default;
+
+    virtual void register_layer(nn_layer *layer) = 0;
+
+    virtual void step() = 0;
+
+    friend class nn_scheduler;
+
+protected:
+    fp_type learning_rate_;
+};
+
+class nn_scheduler {
+public:
+    nn_scheduler() : optimizer_(nullptr) {}
+
+    virtual ~nn_scheduler() = default;
+
+    virtual void bind_optimizer(nn_optimizer *optimizer) = 0;
+
+    fp_type &learning_rate() {
+        return optimizer_->learning_rate_;
+    }
+
+protected:
+    nn_optimizer *optimizer_;
+};
+
+class sgd_optimizer : public nn_optimizer {
+public:
+    explicit sgd_optimizer(fp_type init_learning_rate) : nn_optimizer(init_learning_rate) {}
+
+    ~sgd_optimizer() override = default;
+
+    void register_layer(nn_layer *layer) override {
+        std::vector<param *> layer_params = layer->enum_params();
+        for (auto p: layer_params) {
+            params_.push_back(p);
+        }
+    }
+
+    void step() override {
+        for (auto p: params_) {
+            p->data -= p->grad * learning_rate_;
+        }
+    }
+
+private:
+    std::vector<param *> params_;
+};
+
+class adam_optimizer : public nn_optimizer {
+    struct param_data {
+        param *target;
+        tensor first_moment, second_moment;
+
+        explicit param_data(param *target_param) :
+            target(target_param),
+            first_moment(target_param->rows(), target_param->cols()),
+            second_moment(target_param->rows(), target_param->cols()) {}
+    };
+
+public:
+    explicit adam_optimizer(fp_type init_learning_rate,
+                            fp_type first_moment_attenuation = 0.9,
+                            fp_type second_moment_attenuation = 0.999):
+        nn_optimizer(init_learning_rate),
+        first_moment_attenuation_(first_moment_attenuation),
+        second_moment_attenuation_(second_moment_attenuation),
+        step_times_(0) {}
+
+    ~adam_optimizer() override = default;
+
+    void register_layer(nn_layer *layer) override {
+        std::vector<param *> layer_params = layer->enum_params();
+        for (auto p: layer_params) {
+            params_data_.emplace_back(p);
+        }
+    }
+
+    void step() override {
+        ++step_times_;
+        for (auto &p: params_data_) {
+            if (step_times_ == 1) {
+                p.first_moment = p.target->grad * (1.0f - first_moment_attenuation_);
+                p.second_moment = per_element_sqr(p.target->grad) * (1.0f - second_moment_attenuation_);
+            } else {
+                p.first_moment *= first_moment_attenuation_;
+                p.first_moment += p.target->grad * (1.0f - first_moment_attenuation_);
+                p.second_moment *= second_moment_attenuation_;
+                p.second_moment += per_element_sqr(p.target->grad) * (1.0f - second_moment_attenuation_);
+            }
+
+            const fp_type first_moment_correction = 1.0f - std::pow(first_moment_attenuation_, static_cast<fp_type>(step_times_));
+            const fp_type second_moment_correction = 1.0f - std::pow(second_moment_attenuation_, static_cast<fp_type>(step_times_));
+
+            for (int i = 0; i < p.target->rows(); ++i) {
+                for (int j = 0; j < p.target->cols(); ++j) {
+                    p.target->data(i, j) -= learning_rate_ * (p.first_moment(i, j) / first_moment_correction)
+                            / (std::sqrt(p.second_moment(i, j) / second_moment_correction) + 1e-8f);
+                }
+            }
+        }
+    }
+
+private:
+    std::vector<param_data> params_data_;
+    fp_type first_moment_attenuation_, second_moment_attenuation_;
+    int step_times_;
+};
+
+class exponential_scheduler : public nn_scheduler {
+public:
+    explicit exponential_scheduler(fp_type scalar) : scalar_(scalar) {}
+
+    ~exponential_scheduler() override = default;
+
+    void bind_optimizer(nn_optimizer *optimizer) override {
+        optimizer_ = optimizer;
+    }
+
+    void step() {
+        learning_rate() *= scalar_;
+    }
+
+private:
+    fp_type scalar_;
 };
 
 class fc_layer : public nn_layer {
 public:
     fc_layer(const int input_size, const int output_size): weight_(output_size, input_size),
                                                            bias_(output_size),
-                                                           input_(input_size) {}
+                                                           input_(input_size) {
+        random_init_he();
+    }
 
     ~fc_layer() override = default;
 
     tensor forward_propagation(const tensor &input) override {
         input_ = input;
-        return weight_ * input + bias_;
+        return weight_.data * input + bias_.data;
     }
 
     void random_init_he() {
@@ -275,21 +463,36 @@ public:
         std::normal_distribution<> dis(0.0, sqrt(2.0 / static_cast<double>(input_.rows())));
         for (int i = 0; i < weight_.rows(); ++i)
             for (int j = 0; j < weight_.cols(); ++j)
-                weight_(i, j) = static_cast<float>(dis(gen));
+                weight_.data(i, j) = static_cast<fp_type>(dis(gen));
         for (int i = 0; i < bias_.rows(); ++i)
-            bias_(i) = 0.0f;
+            bias_.data(i) = 0.0f;
     }
 
-    tensor back_propagation(const tensor &output_grad, float learning_rate) override {
-        const tensor weight_grad = output_grad * ~input_;
-        weight_ -= weight_grad * learning_rate;
-        bias_ -= output_grad * learning_rate;
-        const tensor input_grad = ~weight_ * output_grad;
+    tensor back_propagation(const tensor &output_grad) override {
+        weight_.grad = output_grad * ~input_;
+        bias_.grad = output_grad;
+        const tensor input_grad = ~(weight_.data) * output_grad;
         return input_grad;
     }
 
+    std::vector<param *> enum_params() override {
+        return {&weight_, &bias_};
+    }
+
+    // debug
+    void save_to(const std::string &path) const {
+        std::ofstream file(path);
+        for (int i = 0; i < weight_.rows(); ++i) {
+            for (int j = 0; j < weight_.cols(); ++j) {
+                file << weight_.data(i, j) << ", ";
+            }
+            file << ", " << bias_.data(i) << std::endl;
+        }
+    }
+
 private:
-    tensor weight_, bias_, input_;
+    param weight_, bias_;
+    tensor input_;
 };
 
 class relu_layer : public nn_layer {
@@ -308,7 +511,7 @@ public:
         return result;
     }
 
-    tensor back_propagation(const tensor &output_grad, float learning_rate) override {
+    tensor back_propagation(const tensor &output_grad) override {
         tensor input_grad = output_grad;
         for (int i = 0; i < input_grad.rows(); ++i) {
             if (input_(i) < 0.0)
@@ -317,26 +520,13 @@ public:
         return input_grad;
     }
 
+    std::vector<param *> enum_params() override {
+        return {};
+    }
+
 private:
     tensor input_;
 };
-
-tensor softmax(const tensor &input) {
-    tensor result(input.rows());
-    float sum = 0.0;
-    for (int i = 0; i < result.rows(); ++i) {
-        const float exp_result = exp(input(i));
-        result(i) = exp_result;
-        sum += exp_result;
-    }
-    for (int i = 0; i < result.rows(); ++i)
-        result(i) /= sum;
-    return result;
-}
-
-tensor cross_entropy_grad(const tensor &input_softmax, const tensor &tag) {
-    return input_softmax - tag;
-}
 
 class progress_bar {
 public:
@@ -385,7 +575,7 @@ public:
         os << "label: " << sample.label << std::endl;
         for (int i = 0; i < 28; ++i) {
             for (int j = 0; j < 28; ++j) {
-                float x = sample.data(i * 28 + j);
+                fp_type x = sample.data(i * 28 + j);
                 if (x > 0.67)
                     os << "##";
                 else if (x > 0.34)
@@ -430,7 +620,7 @@ public:
             unsigned char buf[784];
             image_is.read(reinterpret_cast<char *>(buf), 784);
             for (int j = 0; j < 784; ++j) {
-                result[i].data(j) = static_cast<float>(buf[j]) / 255.0f;
+                result[i].data(j) = static_cast<fp_type>(buf[j]) / 255.0f;
             }
         }
         for (int i = 0; i < image_count; ++i) {
@@ -452,20 +642,24 @@ int main() {
         "../archive/t10k-images.idx3-ubyte",
         "../archive/t10k-labels.idx1-ubyte"
     );
-    fc_layer fc_0(784, 500), fc_1(500, 10);
-    fc_0.random_init_he();
-    fc_1.random_init_he();
+    fc_layer fc_0(784, 200), fc_1(200, 10);
     relu_layer relu;
     std::vector<nn_layer *> layers{&fc_0, &relu, &fc_1};
 
-    int train_loops = 1;
-    float learning_rate = 0.001f;
+    adam_optimizer optimizer(0.001f);
+    for (auto &layer: layers) {
+        optimizer.register_layer(layer);
+    }
+
+    exponential_scheduler scheduler(0.8);
+    scheduler.bind_optimizer(&optimizer);
+
+    int train_loops = 20;
 
     for (int i = 0; i < train_loops; ++i) {
         int start_time = clock();
         std::cout << "train loop: " << i + 1 << std::endl;
-        learning_rate *= 0.99;
-        progress_bar train_progress(train_dataset.size(), 20);
+        progress_bar train_progress_bar(train_dataset.size(), 20);
         for (auto &data: train_dataset) {
             tensor activation = data.data;
             for (auto layer: layers) {
@@ -474,11 +668,17 @@ int main() {
             tensor softmax_tensor = softmax(activation);
             tensor gradient = cross_entropy_grad(softmax_tensor, data.tag());
             for (auto layer: std::ranges::reverse_view(layers)) {
-                gradient = layer->back_propagation(gradient, learning_rate);
+                gradient = layer->back_propagation(gradient);
             }
-            train_progress.step();
+            train_progress_bar.step();
+            optimizer.step();
         }
-        progress_bar test_progress(test_dataset.size(), 20);
+        // std::string file_0 = std::string("param_a_") + std::to_string(i + 1) + ".csv";
+        // std::string file_1 = std::string("param_b_") + std::to_string(i + 1) + ".csv";
+        // fc_0.save_to(file_0);
+        // fc_1.save_to(file_1);
+        scheduler.step();
+        progress_bar test_progress_bar(test_dataset.size(), 20);
         int correct = 0;
         for (auto &data: test_dataset) {
             tensor activation = data.data;
@@ -486,11 +686,11 @@ int main() {
                 activation = layer->forward_propagation(activation);
             }
             correct += data.validate(activation);
-            test_progress.step();
+            test_progress_bar.step();
         }
         std::cout << "correct: " << static_cast<double>(correct) / static_cast<double>(test_dataset.size()) * 100.0 <<
                 "%" << std::endl;
-        std::cout << "time elapsed: " << (clock() - start_time) / 1000.0 << "s" <<  std::endl;
+        std::cout << "time elapsed: " << (clock() - start_time) / 1000.0 << "s" << std::endl;
     }
     return 0;
 }
