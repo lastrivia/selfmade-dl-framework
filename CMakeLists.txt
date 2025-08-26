@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -ffast-math")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fno-omit-frame-pointer -O3 -march=native -ffast-math")
 
-add_executable(nn_demo_cpu main.cpp)
+add_executable(nn_demo_cpu demo.cpp)
 
 get_filename_component(GCC_BIN_DIR ${CMAKE_CXX_COMPILER} DIRECTORY)
 message(STATUS "GCC bin dir: ${GCC_BIN_DIR}")

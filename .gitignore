@@ -2,3 +2,6 @@ cmake-build-*/
 archive/
 archive.zip
 .idea/
+
+# todo
+nn/backend/
