@@ -536,9 +536,9 @@ public:
     void step() {
         ++current_step_;
         uint32_t new_length = current_step_ * length_ / steps_;
-        if (new_length > current_length_) {
-            current_length_ = new_length;
+        while (new_length > current_length_) {
             std::cout << "=" << std::flush;
+            ++current_length_;
         }
         if (current_step_ == steps_)
             std::cout << std::endl;
