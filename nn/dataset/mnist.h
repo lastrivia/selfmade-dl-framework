@@ -34,7 +34,7 @@ public:
         assert_shape_consistency(output, label_);
         int count = 0;
         for (size_t i = 0; i < batch_size_; ++i) {
-            int predicted = 0;
+            size_t predicted = 0;
             for (size_t j = 1; j < 10; ++j)
                 if (output.at(i, j) > output.at(i, predicted))
                     predicted = j;

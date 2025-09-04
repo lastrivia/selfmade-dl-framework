@@ -1,7 +1,7 @@
-#include <fstream>
 #include <iostream>
-#include <ranges>
+#include <ctime>
 #include <vector>
+#include <ranges>
 
 #include "nn/nn.h"
 #include "utils/progress_bar.h"
