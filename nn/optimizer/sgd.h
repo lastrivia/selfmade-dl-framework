@@ -9,7 +9,7 @@ public:
     ~sgd_optimizer() override = default;
 
     void register_layer(nn_layer *layer) override {
-        std::vector<param *> layer_params = layer->enum_params();
+        std::vector<param> layer_params = layer->enum_params();
         for (auto p: layer_params) {
             params_.push_back(p);
         }
@@ -17,10 +17,10 @@ public:
 
     void step() override {
         for (auto p: params_) {
-            p->data -= p->grad * learning_rate_;
+            p.data -= p.grad * learning_rate_;
         }
     }
 
 private:
-    std::vector<param *> params_;
+    std::vector<param> params_;
 };

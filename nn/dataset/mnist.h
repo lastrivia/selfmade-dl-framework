@@ -2,52 +2,52 @@
 
 #include <cstdint>
 #include <fstream>
-#include <iostream>
-#include <random>
 #include <vector>
 
 #include "../backend.h"
 
 class mnist_sample {
 public:
-    mnist_sample(): data(784), label(0) {}
+    mnist_sample(size_t batch_size, const unsigned char *image_buf, const unsigned char *label_buf) :
+        data_(batch_size, 784),
+        label_(batch_size, 10),
+        batch_size_(batch_size) {
 
-    tensor data;
-    int label;
-
-    tensor tag() const {
-        tensor ret(10);
-        for (int i = 0; i < 10; ++i)
-            ret(i) = 0.0f;
-        ret(label) = 1.0f;
-        return ret;
-    }
-
-    int validate(const tensor &output) const {
-        int predicted = 0;
-        for (int i = 1; i < 10; ++i)
-            if (output(i) > output(predicted))
-                predicted = i;
-        return (predicted == label) ? 1 : 0;
-    }
-
-    friend std::ostream &operator<<(std::ostream &os, const mnist_sample &sample) {
-        os << "label: " << sample.label << std::endl;
-        for (int i = 0; i < 28; ++i) {
-            for (int j = 0; j < 28; ++j) {
-                float x = sample.data(i * 28 + j);
-                if (x > 0.67)
-                    os << "##";
-                else if (x > 0.34)
-                    os << "++";
-                else if (x > 0.01)
-                    os << "--";
-                else os << "  ";
-            }
-            os << std::endl;
+        broadcast(label_, 0.0f);
+        for (size_t i = 0; i < batch_size_; ++i) {
+            for (size_t j = 0; j < 784; ++j)
+                data_.at(i, j) = static_cast<float>(image_buf[i * 784 + j]) / 255.0f;
+            size_t tag = label_buf[i];
+            if (tag > 9)
+                throw std::invalid_argument("Invalid label");
+            label_.at(i, tag) = 1.0f;
         }
-        return os;
     }
+
+    const tensor &data() const { return data_; }
+
+    const tensor &label() const { return label_; }
+
+    size_t batch_size() const { return batch_size_; }
+
+    int correct_count(const tensor &output) const {
+        assert_shape_consistency(output, label_);
+        int count = 0;
+        for (size_t i = 0; i < batch_size_; ++i) {
+            int predicted = 0;
+            for (size_t j = 1; j < 10; ++j)
+                if (output.at(i, j) > output.at(i, predicted))
+                    predicted = j;
+            if (label_.at(i, predicted) >= 0.5f) // 0.0f or 1.0f
+                ++count;
+        }
+        return count;
+    }
+
+private:
+    tensor data_;
+    tensor label_;
+    size_t batch_size_;
 };
 
 class mnist_loader {
@@ -62,7 +62,8 @@ class mnist_loader {
     }
 
 public:
-    static std::vector<mnist_sample> load(const std::string &image_file, const std::string &label_file) {
+    static std::vector<mnist_sample> load(const std::string &image_file, const std::string &label_file,
+                                          size_t batch_size) {
         std::vector<mnist_sample> result;
         std::ifstream image_is(image_file, std::ios::binary);
         std::ifstream label_is(label_file, std::ios::binary);
@@ -75,19 +76,17 @@ public:
         if (image_magic != 2051 || label_magic != 2049 || image_count != label_count ||
             image_rows != 28 || image_cols != 28)
             throw std::invalid_argument("Invalid dataset");
-        result.resize(image_count);
-        for (int i = 0; i < image_count; ++i) {
-            unsigned char buf[784];
-            image_is.read(reinterpret_cast<char *>(buf), 784);
-            for (int j = 0; j < 784; ++j) {
-                result[i].data(j) = static_cast<float>(buf[j]) / 255.0f;
-            }
+
+        auto *image_buf = new unsigned char[784 * batch_size];
+        auto *label_buf = new unsigned char[batch_size];
+        for (size_t i = 0; i < image_count; i += batch_size) {
+            size_t current_batch_size = std::min(image_count - i, batch_size);
+            image_is.read(reinterpret_cast<char *>(image_buf), 784 * current_batch_size);
+            label_is.read(reinterpret_cast<char *>(label_buf), current_batch_size);
+            result.emplace_back(current_batch_size, image_buf, label_buf);
         }
-        for (int i = 0; i < image_count; ++i) {
-            unsigned char buf;
-            label_is.read(reinterpret_cast<char *>(&buf), 1);
-            result[i].label = static_cast<int>(buf);
-        }
+        delete[] image_buf;
+        delete[] label_buf;
         return result;
     }
 };

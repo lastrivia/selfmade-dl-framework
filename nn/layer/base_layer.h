@@ -2,23 +2,11 @@
 
 #include "../backend.h"
 
-class param {
-public:
-    tensor data;
-    tensor grad;
-    int reg_index;
+struct param {
+    tensor &data;
+    tensor &grad;
 
-    explicit param(const int rows): data(rows), grad(rows), reg_index(-1) {}
-
-    param(const int rows, const int cols): data(rows, cols), grad(rows, cols), reg_index(-1) {}
-
-    int rows() const {
-        return data.rows();
-    }
-
-    int cols() const {
-        return data.cols();
-    }
+    param(tensor &data, tensor &grad): data(data), grad(grad) {}
 };
 
 class nn_layer {
@@ -29,5 +17,5 @@ public:
 
     virtual tensor back_propagation(const tensor &gradient) = 0;
 
-    virtual std::vector<param *> enum_params() = 0;
+    virtual std::vector<param> enum_params() = 0;
 };

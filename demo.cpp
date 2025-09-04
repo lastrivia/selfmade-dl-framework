@@ -7,13 +7,16 @@
 #include "utils/progress_bar.h"
 
 int main() {
+    size_t batch_size = 1;
     std::vector<mnist_sample> train_dataset = mnist_loader::load(
         "../archive/train-images.idx3-ubyte",
-        "../archive/train-labels.idx1-ubyte"
+        "../archive/train-labels.idx1-ubyte",
+        batch_size
     );
     std::vector<mnist_sample> test_dataset = mnist_loader::load(
         "../archive/t10k-images.idx3-ubyte",
-        "../archive/t10k-labels.idx1-ubyte"
+        "../archive/t10k-labels.idx1-ubyte",
+        batch_size
     );
     fc_layer fc_0(784, 200), fc_1(200, 10);
     relu_layer relu;
@@ -34,12 +37,12 @@ int main() {
         std::cout << "train loop: " << i + 1 << std::endl;
         progress_bar train_progress_bar(train_dataset.size(), 20);
         for (auto &data: train_dataset) {
-            tensor activation = data.data;
+            tensor activation = data.data();
             for (auto layer: layers) {
                 activation = layer->forward_propagation(activation);
             }
             tensor softmax_tensor = softmax(activation);
-            tensor gradient = cross_entropy_grad(softmax_tensor, data.tag());
+            tensor gradient = cross_entropy_grad(softmax_tensor, data.label());
             for (auto layer: std::ranges::reverse_view(layers)) {
                 gradient = layer->back_propagation(gradient);
             }
@@ -52,16 +55,17 @@ int main() {
         // fc_1.save_to(file_1);
         scheduler.step();
         progress_bar test_progress_bar(test_dataset.size(), 20);
-        int correct = 0;
+        size_t correct = 0, total = 0;
         for (auto &data: test_dataset) {
-            tensor activation = data.data;
+            tensor activation = data.data();
             for (auto layer: layers) {
                 activation = layer->forward_propagation(activation);
             }
-            correct += data.validate(activation);
+            correct += data.correct_count(activation);
+            total += data.batch_size();
             test_progress_bar.step();
         }
-        std::cout << "correct: " << static_cast<double>(correct) / static_cast<double>(test_dataset.size()) * 100.0 <<
+        std::cout << "correct: " << static_cast<double>(correct) / static_cast<double>(total) * 100.0 <<
                 "%" << std::endl;
         std::cout << "time elapsed: " << (clock() - start_time) / 1000.0 << "s" << std::endl;
     }

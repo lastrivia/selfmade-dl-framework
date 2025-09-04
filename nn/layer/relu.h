@@ -10,24 +10,14 @@ public:
 
     tensor forward_propagation(const tensor &input) override {
         input_ = input;
-        tensor result = input;
-        for (int i = 0; i < result.rows(); ++i) {
-            if (result(i) < 0.0)
-                result(i) = 0.0;
-        }
-        return result;
+        return relu(input);
     }
 
     tensor back_propagation(const tensor &output_grad) override {
-        tensor input_grad = output_grad;
-        for (int i = 0; i < input_grad.rows(); ++i) {
-            if (input_(i) < 0.0)
-                input_grad(i) = 0.0;
-        }
-        return input_grad;
+        return relu_mask(output_grad, input_);
     }
 
-    std::vector<param *> enum_params() override {
+    std::vector<param> enum_params() override {
         return {};
     }
 

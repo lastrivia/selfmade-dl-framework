@@ -1,5 +1,6 @@
 #pragma once
 
+#include "backend.h"
 #include "layer/fc.h"
 #include "layer/relu.h"
 #include "optimizer/sgd.h"
