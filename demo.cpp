@@ -7,7 +7,7 @@
 #include "utils/progress_bar.h"
 
 int main() {
-    size_t batch_size = 1;
+    size_t batch_size = 32;
     std::vector<mnist_sample> train_dataset = mnist_loader::load(
         "../archive/train-images.idx3-ubyte",
         "../archive/train-labels.idx1-ubyte",
@@ -18,7 +18,7 @@ int main() {
         "../archive/t10k-labels.idx1-ubyte",
         batch_size
     );
-    fc_layer fc_0(784, 200), fc_1(200, 10);
+    fc_layer fc_0(784, 500), fc_1(500, 10);
     relu_layer relu;
     std::vector<nn_layer *> layers{&fc_0, &relu, &fc_1};
 
@@ -49,10 +49,6 @@ int main() {
             train_progress_bar.step();
             optimizer.step();
         }
-        // std::string file_0 = std::string("param_a_") + std::to_string(i + 1) + ".csv";
-        // std::string file_1 = std::string("param_b_") + std::to_string(i + 1) + ".csv";
-        // fc_0.save_to(file_0);
-        // fc_1.save_to(file_1);
         scheduler.step();
         progress_bar test_progress_bar(test_dataset.size(), 20);
         size_t correct = 0, total = 0;
