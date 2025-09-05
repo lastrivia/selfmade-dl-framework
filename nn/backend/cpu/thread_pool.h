@@ -25,7 +25,7 @@ public:
         std::shared_future<void> future_;
     };
 
-    static task_token run(std::function<void()> func) noexcept {
+    static task_token run(const std::function<void()> &func) noexcept {
         static thread_pool pool;
         return pool.run_(func);
     }
@@ -49,9 +49,9 @@ private:
         }
     }
 
-    task_token run_(std::function<void()> &func) noexcept {
+    task_token run_(const std::function<void()> &func) noexcept {
         std::shared_ptr<std::packaged_task<void()> > task =
-            std::make_shared<std::packaged_task<void()> >(std::move(func));
+            std::make_shared<std::packaged_task<void()> >(func);
 
         std::shared_future<void> fut = task->get_future().share();
 

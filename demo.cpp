@@ -7,7 +7,7 @@
 #include "utils/progress_bar.h"
 
 int main() {
-    size_t batch_size = 32;
+    size_t batch_size = 64;
     std::vector<mnist_sample> train_dataset = mnist_loader::load(
         "../archive/train-images.idx3-ubyte",
         "../archive/train-labels.idx1-ubyte",
@@ -66,4 +66,26 @@ int main() {
         std::cout << "time elapsed: " << (clock() - start_time) / 1000.0 << "s" << std::endl;
     }
     return 0;
+
+    // char *a = new char[64 * 784 * sizeof(float)],
+    //      *b = new char[784 * 500 * sizeof(float)],
+    //      *c = new char[64 * 500 * sizeof(float)];
+    // clock_t begin = clock();
+    // for (int i = 0; i < 1024; i++) {
+    //     cpu_kernel_gemm_fp32<false, false>(64, 784, 500, c, a, b);
+    // }
+    // std::cout << "time elapsed: " << (clock() - begin) / 1000.0 << "s" << std::endl;
+    // begin = clock();
+    // for (int i = 0; i < 1024; i++) {
+    //     cpu_kernel_gemm_fp32<false, true>(64, 500, 784, a, c, b);
+    // }
+    // std::cout << "time elapsed: " << (clock() - begin) / 1000.0 << "s" << std::endl;
+    // begin = clock();
+    // for (int i = 0; i < 1024; i++) {
+    //     cpu_kernel_gemm_fp32<true, false>(500, 64, 784, b, c, a);
+    // }
+    // std::cout << "time elapsed: " << (clock() - begin) / 1000.0 << "s" << std::endl;
+    // delete[] a;
+    // delete[] b;
+    // delete[] c;
 }
