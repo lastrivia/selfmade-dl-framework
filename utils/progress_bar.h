@@ -1,24 +1,29 @@
 #pragma once
 
 #include <cstdint>
+#include <iomanip>
 #include <iostream>
 
 class progress_bar {
 public:
-    progress_bar(uint64_t steps, uint64_t length): steps_(steps), length_(length), current_step_(0),
-                                                   current_length_(0) {}
+    progress_bar(uint64_t max_steps, uint64_t max_length) : max_steps_(max_steps), max_length_(max_length),
+                                                            step_(0), length_(0), percentage_(0) {}
 
     void step() {
-        ++current_step_;
-        uint64_t new_length = current_step_ * length_ / steps_;
-        while (new_length > current_length_) {
-            std::cout << "=" << std::flush;
-            ++current_length_;
+        ++step_;
+        uint64_t length = step_ * max_length_ / max_steps_;
+        uint64_t percentage = step_ * 100LL / max_steps_;
+        if (step_ == 1 || length > length_ || percentage > percentage_) {
+            std::cout << "\r[" << std::setw(3) << std::setfill(' ') << percentage << "%] ";
+            for (uint64_t i = 0; i < length; ++i) {
+                std::cout << '=';
+            }
+            std::cout << std::flush;
         }
-        if (current_step_ == steps_)
+        if (step_ == max_steps_)
             std::cout << std::endl;
     }
 
 private:
-    uint64_t steps_, length_, current_step_, current_length_;
+    uint64_t max_steps_, max_length_, step_, length_, percentage_;
 };
