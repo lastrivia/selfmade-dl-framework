@@ -149,11 +149,11 @@ private:
 
         float *tmp_a[5], *tmp_b[5], *tmp_m[7];
         for (auto &i: tmp_a)
-            i = new float[m * p / 4];
+            i = mem_pool::alloc<float>(m * p / 4);
         for (auto &i: tmp_b)
-            i = new float[p * n / 4];
+            i = mem_pool::alloc<float>(p * n / 4);
         for (auto &i: tmp_m)
-            i = new float[m * n / 4];
+            i = mem_pool::alloc<float>(m * n / 4);
 
         const size_t tmp_a_stride = tr_a ? m / 2 : p / 2, tmp_b_stride = tr_b ? p / 2 : n / 2;
 
@@ -197,11 +197,11 @@ private:
         plain_add_add_sub(m / 2, n / 2, blk_dst(1, 1), tmp_m[0], tmp_m[2], tmp_m[5], tmp_m[1], n, n / 2);
 
         for (auto &i: tmp_a)
-            delete[] i;
+            mem_pool::recycle(i);
         for (auto &i: tmp_b)
-            delete[] i;
+            mem_pool::recycle(i);
         for (auto &i: tmp_m)
-            delete[] i;
+            mem_pool::recycle(i);
     }
 };
 

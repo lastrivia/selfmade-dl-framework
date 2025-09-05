@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_kernel.h"
+#include "cpu/mem_pool.h"
 
 enum class device_type: char {
     cpu = 0,
@@ -229,12 +230,11 @@ protected:
         switch (device_type_) {
         case device_type::cpu:
             switch (data_type_) {
-            case data_type::fp32:
+        case data_type::fp32:
                 if (alloc)
-                    data_ = reinterpret_cast<char *>(new float[size()]);
+                    data_ = reinterpret_cast<char *>(mem_pool::alloc<float>(size()));
                 if (copy_src)
                     memcpy(data_, copy_src, sizeof(float) * samples_ * channels_ * height_ * width_);
-                // todo memory pool
                 break;
             }
             break;
@@ -244,7 +244,7 @@ protected:
     void release_data() {
         switch (device_type_) {
         case device_type::cpu:
-            delete[] data_;
+            mem_pool::recycle(data_);
             break;
         default:
             break;

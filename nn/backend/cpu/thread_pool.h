@@ -1,7 +1,5 @@
 #pragma once
 
-// todo multithreaded backend, unused yet
-
 #include <thread>
 #include <vector>
 #include <queue>
