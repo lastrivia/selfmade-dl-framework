@@ -9,7 +9,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_options(nn_demo_cpu PRIVATE
             -O3
             -march=native
-            -ffast-math
+#            -ffast-math
             -save-temps
             -fverbose-asm
     )
@@ -29,7 +29,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(nn_demo_cpu PRIVATE
             /Ox
             /GL
-            /fp:fast
+#            /fp:fast
             /arch:AVX2
             /Oi
             /Ot

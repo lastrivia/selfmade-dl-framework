@@ -30,7 +30,7 @@ int main() {
     exponential_scheduler scheduler(0.8);
     scheduler.bind_optimizer(&optimizer);
 
-    int train_loops = 20;
+    int train_loops = 50;
 
     for (int i = 0; i < train_loops; ++i) {
         int start_time = clock();
