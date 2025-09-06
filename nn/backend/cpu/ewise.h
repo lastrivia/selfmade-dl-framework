@@ -2,7 +2,9 @@
 
 #include <cmath>
 
-// auto simd using -O3
+// auto simd by compiler optimization
+
+// todo simd intrinsics
 
 // todo cache optimization
 

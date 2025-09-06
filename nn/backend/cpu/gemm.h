@@ -14,118 +14,178 @@ public:
     cpu_kernel_gemm_fp32_utils() = delete;
 
 private:
+    static float horizontal_sum_avx2(__m256 x) {
+        __m128 lo4 = _mm256_castps256_ps128(x);
+        __m128 hi4 = _mm256_extractf128_ps(x, 1);
+        __m128 sum4 = _mm_add_ps(lo4, hi4);
+        __m128 hi2 = _mm_movehl_ps(sum4, sum4);
+        __m128 sum2 = _mm_add_ps(sum4, hi2);
+        __m128 hi = _mm_shuffle_ps(sum2, sum2, 0x1);
+        __m128 sum = _mm_add_ss(sum2, hi);
+        return _mm_cvtss_f32(sum);
+    }
+
     // stride: offset between adjacent rows(row-major) or cols(col-major)
 
     // transpose tag: only affects if data is (false:)row-major or (true:)col-major
 
     template<bool tr_a, bool tr_b>
     static void plain_matmul(const size_t m, const size_t p, const size_t n,
-                             float *dst, const float *src_a, const float *src_b,
+                             float *__restrict dst, const float *__restrict src_a, const float *__restrict src_b,
                              const size_t dst_stride, const size_t a_stride, const size_t b_stride) noexcept {
 
-        // for (size_t i = 0; i < m; ++i) {
-        //     for (size_t j = 0; j < n; ++j) {
-        //         float *dst_e = dst + i * dst_stride + j;
-        //         *dst_e = 0;
-        //         for (size_t k = 0; k < p; ++k) {
-        //             // dst(i, j) += a(i, k) * b(k, j)
-        //             *dst_e +=
-        //                     src_a[tr_a ? k * a_stride + i : i * a_stride + k] *
-        //                     src_b[tr_b ? j * b_stride + k : k * b_stride + j];
-        //         }
-        //     }
-        // }
+        if constexpr (!tr_b) {
+            // a: row/col, b: row
+            // vectorize n(j) dimension
 
-        static constexpr size_t AVX2_FP32_N = 8;
+            for (size_t i = 0; i < m; ++i) {
+                size_t j = 0;
 
-        // todo optimize transposed_b cases
-        for (size_t i = 0; i < m; ++i) {
-            size_t j = 0;
-
-            for (; j + AVX2_FP32_N <= n; j += AVX2_FP32_N) {
-                __m256 dst_vec = _mm256_setzero_ps();
-
-                for (size_t k = 0; k < p; ++k) {
-                    float a_val = tr_a ? src_a[k * a_stride + i] : src_a[i * a_stride + k];
-                    __m256 a_vec = _mm256_set1_ps(a_val);
-
-                    __m256 b_vec;
-                    if constexpr (!tr_b) {
-                        b_vec = _mm256_loadu_ps(src_b + k * b_stride + j);
+                for (; j + AVX2_FP32_N <= n; j += AVX2_FP32_N) {
+                    __m256 dst_vec = _mm256_setzero_ps();
+                    for (size_t k = 0; k < p; ++k) {
+                        __m256 a_vec = _mm256_set1_ps(tr_a ? src_a[k * a_stride + i] : src_a[i * a_stride + k]);
+                        __m256 b_vec = _mm256_loadu_ps(src_b + k * b_stride + j);
+                        dst_vec = _mm256_fmadd_ps(a_vec, b_vec, dst_vec);
                     }
-                    else {
-                        alignas(32) float tmp[AVX2_FP32_N];
-                        for (size_t s = 0; s < AVX2_FP32_N; ++s)
-                            tmp[s] = src_b[(j + s) * b_stride + k];
-                        b_vec = _mm256_load_ps(tmp);
-                    }
-
-                    dst_vec = _mm256_fmadd_ps(a_vec, b_vec, dst_vec);
+                    _mm256_storeu_ps(dst + i * dst_stride + j, dst_vec);
                 }
 
-                _mm256_storeu_ps(dst + i * dst_stride + j, dst_vec);
-            }
-
-            if (j < n) {
-                size_t remaining = n - j;
-                alignas(32) float dst_tmp[AVX2_FP32_N] = {0};
-
-                for (size_t t = 0; t < p; ++t) {
-                    float a_val = tr_a ? src_a[t * a_stride + i] : src_a[i * a_stride + t];
-                    __m256 a_vec = _mm256_set1_ps(a_val);
-
-                    alignas(32) float b_tmp[AVX2_FP32_N] = {0};
-                    for (size_t s = 0; s < remaining; ++s) {
-                        if constexpr (!tr_b)
-                            b_tmp[s] = src_b[t * b_stride + j + s];
-                        else
-                            b_tmp[s] = src_b[(j + s) * b_stride + t];
+                if (j < n) {
+                    size_t remaining = n - j;
+                    __m256 dst_vec = _mm256_setzero_ps();
+                    for (size_t k = 0; k < p; ++k) {
+                        __m256 a_vec = _mm256_set1_ps(tr_a ? src_a[k * a_stride + i] : src_a[i * a_stride + k]);
+                        alignas(32) float b_tmp[AVX2_FP32_N];
+                        for (size_t s = 0; s < remaining; ++s)
+                            b_tmp[s] = src_b[k * b_stride + j + s];
+                        __m256 b_vec = _mm256_load_ps(b_tmp);
+                        dst_vec = _mm256_fmadd_ps(a_vec, b_vec, dst_vec);
                     }
-                    __m256 b_vec = _mm256_load_ps(b_tmp);
-
-                    __m256 dst_vec = _mm256_load_ps(dst_tmp);
-                    dst_vec = _mm256_fmadd_ps(a_vec, b_vec, dst_vec);
+                    alignas(32) float dst_tmp[AVX2_FP32_N];
                     _mm256_store_ps(dst_tmp, dst_vec);
+                    for (size_t s = 0; s < remaining; ++s)
+                        dst[i * dst_stride + j + s] = dst_tmp[s];
+                }
+            }
+        }
+        else if constexpr (!tr_a) {
+            // a: row, b: col
+            // vectorize p(k) dimension
+
+            for (size_t i = 0; i < m; ++i) {
+                for (size_t j = 0; j < n; ++j) {
+                    size_t k = 0;
+                    __m256 dst_vec = _mm256_setzero_ps();
+
+                    for (; k + AVX2_FP32_N <= p; k += AVX2_FP32_N) {
+                        __m256 a_vec = _mm256_loadu_ps(src_a + i * a_stride + k);
+                        __m256 b_vec = _mm256_loadu_ps(src_b + j * b_stride + k);
+                        dst_vec = _mm256_fmadd_ps(a_vec, b_vec, dst_vec);
+                    }
+                    float dst_f = horizontal_sum_avx2(dst_vec);
+
+                    for (; k < p; ++k)
+                        dst_f += src_a[i * a_stride + k] * src_b[j * b_stride + k];
+                    dst[i * dst_stride + j] = dst_f;
+                }
+            }
+        }
+        else {
+            // a: col, b: col
+            // vectorize m(i) dimension
+
+            for (size_t j = 0; j < n; ++j) {
+                size_t i = 0;
+
+                for (; i + AVX2_FP32_N <= m; i += AVX2_FP32_N) {
+                    __m256 dst_vec = _mm256_setzero_ps();
+                    for (size_t k = 0; k < p; ++k) {
+                        __m256 b_vec = _mm256_set1_ps(src_b[j * b_stride + k]);
+                        __m256 a_vec = _mm256_loadu_ps(src_a + k * a_stride + i);
+                        dst_vec = _mm256_fmadd_ps(a_vec, b_vec, dst_vec);
+                    }
+                    _mm256_storeu_ps(dst + i * dst_stride + j, dst_vec);
                 }
 
-                for (size_t s = 0; s < remaining; ++s)
-                    dst[i * dst_stride + j + s] = dst_tmp[s];
+                if (i < m) {
+                    size_t remaining = m - i;
+                    __m256 dst_vec = _mm256_setzero_ps();
+                    for (size_t k = 0; k < p; ++k) {
+                        __m256 b_vec = _mm256_set1_ps(src_b[j * b_stride + k]);
+                        alignas(32) float a_tmp[AVX2_FP32_N];
+                        for (size_t s = 0; s < remaining; ++s)
+                            a_tmp[s] = src_a[k * a_stride + i + s];
+                        __m256 a_vec = _mm256_load_ps(a_tmp);
+                        dst_vec = _mm256_fmadd_ps(a_vec, b_vec, dst_vec);
+                    }
+                    alignas(32) float dst_tmp[AVX2_FP32_N];
+                    _mm256_store_ps(dst_tmp, dst_vec);
+                    for (size_t s = 0; s < remaining; ++s)
+                        dst[i * dst_stride + j + s] = dst_tmp[s];
+                }
             }
         }
     }
 
-    // todo simd
     static void plain_add(const size_t blk_n, const size_t blk_len,
-                          float *dst, const float *src_a, const float *src_b,
+                          float *__restrict dst, const float *__restrict src_a, const float *__restrict src_b,
                           const size_t dst_stride, const size_t src_stride) noexcept {
-        for (int i = 0; i < blk_n; ++i) {
-            for (int j = 0; j < blk_len; ++j) {
-                dst[i * dst_stride + j] = src_a[i * src_stride + j] + src_b[i * src_stride + j];
+        for (size_t i = 0; i < blk_n; ++i) {
+            size_t src_offset = i * src_stride, dst_offset = i * dst_stride;
+            size_t j = 0;
+            for (; j + AVX2_FP32_N <= blk_len; j += AVX2_FP32_N) {
+                __m256 a_vec = _mm256_loadu_ps(src_a + src_offset + j);
+                __m256 b_vec = _mm256_loadu_ps(src_b + src_offset + j);
+                _mm256_storeu_ps(dst + dst_offset + j, _mm256_add_ps(a_vec, b_vec));
+            }
+            for (; j < blk_len; ++j) {
+                dst[dst_offset + j] = src_a[src_offset + j] + src_b[src_offset + j];
             }
         }
     }
 
     static void plain_sub(const size_t blk_n, const size_t blk_len,
-                          float *dst, const float *src_a, const float *src_b,
+                          float *__restrict dst, const float *__restrict src_a, const float *__restrict src_b,
                           const size_t dst_stride, const size_t src_stride) noexcept {
-        for (int i = 0; i < blk_n; ++i) {
-            for (int j = 0; j < blk_len; ++j) {
-                dst[i * dst_stride + j] = src_a[i * src_stride + j] - src_b[i * src_stride + j];
+        for (size_t i = 0; i < blk_n; ++i) {
+            size_t src_offset = i * src_stride, dst_offset = i * dst_stride;
+            size_t j = 0;
+            for (; j + AVX2_FP32_N <= blk_len; j += AVX2_FP32_N) {
+                __m256 a_vec = _mm256_loadu_ps(src_a + src_offset + j);
+                __m256 b_vec = _mm256_loadu_ps(src_b + src_offset + j);
+                _mm256_storeu_ps(dst + dst_offset + j, _mm256_sub_ps(a_vec, b_vec));
+            }
+            for (; j < blk_len; ++j) {
+                dst[dst_offset + j] = src_a[src_offset + j] - src_b[src_offset + j];
             }
         }
     }
 
     static void plain_add_add_sub(const size_t blk_n, const size_t blk_len,
-                                  float *dst, const float *src_a, const float *src_b, const float *src_c, const float *src_sub,
+                                  float *__restrict dst, const float *__restrict src_a, const float *__restrict src_b,
+                                  const float *__restrict src_c, const float *__restrict src_sub,
                                   const size_t dst_stride, const size_t src_stride) noexcept {
-        for (int i = 0; i < blk_n; ++i) {
-            for (int j = 0; j < blk_len; ++j) {
-                dst[i * dst_stride + j] = src_a[i * src_stride + j] + src_b[i * src_stride + j] + src_c[i * src_stride + j] - src_sub[i * src_stride + j];
+        for (size_t i = 0; i < blk_n; ++i) {
+            size_t src_offset = i * src_stride, dst_offset = i * dst_stride;
+            size_t j = 0;
+            for (; j + AVX2_FP32_N <= blk_len; j += AVX2_FP32_N) {
+                __m256 a_vec = _mm256_loadu_ps(src_a + src_offset + j);
+                __m256 b_vec = _mm256_loadu_ps(src_b + src_offset + j);
+                __m256 c_vec = _mm256_loadu_ps(src_c + src_offset + j);
+                __m256 sub_vec = _mm256_loadu_ps(src_sub + src_offset + j);
+                _mm256_storeu_ps(
+                    dst + dst_offset + j,
+                    _mm256_add_ps(_mm256_add_ps(a_vec, b_vec), _mm256_sub_ps(c_vec, sub_vec))
+                );
+            }
+            for (; j < blk_len; ++j) {
+                dst[dst_offset + j] = src_a[src_offset + j] + src_b[src_offset + j] + src_c[src_offset + j] - src_sub[src_offset + j];
             }
         }
     }
 
-    template<bool tr_a, bool tr_b, bool can_issue_threads>
+    template<bool tr_a, bool tr_b>
     static void partition(const size_t m, const size_t p, const size_t n,
                           float *dst, const float *src_a, const float *src_b,
                           const size_t dst_stride, const size_t a_stride, const size_t b_stride) noexcept {
@@ -170,16 +230,16 @@ private:
         plain_add(tr_b ? n / 2 : p / 2, tmp_b_stride, tmp_b[4], blk_b(1, 0), blk_b(1, 1), tmp_b_stride, b_stride);
 
         std::vector<std::function<void()> > calls = {
-            std::bind(partition<tr_a, tr_b, false>, m / 2, p / 2, n / 2, tmp_m[0], tmp_a[0], tmp_b[0], n / 2, tmp_a_stride, tmp_b_stride),
-            std::bind(partition<tr_a, tr_b, false>, m / 2, p / 2, n / 2, tmp_m[1], tmp_a[1], blk_b(0, 0), n / 2, tmp_a_stride, b_stride),
-            std::bind(partition<tr_a, tr_b, false>, m / 2, p / 2, n / 2, tmp_m[2], blk_a(0, 0), tmp_b[1], n / 2, a_stride, tmp_b_stride),
-            std::bind(partition<tr_a, tr_b, false>, m / 2, p / 2, n / 2, tmp_m[3], blk_a(1, 1), tmp_b[2], n / 2, a_stride, tmp_b_stride),
-            std::bind(partition<tr_a, tr_b, false>, m / 2, p / 2, n / 2, tmp_m[4], tmp_a[2], blk_b(1, 1), n / 2, tmp_a_stride, b_stride),
-            std::bind(partition<tr_a, tr_b, false>, m / 2, p / 2, n / 2, tmp_m[5], tmp_a[3], tmp_b[3], n / 2, tmp_a_stride, tmp_b_stride),
-            std::bind(partition<tr_a, tr_b, false>, m / 2, p / 2, n / 2, tmp_m[6], tmp_a[4], tmp_b[4], n / 2, tmp_a_stride, tmp_b_stride)
+            std::bind(partition<tr_a, tr_b>, m / 2, p / 2, n / 2, tmp_m[0], tmp_a[0], tmp_b[0], n / 2, tmp_a_stride, tmp_b_stride),
+            std::bind(partition<tr_a, tr_b>, m / 2, p / 2, n / 2, tmp_m[1], tmp_a[1], blk_b(0, 0), n / 2, tmp_a_stride, b_stride),
+            std::bind(partition<tr_a, tr_b>, m / 2, p / 2, n / 2, tmp_m[2], blk_a(0, 0), tmp_b[1], n / 2, a_stride, tmp_b_stride),
+            std::bind(partition<tr_a, tr_b>, m / 2, p / 2, n / 2, tmp_m[3], blk_a(1, 1), tmp_b[2], n / 2, a_stride, tmp_b_stride),
+            std::bind(partition<tr_a, tr_b>, m / 2, p / 2, n / 2, tmp_m[4], tmp_a[2], blk_b(1, 1), n / 2, tmp_a_stride, b_stride),
+            std::bind(partition<tr_a, tr_b>, m / 2, p / 2, n / 2, tmp_m[5], tmp_a[3], tmp_b[3], n / 2, tmp_a_stride, tmp_b_stride),
+            std::bind(partition<tr_a, tr_b>, m / 2, p / 2, n / 2, tmp_m[6], tmp_a[4], tmp_b[4], n / 2, tmp_a_stride, tmp_b_stride)
         };
 
-        if constexpr (can_issue_threads) {
+        if constexpr (ENABLE_MULTITHREADING) {
             std::vector<thread_pool::task_token> tasks;
             for (auto &call: calls)
                 tasks.push_back(thread_pool::run(call));
@@ -209,7 +269,7 @@ private:
 template<bool transpose_a, bool transpose_b>
 void cpu_kernel_gemm_fp32(size_t m, size_t p, size_t n, char *dst_p, const char *src_p_a, const char *src_p_b) noexcept {
 
-    cpu_kernel_gemm_fp32_utils::partition<transpose_a, transpose_b, true>(
+    cpu_kernel_gemm_fp32_utils::partition<transpose_a, transpose_b>(
         m, p, n, reinterpret_cast<float *>(dst_p), reinterpret_cast<const float *>(src_p_a), reinterpret_cast<const float *>(src_p_b),
         n, transpose_a ? m : p, transpose_b ? p : n
     );
