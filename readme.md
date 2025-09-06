@@ -1,3 +1,19 @@
+A lightweight, self-made deep learning framework
+- Manually implemented CPU backend
+- Written in standard C++ with no third-party dependencies
+
+### Currently in development
+
+- CUDA backend
+- Additional layers (e.g., conv2d)
+
+### 0906a - 2025-09-06
+
+- Optimized backend
+  - Memory pool
+  - Multithreading, SIMD, Strassen partition... for GEMM
+- Misc fixes & style improvements
+
 ### 0905a - 2025-09-05
 
 - A completely new backend framework
