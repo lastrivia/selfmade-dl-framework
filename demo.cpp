@@ -17,14 +17,15 @@ int main() {
         "../archive/t10k-labels.idx1-ubyte",
         batch_size
     );
-    fc_layer fc_0(784, 500), fc_1(500, 10);
-    relu_layer relu;
-    std::vector<nn_layer *> layers{&fc_0, &relu, &fc_1};
+
+    nn_model model(
+        fc_layer(784, 500),
+        relu_layer(),
+        fc_layer(500, 10)
+    );
 
     adam_optimizer optimizer(0.001f);
-    for (auto &layer: layers) {
-        optimizer.register_layer(layer);
-    }
+    optimizer.register_model(model);
 
     exponential_scheduler scheduler(0.8);
     scheduler.bind_optimizer(&optimizer);
@@ -33,30 +34,30 @@ int main() {
 
     for (int i = 0; i < train_loops; ++i) {
         std::cout << "epoch " << i + 1 << ':' << std::endl;
+
         progress_bar train_progress_bar(train_dataset.size(), 20, "[train]");
         train_progress_bar.start();
         for (auto &data: train_dataset) {
-            tensor activation = data.data();
-            for (auto layer: layers) {
-                activation = layer->forward_propagation(activation);
-            }
+
+            tensor activation = model.forward_propagation(data.data());
+
             tensor softmax_tensor = softmax(activation);
             tensor gradient = cross_entropy_grad(softmax_tensor, data.label());
-            for (auto layer: std::ranges::reverse_view(layers)) {
-                gradient = layer->back_propagation(gradient);
-            }
-            train_progress_bar.step();
+
+            model.back_propagation(gradient);
+
             optimizer.step();
+            train_progress_bar.step();
         }
         scheduler.step();
+
         progress_bar test_progress_bar(test_dataset.size(), 20, "[test] ");
         test_progress_bar.start();
         size_t correct = 0, total = 0;
         for (auto &data: test_dataset) {
-            tensor activation = data.data();
-            for (auto layer: layers) {
-                activation = layer->forward_propagation(activation);
-            }
+
+            tensor activation = model.forward_propagation(data.data());
+
             correct += data.correct_count(activation);
             total += data.batch_size();
             test_progress_bar.step();
