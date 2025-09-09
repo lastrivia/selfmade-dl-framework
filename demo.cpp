@@ -1,5 +1,4 @@
 #include <iostream>
-#include <ctime>
 #include <vector>
 #include <ranges>
 
@@ -33,9 +32,9 @@ int main() {
     int train_loops = 50;
 
     for (int i = 0; i < train_loops; ++i) {
-        int start_time = clock();
-        std::cout << "train loop: " << i + 1 << std::endl;
-        progress_bar train_progress_bar(train_dataset.size(), 20);
+        std::cout << "epoch " << i + 1 << ':' << std::endl;
+        progress_bar train_progress_bar(train_dataset.size(), 20, "[train]");
+        train_progress_bar.start();
         for (auto &data: train_dataset) {
             tensor activation = data.data();
             for (auto layer: layers) {
@@ -50,7 +49,8 @@ int main() {
             optimizer.step();
         }
         scheduler.step();
-        progress_bar test_progress_bar(test_dataset.size(), 20);
+        progress_bar test_progress_bar(test_dataset.size(), 20, "[test] ");
+        test_progress_bar.start();
         size_t correct = 0, total = 0;
         for (auto &data: test_dataset) {
             tensor activation = data.data();
@@ -61,31 +61,7 @@ int main() {
             total += data.batch_size();
             test_progress_bar.step();
         }
-        std::cout << "correct: " << static_cast<double>(correct) / static_cast<double>(total) * 100.0 <<
-                "%" << std::endl;
-        std::cout << "time elapsed: " << (clock() - start_time) / 1000.0 << "s" << std::endl;
+        std::cout << "correct: " << static_cast<double>(correct) / static_cast<double>(total) * 100.0 << "%" << std::endl;
     }
     return 0;
-
-    // char *a = new char[64 * 784 * sizeof(float)],
-    //      *b = new char[784 * 500 * sizeof(float)],
-    //      *c = new char[64 * 500 * sizeof(float)];
-    // clock_t begin = clock();
-    // for (int i = 0; i < 1024; i++) {
-    //     cpu_kernel_gemm_fp32<false, false>(64, 784, 500, c, a, b);
-    // }
-    // std::cout << "time elapsed: " << (clock() - begin) / 1000.0 << "s" << std::endl;
-    // begin = clock();
-    // for (int i = 0; i < 1024; i++) {
-    //     cpu_kernel_gemm_fp32<false, true>(64, 500, 784, a, c, b);
-    // }
-    // std::cout << "time elapsed: " << (clock() - begin) / 1000.0 << "s" << std::endl;
-    // begin = clock();
-    // for (int i = 0; i < 1024; i++) {
-    //     cpu_kernel_gemm_fp32<true, false>(500, 64, 784, b, c, a);
-    // }
-    // std::cout << "time elapsed: " << (clock() - begin) / 1000.0 << "s" << std::endl;
-    // delete[] a;
-    // delete[] b;
-    // delete[] c;
 }
