@@ -56,6 +56,8 @@ public:
     ) :
         tensor(1, 1, size, 1, device_type, data_type) {}
 
+    tensor() : tensor(0, 0, 0, 0, device_type::cpu, data_type::fp32) {}
+
     explicit tensor(const layout_t &tensor_shape) : tensor(
         tensor_shape.samples, tensor_shape.channels, tensor_shape.height, tensor_shape.width,
         tensor_shape.device_type, tensor_shape.data_type
@@ -219,8 +221,6 @@ protected:
     char *data_;
     bool owns_data_;
 
-    tensor() = default;
-
     friend void assert_data_type(const tensor &, data_type);
     friend void assert_type_consistency(const tensor &, const tensor &);
     friend void assert_shape_consistency(const tensor &, const tensor &);
@@ -230,7 +230,7 @@ protected:
         switch (device_type_) {
         case device_type::cpu:
             switch (data_type_) {
-        case data_type::fp32:
+            case data_type::fp32:
                 if (alloc)
                     data_ = reinterpret_cast<char *>(mem_pool::alloc<float>(size()));
                 if (copy_src)

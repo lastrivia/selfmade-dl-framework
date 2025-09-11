@@ -4,7 +4,7 @@
 
 class relu_layer : public nn_layer {
 public:
-    explicit relu_layer(bool in_place = false) : input_(1), in_place_(in_place) {}
+    explicit relu_layer(bool in_place = false) : in_place_(in_place) {}
 
     ~relu_layer() override = default;
 

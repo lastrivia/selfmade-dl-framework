@@ -10,8 +10,7 @@ public:
         weight_(input_size, output_size),
         weight_grad_(input_size, output_size),
         bias_(1, output_size),
-        bias_grad_(1, output_size),
-        input_(1) {
+        bias_grad_(1, output_size) {
 
         std::random_device rd;
         std::mt19937 gen(rd());
