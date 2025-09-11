@@ -207,7 +207,7 @@ public:
 
     // =======================
 
-    friend const kernel *get_kernel(const tensor &t);
+    friend const kernel &get_kernel(const tensor &t);
 
 protected:
     size_t samples_, channels_, height_, width_;

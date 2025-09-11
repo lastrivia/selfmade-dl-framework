@@ -1,75 +1,39 @@
 #pragma once
 
-using kernel_scalar_fp32_fn = void(*)(size_t, char *, float) noexcept;
-using kernel_unary_fn = void(*)(size_t, char *, const char *) noexcept;
-using kernel_unary_scalar_fp32_fn = void(*)(size_t, char *, const char *, float) noexcept;
-using kernel_unary_tile_fn = void(*)(size_t, size_t, char *, const char *) noexcept;
-using kernel_binary_fn = void(*)(size_t, char *, const char *, const char *) noexcept;
-using kernel_binary_tile_fn = void(*)(size_t, size_t, char *, const char *, const char *) noexcept;
-using kernel_gemm_fn = void(*)(size_t, size_t, size_t, char *, const char *, const char *) noexcept;
+#include <cstdint>
+
+namespace kernel_func {
+
+    using scalar_fp32 = void(*)(size_t, char *, float) noexcept;
+    using unary = void(*)(size_t, char *, const char *) noexcept;
+    using unary_scalar_fp32 = void(*)(size_t, char *, const char *, float) noexcept;
+    using unary_tile = void(*)(size_t, size_t, char *, const char *) noexcept;
+    using binary = void(*)(size_t, char *, const char *, const char *) noexcept;
+    using binary_tile = void(*)(size_t, size_t, char *, const char *, const char *) noexcept;
+    using gemm = void(*)(size_t, size_t, size_t, char *, const char *, const char *) noexcept;
+    using conv = void(*)(size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t,
+                         char *, const char *, const char *, const char *) noexcept;
+
+}
 
 class kernel {
 public:
-    kernel(
-        kernel_binary_fn add_ewise_fp32_fn, kernel_binary_fn sub_ewise_fp32_fn,
-        kernel_binary_fn mul_ewise_fp32_fn, kernel_binary_fn div_ewise_fp32_fn,
-        kernel_unary_scalar_fp32_fn add_scalar_fp32_fn,
-        kernel_unary_scalar_fp32_fn mul_scalar_fp32_fn, kernel_unary_scalar_fp32_fn pow_fp32_fn,
-        kernel_scalar_fp32_fn broadcast_fp32_fn,
-        kernel_unary_fn square_fp32_fn, kernel_unary_fn sqrt_fp32_fn,
-        kernel_unary_fn relu_fp32_fn, kernel_binary_fn relu_mask_fp32_fn,
-        kernel_binary_tile_fn add_cyclic_fp32_fn, kernel_binary_tile_fn sub_cyclic_fp32_fn,
-        kernel_binary_tile_fn add_stretched_fp32_fn, kernel_binary_tile_fn sub_stretched_fp32_fn,
-        kernel_unary_tile_fn sum_cyclic_fp32_fn, kernel_unary_tile_fn sum_stretched_fp32_fn,
-        kernel_unary_tile_fn softmax_fp32_fn,
-        kernel_gemm_fn gemm_fp32_fn_nn, kernel_gemm_fn gemm_fp32_fn_nt,
-        kernel_gemm_fn gemm_fp32_fn_tn, kernel_gemm_fn gemm_fp32_fn_tt
-    ) :
-        add_ewise_fp32_(add_ewise_fp32_fn), sub_ewise_fp32_(sub_ewise_fp32_fn),
-        mul_ewise_fp32_(mul_ewise_fp32_fn), div_ewise_fp32_(div_ewise_fp32_fn),
-        add_scalar_fp32_(add_scalar_fp32_fn), mul_scalar_fp32_(mul_scalar_fp32_fn), pow_fp32_(pow_fp32_fn),
-        broadcast_fp32_(broadcast_fp32_fn),
-        square_fp32_(square_fp32_fn), sqrt_fp32_(sqrt_fp32_fn),
-        relu_fp32_(relu_fp32_fn), relu_mask_fp32_(relu_mask_fp32_fn),
-        add_cyclic_fp32_(add_cyclic_fp32_fn), sub_cyclic_fp32_(sub_cyclic_fp32_fn),
-        add_stretched_fp32_(add_stretched_fp32_fn), sub_stretched_fp32_(sub_stretched_fp32_fn),
-        sum_cyclic_fp32_(sum_cyclic_fp32_fn), sum_stretched_fp32_(sum_stretched_fp32_fn),
-        softmax_fp32_(softmax_fp32_fn),
-        gemm_fp32_{gemm_fp32_fn_nn, gemm_fp32_fn_nt, gemm_fp32_fn_tn, gemm_fp32_fn_tt} {}
+    kernel_func::binary add_ewise_fp32, sub_ewise_fp32, mul_ewise_fp32, div_ewise_fp32;
+    kernel_func::unary_scalar_fp32 add_scalar_fp32, mul_scalar_fp32, pow_fp32;
+    kernel_func::scalar_fp32 broadcast_fp32;
 
-    kernel_binary_fn add_ewise_fp32() const { return add_ewise_fp32_; }
-    kernel_binary_fn sub_ewise_fp32() const { return sub_ewise_fp32_; }
-    kernel_binary_fn mul_ewise_fp32() const { return mul_ewise_fp32_; }
-    kernel_binary_fn div_ewise_fp32() const { return div_ewise_fp32_; }
-    kernel_unary_scalar_fp32_fn add_scalar_fp32() const { return add_scalar_fp32_; }
-    kernel_unary_scalar_fp32_fn mul_scalar_fp32() const { return mul_scalar_fp32_; }
-    kernel_unary_scalar_fp32_fn pow_fp32() const { return pow_fp32_; }
-    kernel_scalar_fp32_fn broadcast_fp32() const { return broadcast_fp32_; }
-    kernel_unary_fn square_fp32() const { return square_fp32_; }
-    kernel_unary_fn sqrt_fp32() const { return sqrt_fp32_; }
-    kernel_unary_fn relu_fp32() const { return relu_fp32_; }
-    kernel_binary_fn relu_mask_fp32() const { return relu_mask_fp32_; }
-    kernel_binary_tile_fn add_cyclic_fp32() const { return add_cyclic_fp32_; }
-    kernel_binary_tile_fn sub_cyclic_fp32() const { return sub_cyclic_fp32_; }
-    kernel_binary_tile_fn add_stretched_fp32() const { return add_stretched_fp32_; }
-    kernel_binary_tile_fn sub_stretched_fp32() const { return sub_stretched_fp32_; }
-    kernel_unary_tile_fn sum_cyclic_fp32() const { return sum_cyclic_fp32_; }
-    kernel_unary_tile_fn sum_stretched_fp32() const { return sum_stretched_fp32_; }
-    kernel_unary_tile_fn softmax_fp32() const { return softmax_fp32_; }
+    kernel_func::unary square_fp32, sqrt_fp32, relu_fp32;
+    kernel_func::binary relu_mask_fp32;
 
-    template<bool transpose_a, bool transpose_b>
-    kernel_gemm_fn gemm_fp32() const {
-        return gemm_fp32_[transpose_a][transpose_b];
-    }
+    kernel_func::binary_tile add_cyclic_fp32, sub_cyclic_fp32;
+    kernel_func::binary_tile add_stretched_fp32, sub_stretched_fp32;
+
+    kernel_func::unary_tile sum_cyclic_fp32, sum_stretched_fp32, softmax_fp32;
+
+    kernel_func::gemm gemm_fp32[2][2]; // <bool transpose_a, bool transpose_b>
+    kernel_func::conv conv_fp32[2][2][2]; // <bool rotate_kernel, bool shift_memory_dim, bool use_bias>
 
 private:
-    kernel_binary_fn add_ewise_fp32_, sub_ewise_fp32_, mul_ewise_fp32_, div_ewise_fp32_;
-    kernel_unary_scalar_fp32_fn add_scalar_fp32_, mul_scalar_fp32_, pow_fp32_;
-    kernel_scalar_fp32_fn broadcast_fp32_;
-    kernel_unary_fn square_fp32_, sqrt_fp32_, relu_fp32_;
-    kernel_binary_fn relu_mask_fp32_;
-    kernel_binary_tile_fn add_cyclic_fp32_, sub_cyclic_fp32_;
-    kernel_binary_tile_fn add_stretched_fp32_, sub_stretched_fp32_;
-    kernel_unary_tile_fn sum_cyclic_fp32_, sum_stretched_fp32_, softmax_fp32_;
-    kernel_gemm_fn gemm_fp32_[2][2];
+    kernel() = default;
+    friend class kernel_init_factory;
 };
