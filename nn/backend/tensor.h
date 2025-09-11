@@ -71,7 +71,7 @@ public:
     }
 
     tensor &operator=(const tensor &other) {
-        if (this != &other) {
+        if (this != &other && data_ != other.data_) {
             if (other.owns_data_) { // deep copy
                 if (owns_data_ && layout() == other.layout()) { // reuse data space
                     construct_data(false, other.data_);
@@ -96,7 +96,7 @@ public:
     }
 
     tensor &operator=(tensor &&other) noexcept {
-        if (this != &other) {
+        if (this != &other && data_ != other.data_) {
             if (owns_data_)
                 release_data();
             copy_layout(other);

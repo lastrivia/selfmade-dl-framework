@@ -59,7 +59,7 @@ int main() {
 
     nn_model model(
         fc_layer(784, 500),
-        relu_layer(),
+        relu_layer(true),
         fc_layer(500, 10)
     );
 
