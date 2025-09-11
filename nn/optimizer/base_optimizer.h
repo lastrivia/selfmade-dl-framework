@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../layer/base_layer.h"
-#include "../base_model.h"
+#include "../model.h"
 
 class nn_optimizer {
 public:

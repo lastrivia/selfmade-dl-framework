@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 #include "tensor.h"
-#include "kernels.h"
+#include "kernel_dispatcher.h"
 
 inline void assert_data_type(const tensor &t, data_type dtype) {
     if (t.data_type_ != dtype)
@@ -16,15 +16,6 @@ inline void assert_type_consistency(const tensor &a, const tensor &b) {
     if (a.data_type_ != b.data_type_)
         throw std::runtime_error("tensor data types do not match");
 }
-
-// template<typename... Ts>
-// void assert_type_consistency(const tensor &first, const tensor &second, const Ts &... rest) {
-//
-//     assert_type_consistency(first, second);
-//
-//     if constexpr (sizeof...(rest) > 0)
-//         assert_type_consistency(second, rest...);
-// }
 
 inline void assert_shape_consistency(const tensor &a, const tensor &b) {
     if (a.samples_ != b.samples_ || a.channels_ != b.channels_ || a.height_ != b.height_ || a.width_ != b.width_)
@@ -50,7 +41,7 @@ tensor matmul(const tensor &a, const tensor &b) {
 
     switch (a.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).gemm_fp32[transpose_a][transpose_b](
+        dispatch_kernel(ret).gemm_fp32[transpose_a][transpose_b](
             transpose_a ? a.width_ : a.height_,
             transpose_a ? a.height_ : a.width_,
             transpose_b ? b.height_ : b.width_,
@@ -69,7 +60,7 @@ inline tensor &tensor::operator+=(const tensor &other) {
     assert_layout_consistency(other, *this);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).add_ewise_fp32(size(), data_, data_, other.data_);
+        dispatch_kernel(*this).add_ewise_fp32(size(), data_, data_, other.data_);
         break;
     }
     return *this;
@@ -80,7 +71,7 @@ inline tensor operator+(const tensor &a, const tensor &b) {
     tensor ret(a.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).add_ewise_fp32(ret.size(), ret.data_, a.data_, b.data_);
+        dispatch_kernel(ret).add_ewise_fp32(ret.size(), ret.data_, a.data_, b.data_);
         break;
     }
     return ret;
@@ -90,7 +81,7 @@ inline tensor &tensor::operator-=(const tensor &other) {
     assert_layout_consistency(other, *this);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).sub_ewise_fp32(size(), data_, data_, other.data_);
+        dispatch_kernel(*this).sub_ewise_fp32(size(), data_, data_, other.data_);
         break;
     }
     return *this;
@@ -101,7 +92,7 @@ inline tensor operator-(const tensor &a, const tensor &b) {
     tensor ret(a.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).sub_ewise_fp32(ret.size(), ret.data_, a.data_, b.data_);
+        dispatch_kernel(ret).sub_ewise_fp32(ret.size(), ret.data_, a.data_, b.data_);
         break;
     }
     return ret;
@@ -111,7 +102,7 @@ inline tensor &tensor::mul_ewise(const tensor &other) {
     assert_layout_consistency(other, *this);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).mul_ewise_fp32(size(), data_, data_, other.data_);
+        dispatch_kernel(*this).mul_ewise_fp32(size(), data_, data_, other.data_);
         break;
     }
     return *this;
@@ -122,7 +113,7 @@ inline tensor mul_ewise(const tensor &a, const tensor &b) {
     tensor ret(a.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).mul_ewise_fp32(ret.size(), ret.data_, a.data_, b.data_);
+        dispatch_kernel(ret).mul_ewise_fp32(ret.size(), ret.data_, a.data_, b.data_);
         break;
     }
     return ret;
@@ -132,7 +123,7 @@ inline tensor &tensor::div_ewise(const tensor &other) {
     assert_layout_consistency(other, *this);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).div_ewise_fp32(size(), data_, data_, other.data_);
+        dispatch_kernel(*this).div_ewise_fp32(size(), data_, data_, other.data_);
         break;
     }
     return *this;
@@ -143,7 +134,7 @@ inline tensor div_ewise(const tensor &a, const tensor &b) {
     tensor ret(a.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).div_ewise_fp32(ret.size(), ret.data_, a.data_, b.data_);
+        dispatch_kernel(ret).div_ewise_fp32(ret.size(), ret.data_, a.data_, b.data_);
         break;
     }
     return ret;
@@ -152,7 +143,8 @@ inline tensor div_ewise(const tensor &a, const tensor &b) {
 inline tensor &tensor::square() {
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).square_fp32(size(), data_, data_);
+        dispatch_kernel(*this).square_fp32(size(), data_, data_);
+        break;
     }
     return *this;
 }
@@ -161,7 +153,8 @@ inline tensor square(const tensor &t) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).square_fp32(ret.size(), ret.data_, t.data_);
+        dispatch_kernel(ret).square_fp32(ret.size(), ret.data_, t.data_);
+        break;
     }
     return ret;
 }
@@ -169,7 +162,8 @@ inline tensor square(const tensor &t) {
 inline tensor &tensor::sqrt() {
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).sqrt_fp32(size(), data_, data_);
+        dispatch_kernel(*this).sqrt_fp32(size(), data_, data_);
+        break;
     }
     return *this;
 }
@@ -178,7 +172,8 @@ inline tensor sqrt(const tensor &t) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).sqrt_fp32(ret.size(), ret.data_, t.data_);
+        dispatch_kernel(ret).sqrt_fp32(ret.size(), ret.data_, t.data_);
+        break;
     }
     return ret;
 }
@@ -186,7 +181,8 @@ inline tensor sqrt(const tensor &t) {
 inline tensor &tensor::relu() {
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).relu_fp32(size(), data_, data_);
+        dispatch_kernel(*this).relu_fp32(size(), data_, data_);
+        break;
     }
     return *this;
 }
@@ -195,7 +191,8 @@ inline tensor relu(const tensor &t) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).relu_fp32(ret.size(), ret.data_, t.data_);
+        dispatch_kernel(ret).relu_fp32(ret.size(), ret.data_, t.data_);
+        break;
     }
     return ret;
 }
@@ -204,7 +201,7 @@ inline tensor &tensor::relu_mask(const tensor &mask) {
     assert_layout_consistency(mask, *this);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).relu_mask_fp32(size(), data_, data_, mask.data_);
+        dispatch_kernel(*this).relu_mask_fp32(size(), data_, data_, mask.data_);
         break;
     }
     return *this;
@@ -215,7 +212,7 @@ inline tensor relu_mask(const tensor &t, const tensor &mask) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).relu_mask_fp32(ret.size(), ret.data_, t.data_, mask.data_);
+        dispatch_kernel(ret).relu_mask_fp32(ret.size(), ret.data_, t.data_, mask.data_);
         break;
     }
     return ret;
@@ -227,7 +224,7 @@ inline tensor &tensor::operator+=(float scalar) {
     assert_data_type(*this, data_type::fp32);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).add_scalar_fp32(size(), data_, data_, scalar);
+        dispatch_kernel(*this).add_scalar_fp32(size(), data_, data_, scalar);
         break;
     }
     return *this;
@@ -238,7 +235,7 @@ inline tensor operator+(const tensor &t, float scalar) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).add_scalar_fp32(ret.size(), ret.data_, t.data_, scalar);
+        dispatch_kernel(ret).add_scalar_fp32(ret.size(), ret.data_, t.data_, scalar);
         break;
     }
     return ret;
@@ -248,7 +245,7 @@ inline tensor &tensor::operator-=(float scalar) {
     assert_data_type(*this, data_type::fp32);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).add_scalar_fp32(size(), data_, data_, -scalar);
+        dispatch_kernel(*this).add_scalar_fp32(size(), data_, data_, -scalar);
         break;
     }
     return *this;
@@ -259,7 +256,7 @@ inline tensor operator-(const tensor &t, float scalar) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).add_scalar_fp32(ret.size(), ret.data_, t.data_, -scalar);
+        dispatch_kernel(ret).add_scalar_fp32(ret.size(), ret.data_, t.data_, -scalar);
         break;
     }
     return ret;
@@ -269,7 +266,7 @@ inline tensor &tensor::operator*=(float scalar) {
     assert_data_type(*this, data_type::fp32);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).mul_scalar_fp32(size(), data_, data_, scalar);
+        dispatch_kernel(*this).mul_scalar_fp32(size(), data_, data_, scalar);
         break;
     }
     return *this;
@@ -280,7 +277,7 @@ inline tensor operator*(const tensor &t, float scalar) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).mul_scalar_fp32(ret.size(), ret.data_, t.data_, scalar);
+        dispatch_kernel(ret).mul_scalar_fp32(ret.size(), ret.data_, t.data_, scalar);
         break;
     }
     return ret;
@@ -290,7 +287,7 @@ inline tensor &tensor::operator/=(float scalar) {
     assert_data_type(*this, data_type::fp32);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).mul_scalar_fp32(size(), data_, data_, 1.0f / scalar);
+        dispatch_kernel(*this).mul_scalar_fp32(size(), data_, data_, 1.0f / scalar);
         break;
     }
     return *this;
@@ -301,7 +298,7 @@ inline tensor operator/(const tensor &t, float scalar) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).mul_scalar_fp32(ret.size(), ret.data_, t.data_, 1.0f / scalar);
+        dispatch_kernel(ret).mul_scalar_fp32(ret.size(), ret.data_, t.data_, 1.0f / scalar);
         break;
     }
     return ret;
@@ -311,7 +308,7 @@ inline void broadcast(tensor &t, float scalar) {
     assert_data_type(t, data_type::fp32);
     switch (t.data_type_) {
     case data_type::fp32:
-        get_kernel(t).broadcast_fp32(t.size(), t.data_, scalar);
+        dispatch_kernel(t).broadcast_fp32(t.size(), t.data_, scalar);
         break;
     }
 }
@@ -320,7 +317,7 @@ inline tensor &tensor::pow(float scalar) {
     assert_data_type(*this, data_type::fp32);
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).pow_fp32(size(), data_, data_, scalar);
+        dispatch_kernel(*this).pow_fp32(size(), data_, data_, scalar);
         break;
     }
     return *this;
@@ -331,7 +328,7 @@ inline tensor pow(const tensor &t, float scalar) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).pow_fp32(ret.size(), ret.data_, t.data_, scalar);
+        dispatch_kernel(ret).pow_fp32(ret.size(), ret.data_, t.data_, scalar);
         break;
     }
     return ret;
@@ -344,13 +341,15 @@ inline tensor &tensor::add_tile(const tensor &tile) {
     if (tile.height_ == height_ && tile.width_ == 1) {
         switch (data_type_) {
         case data_type::fp32:
-            get_kernel(*this).add_stretched_fp32(height_, width_, data_, data_, tile.data_);
+            dispatch_kernel(*this).add_stretched_fp32(height_, width_, data_, data_, tile.data_);
+            break;
         }
     }
     else if (tile.height_ == 1 && tile.width_ == width_) {
         switch (data_type_) {
         case data_type::fp32:
-            get_kernel(*this).add_cyclic_fp32(height_, width_, data_, data_, tile.data_);
+            dispatch_kernel(*this).add_cyclic_fp32(height_, width_, data_, data_, tile.data_);
+            break;
         }
     }
     else
@@ -364,13 +363,15 @@ inline tensor add_tile(const tensor &t, const tensor &tile) {
     if (tile.height_ == t.height_ && tile.width_ == 1) {
         switch (ret.data_type_) {
         case data_type::fp32:
-            get_kernel(ret).add_stretched_fp32(ret.height_, ret.width_, ret.data_, t.data_, tile.data_);
+            dispatch_kernel(ret).add_stretched_fp32(ret.height_, ret.width_, ret.data_, t.data_, tile.data_);
+            break;
         }
     }
     else if (tile.height_ == 1 && tile.width_ == t.width_) {
         switch (ret.data_type_) {
         case data_type::fp32:
-            get_kernel(ret).add_cyclic_fp32(ret.height_, ret.width_, ret.data_, t.data_, tile.data_);
+            dispatch_kernel(ret).add_cyclic_fp32(ret.height_, ret.width_, ret.data_, t.data_, tile.data_);
+            break;
         }
     }
     else
@@ -383,13 +384,15 @@ inline tensor &tensor::sub_tile(const tensor &tile) {
     if (tile.height_ == height_ && tile.width_ == 1) {
         switch (data_type_) {
         case data_type::fp32:
-            get_kernel(*this).sub_stretched_fp32(height_, width_, data_, data_, tile.data_);
+            dispatch_kernel(*this).sub_stretched_fp32(height_, width_, data_, data_, tile.data_);
+            break;
         }
     }
     else if (tile.height_ == 1 && tile.width_ == width_) {
         switch (data_type_) {
         case data_type::fp32:
-            get_kernel(*this).sub_cyclic_fp32(height_, width_, data_, data_, tile.data_);
+            dispatch_kernel(*this).sub_cyclic_fp32(height_, width_, data_, data_, tile.data_);
+            break;
         }
     }
     else
@@ -403,13 +406,15 @@ inline tensor sub_tile(const tensor &t, const tensor &tile) {
     if (tile.height_ == t.height_ && tile.width_ == 1) {
         switch (ret.data_type_) {
         case data_type::fp32:
-            get_kernel(ret).sub_stretched_fp32(ret.height_, ret.width_, ret.data_, t.data_, tile.data_);
+            dispatch_kernel(ret).sub_stretched_fp32(ret.height_, ret.width_, ret.data_, t.data_, tile.data_);
+            break;
         }
     }
     else if (tile.height_ == 1 && tile.width_ == t.width_) {
         switch (ret.data_type_) {
         case data_type::fp32:
-            get_kernel(ret).sub_cyclic_fp32(ret.height_, ret.width_, ret.data_, t.data_, tile.data_);
+            dispatch_kernel(ret).sub_cyclic_fp32(ret.height_, ret.width_, ret.data_, t.data_, tile.data_);
+            break;
         }
     }
     else
@@ -421,7 +426,8 @@ inline tensor sum_rows(const tensor &t) {
     tensor ret(1, t.width_, t.device_type_, t.data_type_);
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).sum_cyclic_fp32(t.height_, t.width_, ret.data_, t.data_);
+        dispatch_kernel(ret).sum_cyclic_fp32(t.height_, t.width_, ret.data_, t.data_);
+        break;
     }
     return ret;
 }
@@ -430,7 +436,8 @@ inline tensor sum_cols(const tensor &t) {
     tensor ret(t.height_, 1, t.device_type_, t.data_type_);
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).sum_stretched_fp32(t.height_, t.width_, ret.data_, t.data_);
+        dispatch_kernel(ret).sum_stretched_fp32(t.height_, t.width_, ret.data_, t.data_);
+        break;
     }
     return ret;
 }
@@ -438,7 +445,8 @@ inline tensor sum_cols(const tensor &t) {
 inline tensor &tensor::softmax() {
     switch (data_type_) {
     case data_type::fp32:
-        get_kernel(*this).softmax_fp32(height_, width_, data_, data_);
+        dispatch_kernel(*this).softmax_fp32(height_, width_, data_, data_);
+        break;
     }
     return *this;
 }
@@ -447,7 +455,8 @@ inline tensor softmax(const tensor &t) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        get_kernel(ret).softmax_fp32(t.height_, t.width_, ret.data_, t.data_);
+        dispatch_kernel(ret).softmax_fp32(t.height_, t.width_, ret.data_, t.data_);
+        break;
     }
     return ret;
 }

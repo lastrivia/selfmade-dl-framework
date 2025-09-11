@@ -26,6 +26,8 @@ private:
     std::unordered_map<char *, size_t> allocated_pool{};
 
     char *alloc_(size_t size_bytes) {
+        if (size_bytes == 0)
+            return nullptr;
         auto it = recycle_pool.find(size_bytes);
         char *ret;
         if (it == recycle_pool.end() || it->second.empty())
@@ -39,6 +41,8 @@ private:
     }
 
     void recycle_(char *p) {
+        if (p == nullptr)
+            return;
         auto it = allocated_pool.find(p);
         if (it == allocated_pool.end()) // exception?
             delete[] p;

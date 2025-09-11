@@ -26,17 +26,17 @@ class kernel_init_factory {
 
         k.square_fp32 = cpu_kernel::square_fp32;
         k.sqrt_fp32 = cpu_kernel::sqrt_fp32;
-        k.relu_fp32 = cpu_kernel::relu_fp32;
 
+        k.relu_fp32 = cpu_kernel::relu_fp32;
         k.relu_mask_fp32 = cpu_kernel::relu_mask_fp32;
 
         k.add_cyclic_fp32 = cpu_kernel::add_cyclic_fp32;
         k.sub_cyclic_fp32 = cpu_kernel::sub_cyclic_fp32;
         k.add_stretched_fp32 = cpu_kernel::add_stretched_fp32;
         k.sub_stretched_fp32 = cpu_kernel::sub_stretched_fp32;
-
         k.sum_cyclic_fp32 = cpu_kernel::sum_cyclic_fp32;
         k.sum_stretched_fp32 = cpu_kernel::sum_stretched_fp32;
+
         k.softmax_fp32 = cpu_kernel::softmax_fp32;
 
         // <bool transpose_a, bool transpose_b>
@@ -59,11 +59,11 @@ class kernel_init_factory {
     }
 };
 
-inline const kernel device_kernel_table[] = {
+inline const kernel kernel_dispatch_table[] = {
     kernel_init_factory::init_cpu_kernel() // device_type::cpu == 0
     // todo cuda
 };
 
-inline const kernel &get_kernel(const tensor &t) {
-    return device_kernel_table[static_cast<size_t>(t.device_type_)];
+inline const kernel &dispatch_kernel(const tensor &t) {
+    return kernel_dispatch_table[static_cast<size_t>(t.device_type_)];
 }

@@ -3,16 +3,6 @@
 #include "base_kernel.h"
 #include "cpu/mem_pool.h"
 
-enum class device_type: char {
-    cpu = 0,
-    // todo cuda = 1,
-};
-
-enum class data_type: char {
-    fp32 = 0,
-    // todo fp16 = 1,
-};
-
 class tensor {
 public:
     struct layout_t {
@@ -209,7 +199,7 @@ public:
 
     // =======================
 
-    friend const kernel &get_kernel(const tensor &t);
+    friend const kernel &dispatch_kernel(const tensor &t);
 
 protected:
     size_t samples_, channels_, height_, width_;
