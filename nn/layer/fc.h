@@ -6,7 +6,7 @@
 
 class fc_layer : public nn_layer {
 public:
-    fc_layer(const int input_size, const int output_size) :
+    fc_layer(const size_t input_size, const size_t output_size) :
         weight_(input_size, output_size),
         weight_grad_(input_size, output_size),
         bias_(1, output_size),
@@ -15,8 +15,8 @@ public:
         std::random_device rd;
         std::mt19937 gen(rd());
         std::normal_distribution<> dis(0.0, sqrt(2.0 / static_cast<double>(input_size)));
-        for (int i = 0; i < input_size; ++i)
-            for (int j = 0; j < output_size; ++j)
+        for (size_t i = 0; i < input_size; ++i)
+            for (size_t j = 0; j < output_size; ++j)
                 weight_.at(i, j) = static_cast<float>(dis(gen));
         broadcast(bias_, 0.0f);
     }

@@ -146,6 +146,20 @@ public:
         return *access_data<T>(row_index * width_ + col_index);
     }
 
+    template<typename T = float>
+    T &at(size_t index) {
+        return *access_data<T>(index);
+    }
+
+    template<typename T = float>
+    const T &at(size_t index) const {
+        return *access_data<T>(index);
+    }
+
+    [[nodiscard]] size_t size() const {
+        return samples_ * channels_ * height_ * width_;
+    }
+
     size_t samples() const { return samples_; }
     size_t channels() const { return channels_; }
     size_t height() const { return height_; }
@@ -155,6 +169,10 @@ public:
 
     template<bool, bool>
     friend tensor matmul(const tensor &, const tensor &);
+
+    friend tensor conv(const tensor &, const tensor &, const tensor &, const size_t, const size_t);
+    friend tensor conv_input_grad(const tensor &, const tensor &, const size_t, const size_t);
+    friend tensor conv_kernel_grad(const tensor &, const tensor &, const size_t, const size_t);
 
     friend tensor operator+(const tensor &, const tensor &);
     tensor &operator+=(const tensor &);
@@ -180,6 +198,7 @@ public:
     tensor &sub_tile(const tensor &);
     friend tensor sum_rows(const tensor &);
     friend tensor sum_cols(const tensor &);
+    friend tensor sum_by_channel(const tensor &);
     friend tensor softmax(const tensor &);
     tensor &softmax();
 
@@ -200,6 +219,10 @@ public:
     // =======================
 
     friend const kernel &dispatch_kernel(const tensor &t);
+
+    friend class tensor_mask;
+
+    friend class flatten_layer;
 
 protected:
     size_t samples_, channels_, height_, width_;
@@ -252,10 +275,6 @@ protected:
         else {
             throw std::runtime_error("unsupported data type");
         }
-    }
-
-    [[nodiscard]] size_t size() const {
-        return samples_ * channels_ * height_ * width_;
     }
 
     void copy_layout(const tensor &other) {

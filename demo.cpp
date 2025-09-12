@@ -58,15 +58,17 @@ int main() {
     );
 
     nn_model model(
-        fc_layer(784, 500),
+        conv_layer(1, 4, 3, 3, 0, 0),
+        flatten_layer(),
+        fc_layer(2704, 256),
         relu_layer(true),
-        fc_layer(500, 10)
+        fc_layer(256, 10)
     );
 
     adam_optimizer optimizer(0.001f);
     optimizer.register_model(model);
 
-    exponential_scheduler scheduler(0.8);
+    exponential_scheduler scheduler(0.9);
     scheduler.bind_optimizer(&optimizer);
 
     int train_loops = 50;

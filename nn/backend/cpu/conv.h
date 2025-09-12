@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include "../base_kernel.h"
+
 #ifdef _MSC_VER
 using ssize_t = ptrdiff_t;
 #endif
@@ -12,86 +14,95 @@ using ssize_t = ptrdiff_t;
 
 namespace cpu_kernel {
 
-    template<bool rotate_kernel, bool shift_memory_dim, bool use_bias>
-    /**  normal:  [n, c_in, ., .] * [c_out, c_in, ., .] -> [n, c_out, ., .] (forward; input grad)
-      *  shifted: [c_in, n, ., .] * [c_in, c_out, ., .] -> [c_out, n, ., .] (weight grad)
-      *
-      *  === call ===
-      *  forward:     <false, false, true>(n, c_in, c_out, h_kernel, w_kernel, h_in, w_in, h_padding, w_padding, out, in, kernel, bias)
-      *  input grad:  <true, false, false>(n, c_out, c_in, h_kernel, w_kernel, h_out, w_out,
-      *                                    h_kernel - 1 - h_padding, w_kernel - 1 - w_padding, in_grad, out_grad, kernel, <any>)
-      *  weight grad: <false, true, false>(c_in, n, c_out, h_out, w_out, h_in, w_in, h_padding, w_padding, w_grad, in, out_grad, <any>)
-      *
-      *  requires padding < kernel_size
-      */
-    void conv_fp32(const size_t samples, const size_t c_in, const size_t c_out,
-                   const size_t h_kernel, const size_t w_kernel, const size_t h_in, const size_t w_in,
-                   const size_t h_padding, const size_t w_padding,
-                   char *__restrict dst_p, const char *__restrict in_p, const char *__restrict kernel_p,
+    template<kernel_func::conv_mode mode>
+    /** === modes ===
+     *
+     *  forward:
+     *
+     *  src_a = in, src_b = kernel, dst = out
+     *  [n, c_i, h_i, w_i] * [c_o, c_i, h_k, w_k] + bias -> [n, c_o, h_o, w_o]
+     *  call: (n, c_i, c_o, h_i, w_i, h_k, w_k, h_pad, w_pad, &out, &in, &kernel, &bias)
+     *
+     *  input_grad:
+     *
+     *  src_a = out_grad, src_b = kernel, dst = in_grad
+     *  [n, c_o, h_o, w_o] * [c_o, c_i, h_k, w_k](rotated) -> [n, c_i, h_i, w_i]
+     *  call: (n, c_i, c_o, h_o, w_o, h_k, w_k, h_k - h_pad - 1, w_k - w_pad - 1, &in_grad, &out_grad, &kernel, nullptr)
+     *
+     *  kernel_grad:
+     *
+     *  src_a = in, src_b = out_grad, dst = kernel_grad
+     *  [n, c_i, h_i, w_i] * [n, c_o, h_o, w_o] -> [c_o, c_i, h_k, w_k]
+     *  call: (n, c_i, c_o, h_i, w_i, h_o, w_o, h_pad, w_pad, &kernel_grad, &in, &out_grad, nullptr)
+     *
+     *  requires padding < kernel_size
+     */
+    void conv_fp32(const size_t n, const size_t c_i, const size_t c_o,
+                   const size_t h_a, const size_t w_a, const size_t h_b, const size_t w_b,
+                   const size_t h_pad, const size_t w_pad,
+                   char *__restrict dst_p, const char *__restrict src_a_p, const char *__restrict src_b_p,
                    const char *__restrict bias_p) noexcept {
 
-        const size_t h_out = h_in - h_kernel + 1 + h_padding * 2, w_out = w_in - w_kernel + 1 + w_padding * 2;
+        const size_t h_dst = h_a - h_b + 1 + h_pad * 2, w_dst = w_a - w_b + 1 + w_pad * 2;
 
-        auto in = [=](size_t n, size_t c, size_t h, size_t w) -> const float & {
-            return *(reinterpret_cast<const float *__restrict>(in_p) +
-                     ((shift_memory_dim ? c * samples + n : n * c_in + c) * h_in + h) * w_in + w);
+        using enum kernel_func::conv_mode;
+
+        auto src_a = [=](size_t dim_x, size_t dim_y, size_t h, size_t w) -> const float & {
+            return *(reinterpret_cast<const float *__restrict>(src_a_p) + ((dim_x * (mode == input_grad ? c_o : c_i) + dim_y) * h_a + h) * w_a + w);
         };
-        auto kernel = [=](size_t co, size_t ci, size_t h, size_t w) -> const float & {
-            return *(reinterpret_cast<const float *__restrict>(kernel_p) +
-                     ((shift_memory_dim ? ci * c_out + co : co * c_in + ci) * h_kernel + h) * w_kernel + w);
+        auto src_b = [=](size_t dim_x, size_t dim_y, size_t h, size_t w) -> const float & {
+            return *(reinterpret_cast<const float *__restrict>(src_b_p) + ((dim_x * (mode == kernel_grad ? c_o : c_i) + dim_y) * h_b + h) * w_b + w);
         };
-        auto dst = [=](size_t n, size_t c, size_t h, size_t w) -> float & {
-            return *(reinterpret_cast<float *__restrict>(dst_p) +
-                     ((shift_memory_dim ? c * samples + n : n * c_out + c) * h_out + h) * w_out + w);
+        auto dst = [=](size_t dim_x, size_t dim_y, size_t h, size_t w) -> float & {
+            return *(reinterpret_cast<float *__restrict>(dst_p) + ((dim_x * (mode == forward ? c_o : c_i) + dim_y) * h_dst + h) * w_dst + w);
         };
 
         auto bias = reinterpret_cast<const float *__restrict>(bias_p);
 
-        float *tmp = nullptr;
-        if (use_bias && bias_p == nullptr) { // not expected
-            tmp = new float[c_out];
-            memset(tmp, 0, c_out * sizeof(float));
-            bias = tmp;
+        if (mode == forward && bias_p == nullptr) { // not expected
+            return;
         }
 
-        for (size_t i = 0; i < samples; i++) {
-            for (size_t co = 0; co < c_out; co++) {
-                for (size_t j = 0; j < h_out; j++) {
-                    for (size_t k = 0; k < w_out; k++) {
+        for (size_t dim_i = 0; dim_i < (mode == kernel_grad ? c_o : n); ++dim_i) {
+            for (size_t dim_j = 0; dim_j < (mode == forward ? c_o : c_i); ++dim_j) {
 
-                        float &dst_e = dst(i, co, j, k);
-                        dst_e = use_bias ? bias[co] : 0.0f;
-                        size_t h_kernel_start = static_cast<size_t>(std::max(static_cast<ssize_t>(0),
-                                                                             static_cast<ssize_t>(h_padding) - static_cast<ssize_t>(j))),
-                               h_kernel_end = std::min(h_kernel, h_in + h_padding - j),
-                               w_kernel_start = static_cast<size_t>(std::max(static_cast<ssize_t>(0),
-                                                                             static_cast<ssize_t>(w_padding) - static_cast<ssize_t>(k))),
-                               w_kernel_end = std::min(w_kernel, w_in + w_padding - k);
+                for (size_t i = 0; i < h_dst; ++i) {
+                    for (size_t j = 0; j < w_dst; ++j) {
 
-                        for (size_t ci = 0; ci < c_in; ci++) {
-                            for (
-                                size_t j_kernel = h_kernel_start;
-                                j_kernel < h_kernel_end;
-                                j_kernel++
-                            ) {
-                                for (
-                                    size_t k_kernel = w_kernel_start;
-                                    k_kernel < w_kernel_end;
-                                    k_kernel++
-                                ) {
-                                    dst_e += in(i, ci, j + j_kernel - h_padding, k + k_kernel - w_padding) *
-                                    (rotate_kernel
-                                         ? kernel(co, ci, h_kernel - j_kernel - 1, w_kernel - k_kernel - 1)
-                                         : kernel(co, ci, j_kernel, k_kernel));
+                        float &dst_e = dst(dim_i, dim_j, i, j);
+                        dst_e = mode == forward ? bias[dim_j] : 0.0f;
+
+                        size_t b_i_start = static_cast<size_t>(std::max(static_cast<ssize_t>(0),
+                                                                          static_cast<ssize_t>(h_pad) - static_cast<ssize_t>(i))),
+                               b_i_end = std::min(h_b, h_a + h_pad - i),
+                               b_j_start = static_cast<size_t>(std::max(static_cast<ssize_t>(0),
+                                                                          static_cast<ssize_t>(w_pad) - static_cast<ssize_t>(j))),
+                               b_j_end = std::min(w_b, w_a + w_pad - j);
+
+                        for (size_t dim_k = 0; dim_k < (mode == forward ? c_i : mode == input_grad ? c_o : n); ++dim_k) {
+                            for (size_t b_i = b_i_start; b_i < b_i_end; ++b_i) {
+                                for (size_t b_j = b_j_start; b_j < b_j_end; ++b_j) {
+
+                                    switch (mode) {
+                                    case forward:
+                                        dst_e += src_a(dim_i, dim_k, i + b_i - h_pad, j + b_j - w_pad)
+                                                * src_b(dim_j, dim_k, b_i, b_j);
+                                        break;
+                                    case input_grad:
+                                        dst_e += src_a(dim_i, dim_k, i + b_i - h_pad, j + b_j - w_pad)
+                                                * src_b(dim_k, dim_j, h_b - b_i - 1, w_b - b_j - 1);
+                                        break;
+                                    case kernel_grad:
+                                        dst_e += src_a(dim_k, dim_j, i + b_i - h_pad, j + b_j - w_pad)
+                                                * src_b(dim_k, dim_i, b_i, b_j);
+                                        break;
+                                    }
                                 }
                             }
                         }
-
                     }
                 }
             }
         }
-
-        delete[] tmp;
     }
 }

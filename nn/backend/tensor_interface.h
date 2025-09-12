@@ -35,7 +35,7 @@ tensor matmul(const tensor &a, const tensor &b) {
     // if (a.samples_ != 1 || b.samples_ != 1 || a.channels_ != 1 || b.channels_ != 1)
     //     throw std::runtime_error("matmul does not support batched data");
     if ((transpose_a ? a.height_ : a.width_) != (transpose_b ? b.width_ : b.height_))
-        throw std::runtime_error("matrix sizes does not match");
+        throw std::runtime_error("matrix sizes do not match");
 
     tensor ret(transpose_a ? a.width_ : a.height_, transpose_b ? b.height_ : b.width_, a.device_type_, a.data_type_);
 
@@ -54,6 +54,99 @@ tensor matmul(const tensor &a, const tensor &b) {
 
 inline tensor matmul(const tensor &a, const tensor &b) {
     return matmul<false, false>(a, b);
+}
+
+inline tensor conv(const tensor &input, const tensor &kernel, const tensor &bias,
+                   const size_t height_padding, const size_t width_padding) {
+    // [n, c_i, h_i, w_i] * [c_o, c_i, h_k, w_k] + bias -> [n, c_o, h_o, w_o]
+    assert_type_consistency(input, kernel);
+    assert_type_consistency(input, bias);
+    if (input.channels_ != kernel.channels_)
+        throw std::runtime_error("conv channels do not match");
+    if (height_padding >= kernel.height_ || width_padding >= kernel.width_)
+        throw std::runtime_error("padding cannot be larger than kernel");
+
+    tensor ret(
+        input.samples_, kernel.samples_,
+        input.height_ - kernel.height_ + 1 + height_padding * 2,
+        input.width_ - kernel.width_ + 1 + width_padding * 2,
+        input.device_type_, input.data_type_
+    );
+
+    switch (ret.data_type_) {
+    case data_type::fp32:
+        dispatch_kernel(ret).conv_fp32[static_cast<size_t>(kernel_func::conv_mode::forward)](
+            input.samples_, input.channels_, kernel.samples_,
+            input.height_, input.width_, kernel.height_, kernel.width_,
+            height_padding, width_padding,
+            ret.data_, input.data_, kernel.data_, bias.data_
+        );
+        break;
+    }
+
+    return ret;
+}
+
+inline tensor conv_input_grad(const tensor &output_grad, const tensor &kernel,
+                              const size_t input_height_padding, const size_t input_width_padding) {
+    // [n, c_o, h_o, w_o] * [c_o, c_i, h_k, w_k](rotated) -> [n, c_i, h_i, w_i]
+    assert_type_consistency(output_grad, kernel);
+    if (output_grad.channels_ != kernel.samples_)
+        throw std::runtime_error("conv channels do not match");
+    if (input_height_padding >= kernel.height_ || input_width_padding >= kernel.width_)
+        throw std::runtime_error("padding cannot be larger than kernel");
+    const size_t height_padding = kernel.height_ - input_height_padding - 1,
+                 width_padding = kernel.width_ - input_width_padding - 1;
+
+    tensor ret(
+        output_grad.samples_, kernel.channels_,
+        output_grad.height_ - kernel.height_ + 1 + height_padding * 2,
+        output_grad.width_ - kernel.width_ + 1 + width_padding * 2,
+        output_grad.device_type_, output_grad.data_type_
+    );
+
+    switch (ret.data_type_) {
+    case data_type::fp32:
+        dispatch_kernel(ret).conv_fp32[static_cast<size_t>(kernel_func::conv_mode::input_grad)](
+            output_grad.samples_, kernel.channels_, output_grad.channels_,
+            output_grad.height_, output_grad.width_, kernel.height_, kernel.width_,
+            height_padding, width_padding,
+            ret.data_, output_grad.data_, kernel.data_, nullptr
+        );
+        break;
+    }
+
+    return ret;
+}
+
+inline tensor conv_kernel_grad(const tensor &input, const tensor &output_grad,
+                               const size_t height_padding, const size_t width_padding) {
+    // [n, c_i, h_i, w_i] * [n, c_o, h_o, w_o] -> [c_o, c_i, h_k, w_k]
+    assert_type_consistency(input, output_grad);
+    if (input.samples_ != output_grad.samples_)
+        throw std::runtime_error("conv channels do not match");
+    if (height_padding >= output_grad.height_ || width_padding >= output_grad.width_)
+        throw std::runtime_error("padding cannot be larger than kernel");
+
+    tensor ret(
+        output_grad.channels_, input.channels_,
+        input.height_ - output_grad.height_ + 1 + height_padding * 2,
+        input.width_ - output_grad.width_ + 1 + width_padding * 2,
+        input.device_type_, input.data_type_
+    );
+
+    switch (ret.data_type_) {
+    case data_type::fp32:
+        dispatch_kernel(ret).conv_fp32[static_cast<size_t>(kernel_func::conv_mode::kernel_grad)](
+            input.samples_, input.channels_, output_grad.channels_,
+            input.height_, input.width_, output_grad.height_, output_grad.width_,
+            height_padding, width_padding,
+            ret.data_, input.data_, output_grad.data_, nullptr
+        );
+        break;
+    }
+
+    return ret;
 }
 
 inline tensor &tensor::operator+=(const tensor &other) {
@@ -438,6 +531,17 @@ inline tensor sum_cols(const tensor &t) {
     case data_type::fp32:
         dispatch_kernel(ret).sum_stretched_fp32(t.height_, t.width_, ret.data_, t.data_);
         break;
+    }
+    return ret;
+}
+
+inline tensor sum_by_channel(const tensor &t) {
+    tensor tmp(t.samples_, t.channels_, 1, 1, t.device_type_, t.data_type_);
+    tensor ret(1, t.channels_, 1, 1, t.device_type_, t.data_type_);
+    switch (ret.data_type_) {
+        case data_type::fp32:
+        dispatch_kernel(ret).sum_stretched_fp32(t.samples_ * t.channels_, t.height_ * t.width_, tmp.data_, t.data_);
+        dispatch_kernel(ret).sum_cyclic_fp32(t.samples_, t.channels_, ret.data_, tmp.data_);
     }
     return ret;
 }

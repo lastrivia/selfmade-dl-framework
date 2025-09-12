@@ -24,6 +24,13 @@ namespace kernel_func {
     using conv = void(*)(size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t,
                          char *, const char *, const char *, const char *) noexcept;
 
+
+    enum class conv_mode: char {
+        forward = 0,
+        input_grad = 1,
+        kernel_grad = 2
+    };
+
 }
 
 class kernel {
@@ -45,7 +52,7 @@ public:
     kernel_func::unary_tile softmax_fp32;
 
     kernel_func::gemm gemm_fp32[2][2]; // <bool transpose_a, bool transpose_b>
-    kernel_func::conv conv_fp32[2][2][2]; // <bool rotate_kernel, bool shift_memory_dim, bool use_bias>
+    kernel_func::conv conv_fp32[3];
 
 private:
     kernel() = default;

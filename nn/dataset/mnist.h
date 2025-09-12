@@ -9,14 +9,15 @@
 class mnist_sample {
 public:
     mnist_sample(size_t batch_size, const unsigned char *image_buf, const unsigned char *label_buf) :
-        data_(batch_size, 784),
+        data_(batch_size, 1, 28, 28),
         label_(batch_size, 10),
         batch_size_(batch_size) {
 
         broadcast(label_, 0.0f);
         for (size_t i = 0; i < batch_size_; ++i) {
-            for (size_t j = 0; j < 784; ++j)
-                data_.at(i, j) = static_cast<float>(image_buf[i * 784 + j]) / 255.0f;
+            for (size_t j = 0; j < 28; ++j)
+                for (size_t k = 0; k < 28; ++k)
+                    data_.at(i, 0, j, k) = static_cast<float>(image_buf[i * 784 + j * 28 + k]) / 255.0f;
             size_t tag = label_buf[i];
             if (tag > 9)
                 throw std::invalid_argument("Invalid label");

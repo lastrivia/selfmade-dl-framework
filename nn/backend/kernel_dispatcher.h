@@ -39,21 +39,15 @@ class kernel_init_factory {
 
         k.softmax_fp32 = cpu_kernel::softmax_fp32;
 
-        // <bool transpose_a, bool transpose_b>
         k.gemm_fp32[0][0] = cpu_kernel::gemm_fp32<false, false>;
         k.gemm_fp32[0][1] = cpu_kernel::gemm_fp32<false, true>;
         k.gemm_fp32[1][0] = cpu_kernel::gemm_fp32<true, false>;
         k.gemm_fp32[1][1] = cpu_kernel::gemm_fp32<true, true>;
 
-        // <bool rotate_kernel, bool shift_memory_dim, bool use_bias>
-        k.conv_fp32[0][0][0] = cpu_kernel::conv_fp32<false, false, false>;
-        k.conv_fp32[0][0][1] = cpu_kernel::conv_fp32<false, false, true>;
-        k.conv_fp32[0][1][0] = cpu_kernel::conv_fp32<false, true, false>;
-        k.conv_fp32[0][1][1] = cpu_kernel::conv_fp32<false, true, true>;
-        k.conv_fp32[1][0][0] = cpu_kernel::conv_fp32<true, false, false>;
-        k.conv_fp32[1][0][1] = cpu_kernel::conv_fp32<true, false, true>;
-        k.conv_fp32[1][1][0] = cpu_kernel::conv_fp32<true, true, false>;
-        k.conv_fp32[1][1][1] = cpu_kernel::conv_fp32<true, true, true>;
+        using kernel_func::conv_mode;
+        k.conv_fp32[0] = cpu_kernel::conv_fp32<conv_mode::forward>;
+        k.conv_fp32[1] = cpu_kernel::conv_fp32<conv_mode::input_grad>;
+        k.conv_fp32[2] = cpu_kernel::conv_fp32<conv_mode::kernel_grad>;
 
         return k;
     }
