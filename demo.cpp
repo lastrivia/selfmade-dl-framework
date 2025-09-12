@@ -59,6 +59,7 @@ int main() {
 
     nn_model model(
         conv_layer(1, 4, 3, 3, 0, 0),
+        relu_layer(true),
         flatten_layer(),
         fc_layer(2704, 256),
         relu_layer(true),

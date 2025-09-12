@@ -6,7 +6,7 @@ class flatten_layer : public nn_layer {
 public:
     flatten_layer() = default;
 
-    ~flatten_layer() = default;
+    ~flatten_layer() override = default;
 
     tensor forward_propagation(tensor &input) override {
         input_layout_ = input.layout();
@@ -30,5 +30,5 @@ public:
     }
 
 private:
-    tensor::layout_t input_layout_;
+    tensor::layout_t input_layout_{};
 };
