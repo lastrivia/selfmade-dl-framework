@@ -19,7 +19,12 @@ public:
     }
 
     tensor back_propagation(tensor &output_grad) override {
-        return relu_mask(output_grad, input_);
+        if (in_place_) {
+            output_grad.relu_mask(input_);
+            return output_grad;
+        }
+        else
+            return relu_mask(output_grad, input_);
     }
 
     std::vector<param> enum_params() override {
