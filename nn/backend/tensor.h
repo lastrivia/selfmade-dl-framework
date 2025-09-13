@@ -170,9 +170,9 @@ public:
     template<bool, bool>
     friend tensor matmul(const tensor &, const tensor &);
 
-    friend tensor conv(const tensor &, const tensor &, const tensor &, const size_t, const size_t);
-    friend tensor conv_input_grad(const tensor &, const tensor &, const size_t, const size_t);
-    friend tensor conv_kernel_grad(const tensor &, const tensor &, const size_t, const size_t);
+    friend tensor conv(const tensor &, const tensor &, const tensor &, size_t, size_t);
+    friend tensor conv_input_grad(const tensor &, const tensor &, size_t, size_t);
+    friend tensor conv_kernel_grad(const tensor &, const tensor &, size_t, size_t);
 
     friend tensor operator+(const tensor &, const tensor &);
     tensor &operator+=(const tensor &);
@@ -199,8 +199,13 @@ public:
     friend tensor sum_rows(const tensor &);
     friend tensor sum_cols(const tensor &);
     friend tensor sum_by_channel(const tensor &);
+
     friend tensor softmax(const tensor &);
     tensor &softmax();
+
+    friend class tensor_mask;
+    friend tensor maxpool(const tensor &, tensor_mask &, size_t, size_t);
+    friend tensor maxpool_backward(const tensor &, const tensor_mask &, size_t, size_t, size_t, size_t);
 
     // fp32
     friend tensor operator+(const tensor &, float);
@@ -220,8 +225,6 @@ public:
 
     friend const kernel &dispatch_kernel(const tensor &t);
 
-    friend class tensor_mask;
-
     friend class flatten_layer;
 
 protected:
@@ -238,6 +241,7 @@ protected:
     friend void assert_type_consistency(const tensor &, const tensor &);
     friend void assert_shape_consistency(const tensor &, const tensor &);
     friend void assert_layout_consistency(const tensor &, const tensor &);
+    friend void assert_mask_consistency(const tensor &, const tensor_mask &);
 
     void construct_data(bool alloc = true, const char *copy_src = nullptr) {
         switch (device_type_) {

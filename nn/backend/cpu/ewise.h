@@ -103,7 +103,7 @@ namespace cpu_kernel {
         }
     }
 
-    inline void relu_mask_fp32(size_t n, char *dst_p, const char *src_p, const char *mask_p) noexcept {
+    inline void relu_backward_fp32(size_t n, char *dst_p, const char *src_p, const char *mask_p) noexcept {
         auto *dst = reinterpret_cast<float *>(dst_p);
         const auto *src = reinterpret_cast<const float *>(src_p);
         const auto *mask = reinterpret_cast<const float *>(mask_p);
@@ -202,6 +202,80 @@ namespace cpu_kernel {
             float inv_sum = 1.0f / sum;
             for (size_t j = 0; j < blk_len; j++)
                 row_dst[j] *= inv_sum;
+        }
+    }
+
+    inline void maxpool_fp32(size_t blk_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
+                             char *dst_p, char *mask_p, const char *src_p) noexcept{
+        auto *dst = reinterpret_cast<float *>(dst_p);
+        auto *mask = reinterpret_cast<int8_t *>(mask_p);
+        const auto *src = reinterpret_cast<const float *>(src_p);
+
+        size_t h_out = (h - 1) / h_stride + 1;
+        size_t w_out = (w - 1) / w_stride + 1;
+
+        memset(dst, 0, blk_n * h_out * w_out * sizeof(float));
+        memset(mask, 0, blk_n * h * w * sizeof(int8_t));
+
+        for (size_t i = 0; i < blk_n; i++) {
+            for (size_t j = 0; j < h_out; j++) {
+                for (size_t k = 0; k < w_out; k++) {
+
+                    size_t local_offset = (i * h + j * h_stride) * w + k * w_stride;
+                    size_t h_local = std::min(h_stride, h - j * h_stride);
+                    size_t w_local = std::min(w_stride, w - k * w_stride);
+
+                    float max_val = src[local_offset];
+                    size_t max_h = 0, max_w = 0;
+
+                    for (size_t j_local = 0; j_local < h_local; j_local++) {
+                        for (size_t k_local = 0; k_local < w_local; k_local++) {
+                            if (src[local_offset + j_local * w + k_local] > max_val) {
+                                max_val = src[local_offset + j_local * w + k_local];
+                                max_h = j_local;
+                                max_w = k_local;
+                            }
+                        }
+                    }
+
+                    mask[local_offset + max_h * w + max_w] = 1;
+                    dst[(i * h_out + j) * w_out + k] = max_val;
+                }
+            }
+        }
+    }
+
+    inline void maxpool_backward_fp32(size_t blk_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
+                                      char *dst_p, const char *mask_p, const char *src_p) noexcept {
+
+        auto *dst = reinterpret_cast<int32_t *>(dst_p); // float
+        const auto *mask = reinterpret_cast<const int8_t *>(mask_p);
+        const auto *src = reinterpret_cast<const int32_t *>(src_p); // float
+
+        size_t h_src = (h - 1) / h_stride + 1;
+        size_t w_src = (w - 1) / w_stride + 1;
+
+        for (size_t i = 0; i < blk_n; i++) {
+            for (size_t j = 0; j < h_src; j++) {
+                for (size_t k = 0; k < w_src; k++) {
+
+                    size_t src_offset = (i * h_src + j) * w_src + k;
+                    size_t dst_offset = (i * h + j * h_stride) * w + k * w_stride;
+
+                    size_t h_local = std::min(h_stride, h - j * h_stride);
+                    size_t w_local = std::min(w_stride, w - k * w_stride);
+
+                    for (size_t j_local = 0; j_local < h_local; j_local++) {
+                        for (size_t k_local = 0; k_local < w_local; k_local++) {
+                            // bitmask trick:
+                            // dst_float[dst_offset + j_local * w + k_local] =
+                            //     mask[dst_offset + j_local * w + k_local] ? src_float[src_offset] : 0.0f
+                            int32_t bitmask = -static_cast<int32_t>(mask[dst_offset + j_local * w + k_local]);
+                            dst[dst_offset + j_local * w + k_local] = src[src_offset] & bitmask;
+                        }
+                    }
+                }
+            }
         }
     }
 }

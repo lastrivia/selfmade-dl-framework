@@ -28,7 +28,7 @@ class kernel_init_factory {
         k.sqrt_fp32 = cpu_kernel::sqrt_fp32;
 
         k.relu_fp32 = cpu_kernel::relu_fp32;
-        k.relu_mask_fp32 = cpu_kernel::relu_mask_fp32;
+        k.relu_backward_fp32 = cpu_kernel::relu_backward_fp32;
 
         k.add_cyclic_fp32 = cpu_kernel::add_cyclic_fp32;
         k.sub_cyclic_fp32 = cpu_kernel::sub_cyclic_fp32;
@@ -38,6 +38,9 @@ class kernel_init_factory {
         k.sum_stretched_fp32 = cpu_kernel::sum_stretched_fp32;
 
         k.softmax_fp32 = cpu_kernel::softmax_fp32;
+
+        k.maxpool_fp32 = cpu_kernel::maxpool_fp32;
+        k.maxpool_backward_fp32 = cpu_kernel::maxpool_backward_fp32;
 
         k.gemm_fp32[0][0] = cpu_kernel::gemm_fp32<false, false>;
         k.gemm_fp32[0][1] = cpu_kernel::gemm_fp32<false, true>;

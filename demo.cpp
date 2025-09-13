@@ -58,10 +58,21 @@ int main() {
     );
 
     nn_model model(
+        // [N, 1, 28, 28]
         conv_layer(1, 4, 3, 3, 0, 0),
+        // [N, 4, 26, 26]
+        maxpool_layer(2, 2),
+        // [N, 4, 13, 13]
+        relu_layer(true),
+        conv_layer(4, 6, 3, 3, 0, 0),
+        // [N, 6, 11, 11]
+        relu_layer(true),
+        conv_layer(6, 8, 3, 3, 0, 0),
+        // [N, 8, 9, 9]
         relu_layer(true),
         flatten_layer(),
-        fc_layer(2704, 256),
+        // [1, 1, N, 648]
+        fc_layer(648, 256),
         relu_layer(true),
         fc_layer(256, 10)
     );

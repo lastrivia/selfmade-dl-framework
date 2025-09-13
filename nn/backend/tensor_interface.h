@@ -4,6 +4,7 @@
 
 #include "tensor.h"
 #include "kernel_dispatcher.h"
+#include "utils.h"
 
 inline void assert_data_type(const tensor &t, data_type dtype) {
     if (t.data_type_ != dtype)
@@ -25,6 +26,13 @@ inline void assert_shape_consistency(const tensor &a, const tensor &b) {
 inline void assert_layout_consistency(const tensor &a, const tensor &b) {
     assert_type_consistency(a, b);
     assert_shape_consistency(a, b);
+}
+
+inline void assert_mask_consistency(const tensor &t, const tensor_mask &mask) {
+    if (t.size() != mask.size_)
+        throw std::runtime_error("tensor mask size does not match");
+    if (t.device_type_ != mask.device_type_)
+        throw std::runtime_error("tensor mask device does not match");
 }
 
 // ====== OPERATORS ======
@@ -294,7 +302,7 @@ inline tensor &tensor::relu_mask(const tensor &mask) {
     assert_layout_consistency(mask, *this);
     switch (data_type_) {
     case data_type::fp32:
-        dispatch_kernel(*this).relu_mask_fp32(size(), data_, data_, mask.data_);
+        dispatch_kernel(*this).relu_backward_fp32(size(), data_, data_, mask.data_);
         break;
     }
     return *this;
@@ -305,7 +313,7 @@ inline tensor relu_mask(const tensor &t, const tensor &mask) {
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        dispatch_kernel(ret).relu_mask_fp32(ret.size(), ret.data_, t.data_, mask.data_);
+        dispatch_kernel(ret).relu_backward_fp32(ret.size(), ret.data_, t.data_, mask.data_);
         break;
     }
     return ret;
@@ -539,7 +547,7 @@ inline tensor sum_by_channel(const tensor &t) {
     tensor tmp(t.samples_, t.channels_, 1, 1, t.device_type_, t.data_type_);
     tensor ret(1, t.channels_, 1, 1, t.device_type_, t.data_type_);
     switch (ret.data_type_) {
-        case data_type::fp32:
+    case data_type::fp32:
         dispatch_kernel(ret).sum_stretched_fp32(t.samples_ * t.channels_, t.height_ * t.width_, tmp.data_, t.data_);
         dispatch_kernel(ret).sum_cyclic_fp32(t.samples_, t.channels_, ret.data_, tmp.data_);
     }
@@ -560,6 +568,42 @@ inline tensor softmax(const tensor &t) {
     switch (ret.data_type_) {
     case data_type::fp32:
         dispatch_kernel(ret).softmax_fp32(t.height_, t.width_, ret.data_, t.data_);
+        break;
+    }
+    return ret;
+}
+
+inline tensor maxpool(const tensor &t, tensor_mask &mask, const size_t h_stride, const size_t w_stride) {
+    assert_mask_consistency(t, mask);
+    tensor ret(
+        t.samples_, t.channels_,
+        (t.height_ - 1) / h_stride + 1, (t.width_ - 1) / w_stride + 1,
+        t.device_type_, t.data_type_
+    );
+    switch (ret.data_type_) {
+    case data_type::fp32:
+        dispatch_kernel(ret).maxpool_fp32(
+            t.samples_ * t.channels_, t.height_, t.width_, h_stride, w_stride,
+            ret.data_, mask.data_, t.data_
+        );
+        break;
+    }
+    return ret;
+}
+
+inline tensor maxpool_backward(const tensor &t, const tensor_mask &mask,
+                               const size_t original_height, const size_t original_width,
+                               const size_t h_stride, const size_t w_stride) {
+    if (t.height_ != (original_height - 1) / h_stride + 1 || t.width_ != (original_width - 1) / w_stride + 1)
+        throw std::invalid_argument("pooled tensor shape does not match");
+    tensor ret(t.samples_, t.channels_, original_height, original_width, t.device_type_, t.data_type_);
+    assert_mask_consistency(ret, mask);
+    switch (ret.data_type_) {
+    case data_type::fp32:
+        dispatch_kernel(ret).maxpool_backward_fp32(
+            t.samples_ * t.channels_, original_height, original_width, h_stride, w_stride,
+            ret.data_, mask.data_, t.data_
+        );
         break;
     }
     return ret;
