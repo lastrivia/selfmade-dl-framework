@@ -48,9 +48,9 @@ class kernel_init_factory {
         k.gemm_fp32[1][1] = cpu_kernel::gemm_fp32<true, true>;
 
         using kernel_func::conv_mode;
-        k.conv_fp32[0] = cpu_kernel::conv_fp32<conv_mode::forward>;
-        k.conv_fp32[1] = cpu_kernel::conv_fp32<conv_mode::input_grad>;
-        k.conv_fp32[2] = cpu_kernel::conv_fp32<conv_mode::kernel_grad>;
+        k.conv_fp32[0] = cpu_kernel::conv_fp32_legacy<conv_mode::forward>;
+        k.conv_fp32[1] = cpu_kernel::conv_fp32_legacy<conv_mode::input_grad>;
+        k.conv_fp32[2] = cpu_kernel::conv_fp32_legacy<conv_mode::kernel_grad>;
 
         return k;
     }
