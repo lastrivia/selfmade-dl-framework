@@ -43,13 +43,13 @@ namespace cpu_kernel {
 
         /** === FORWARD ===
          *
-         *  src_a = in, src_b = kernel, dst = out
+         *  in * kernel + bias -> out
          *  [n, c_i, h_i, w_i] * [c_o, c_i, h_k, w_k] + bias -> [n, c_o, h_o, w_o]
          *
-         *  multithreading: n
+         *  multithreading over: n
          *  vectorize: w_i & w_dst
          */
-        inline void conv_fp32_worker(const size_t n, const size_t c_i, const size_t c_o,
+        inline void conv_fp32_worker(const size_t c_i, const size_t c_o,
                                      const size_t mt_begin, const size_t mt_end,
                                      const ssize_t h_in, const ssize_t w_in, const ssize_t h_ker, const ssize_t w_ker,
                                      const ssize_t h_pad, const ssize_t w_pad,
@@ -63,21 +63,20 @@ namespace cpu_kernel {
                           in_stride[2] = {static_cast<ssize_t>(c_i) * h_in * w_in, h_in * w_in},
                           ker_stride[2] = {static_cast<ssize_t>(c_i) * h_ker * w_ker, h_ker * w_ker};
 
-            const float *in_end = in + static_cast<ssize_t>(n) * in_stride[0];
-
             for (size_t dim_i = mt_begin; dim_i < mt_end; ++dim_i) { // n
                 for (size_t dim_j = 0; dim_j < c_o; ++dim_j) {
                     float *dst_loc = dst + dim_i * dst_stride[0] + dim_j * dst_stride[1]; // local offsets
 
                     for (ssize_t i_dst = 0; i_dst < h_dst; ++i_dst) {
+
                         // i_in = i_dst + i_ker - h_pad \in [0, h_in)
                         const ssize_t i_ker_start = std::max(static_cast<ssize_t>(0), h_pad - i_dst),
                                       i_ker_end = std::min(h_ker, h_in + h_pad - i_dst);
 
                         ssize_t j_dst = 0;
-                        for (; j_dst + AVX2_FP32_N <= w_dst; j_dst += AVX2_FP32_N) {
 
-                            __m256 dst_vec = _mm256_set1_ps(bias[dim_j]);
+                        // === AVX2 PART ===
+                        for (; j_dst + AVX2_FP32_N <= w_dst; j_dst += AVX2_FP32_N) {
 
                             // j_in[] = j_dst[] + j_ker - w_pad \in [0, w_in)
                             const ssize_t j_ker_start = std::max(static_cast<ssize_t>(0), w_pad - j_dst - static_cast<ssize_t>(AVX2_FP32_N) + 1),
@@ -85,13 +84,15 @@ namespace cpu_kernel {
                                           j_ker_loadu_end = std::min(w_ker, w_in + w_pad - j_dst - static_cast<ssize_t>(AVX2_FP32_N) + 1),
                                           j_ker_end = std::min(w_ker, w_in + w_pad - j_dst);
 
+                            __m256 dst_vec = _mm256_set1_ps(bias[dim_j]);
+
                             for (size_t dim_k = 0; dim_k < c_i; ++dim_k) {
                                 const float *in_loc = in + dim_i * in_stride[0] + dim_k * in_stride[1] + (i_dst - h_pad) * w_in,
                                             *ker_loc = ker + dim_j * ker_stride[0] + dim_k * ker_stride[1];
 
                                 for (ssize_t i_ker = i_ker_start; i_ker < i_ker_end; ++i_ker) {
 
-                                    auto boundary_load = [&](ssize_t j_in) {
+                                    auto boundary_load_in = [&](ssize_t j_in) {
                                         const float *in_row = in_loc + i_ker * w_in;
                                         alignas(32) float in_tmp[AVX2_FP32_N] = {0.0f};
                                         for (ssize_t offset = 0; offset < static_cast<ssize_t>(AVX2_FP32_N); ++offset) {
@@ -103,27 +104,30 @@ namespace cpu_kernel {
                                     };
 
                                     ssize_t j_ker = j_ker_start;
-                                    for (; j_ker < j_ker_loadu_start; ++j_ker) {
-                                        __m256 ker_scalar = _mm256_set1_ps(ker_loc[i_ker * w_ker + j_ker]);
-                                        __m256 in_vec = boundary_load(j_dst + j_ker - w_pad);
-                                        dst_vec = _mm256_fmadd_ps(ker_scalar, in_vec, dst_vec);
-                                    }
-                                    for (; j_ker < j_ker_loadu_end; ++j_ker) {
-                                        __m256 ker_scalar = _mm256_set1_ps(ker_loc[i_ker * w_ker + j_ker]);
-                                        __m256 in_vec = _mm256_loadu_ps(in_loc + i_ker * w_in + (j_dst + j_ker - w_pad));
-                                        dst_vec = _mm256_fmadd_ps(ker_scalar, in_vec, dst_vec);
-                                    }
-                                    for (; j_ker < j_ker_end; ++j_ker) {
-                                        __m256 ker_scalar = _mm256_set1_ps(ker_loc[i_ker * w_ker + j_ker]);
-                                        __m256 in_vec = boundary_load(j_dst + j_ker - w_pad);
-                                        dst_vec = _mm256_fmadd_ps(ker_scalar, in_vec, dst_vec);
-                                    }
+                                    for (; j_ker < j_ker_loadu_start; ++j_ker)
+                                        dst_vec = _mm256_fmadd_ps(
+                                            _mm256_set1_ps(ker_loc[i_ker * w_ker + j_ker]),
+                                            boundary_load_in(j_dst + j_ker - w_pad),
+                                            dst_vec
+                                        );
+                                    for (; j_ker < j_ker_loadu_end; ++j_ker)
+                                        dst_vec = _mm256_fmadd_ps(
+                                            _mm256_set1_ps(ker_loc[i_ker * w_ker + j_ker]),
+                                            _mm256_loadu_ps(in_loc + i_ker * w_in + (j_dst + j_ker - w_pad)),
+                                            dst_vec
+                                        );
+                                    for (; j_ker < j_ker_end; ++j_ker)
+                                        dst_vec = _mm256_fmadd_ps(
+                                            _mm256_set1_ps(ker_loc[i_ker * w_ker + j_ker]),
+                                            boundary_load_in(j_dst + j_ker - w_pad),
+                                            dst_vec
+                                        );
                                 }
                             }
-
                             _mm256_storeu_ps(dst_loc + i_dst * w_dst + j_dst, dst_vec);
                         }
 
+                        // === SCALAR PART ===
                         for (; j_dst < w_dst; ++j_dst) {
                             float dst_e = bias[dim_j];
 
@@ -140,20 +144,26 @@ namespace cpu_kernel {
                                     }
                                 }
                             }
+                            dst_loc[i_dst * w_dst + j_dst] = dst_e;
                         }
                     }
                 }
             }
-            // return;
         }
 
-        // inline void conv_fp32(const size_t n, const size_t c_i, const size_t c_o,
-        //                       const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
-        //                       const size_t h_pad, const size_t w_pad,
-        //                       float *__restrict dst, const float *__restrict in, const float *__restrict ker,
-        //                       const float *__restrict bias) {
-        //
-        // }
+
+        /** === INPUT GRAD ===
+         *
+         *  out_grad * kernel(rotated) -> in_grad
+         *  [n, c_o, h_o, w_o] * [c_o, c_i, h_k, w_k](rotated) -> [n, c_i, h_i, w_i]
+         *
+         *  multithreading over: n
+         *  vectorize: w_i & w_dst
+         */
+
+        // todo
+
+
     }
 
     template<kernel_func::conv_mode mode>
@@ -166,7 +176,7 @@ namespace cpu_kernel {
         using enum kernel_func::conv_mode;
 
         if constexpr (mode == forward) {
-            conv_utils_fp32::conv_fp32_worker(n, c_i, c_o, 0, n, h_a, w_a, h_b, w_b, h_pad, w_pad,
+            conv_utils_fp32::conv_fp32_worker(c_i, c_o, 0, n, h_a, w_a, h_b, w_b, h_pad, w_pad,
                                               reinterpret_cast<float *__restrict>(dst_p),
                                               reinterpret_cast<const float *__restrict>(src_a_p),
                                               reinterpret_cast<const float *__restrict>(src_b_p),
