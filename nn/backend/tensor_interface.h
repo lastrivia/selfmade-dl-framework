@@ -83,7 +83,7 @@ inline tensor conv(const tensor &input, const tensor &kernel, const tensor &bias
 
     switch (ret.data_type_) {
     case data_type::fp32:
-        dispatch_kernel(ret).conv_fp32[static_cast<size_t>(kernel_func::conv_mode::forward)](
+        dispatch_kernel(ret).conv_fp32(
             input.samples_, input.channels_, kernel.samples_,
             input.height_, input.width_, kernel.height_, kernel.width_,
             height_padding, width_padding,
@@ -115,11 +115,11 @@ inline tensor conv_input_grad(const tensor &output_grad, const tensor &kernel,
 
     switch (ret.data_type_) {
     case data_type::fp32:
-        dispatch_kernel(ret).conv_fp32[static_cast<size_t>(kernel_func::conv_mode::input_grad)](
+        dispatch_kernel(ret).conv_input_grad_fp32(
             output_grad.samples_, kernel.channels_, output_grad.channels_,
             output_grad.height_, output_grad.width_, kernel.height_, kernel.width_,
             height_padding, width_padding,
-            ret.data_, output_grad.data_, kernel.data_, nullptr
+            ret.data_, output_grad.data_, kernel.data_
         );
         break;
     }
@@ -145,11 +145,11 @@ inline tensor conv_kernel_grad(const tensor &input, const tensor &output_grad,
 
     switch (ret.data_type_) {
     case data_type::fp32:
-        dispatch_kernel(ret).conv_fp32[static_cast<size_t>(kernel_func::conv_mode::kernel_grad)](
+        dispatch_kernel(ret).conv_kernel_grad_fp32(
             input.samples_, input.channels_, output_grad.channels_,
             input.height_, input.width_, output_grad.height_, output_grad.width_,
             height_padding, width_padding,
-            ret.data_, input.data_, output_grad.data_, nullptr
+            ret.data_, input.data_, output_grad.data_
         );
         break;
     }

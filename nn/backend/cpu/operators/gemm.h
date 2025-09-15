@@ -3,24 +3,13 @@
 #include <immintrin.h>
 #include <cstring>
 
-#include "constants.h"
-#include "thread_pool.h"
+#include "../arch.h"
+#include "../thread_pool.h"
 
 
 namespace cpu_kernel {
 
     namespace gemm_utils_fp32 {
-
-        inline float horizontal_sum_avx2(__m256 x) {
-            __m128 lo4 = _mm256_castps256_ps128(x);
-            __m128 hi4 = _mm256_extractf128_ps(x, 1);
-            __m128 sum4 = _mm_add_ps(lo4, hi4);
-            __m128 hi2 = _mm_movehl_ps(sum4, sum4);
-            __m128 sum2 = _mm_add_ps(sum4, hi2);
-            __m128 hi = _mm_shuffle_ps(sum2, sum2, 0x1);
-            __m128 sum = _mm_add_ss(sum2, hi);
-            return _mm_cvtss_f32(sum);
-        }
 
         // stride: offset between adjacent rows(row-major) or cols(col-major)
 
@@ -188,7 +177,7 @@ namespace cpu_kernel {
                        const size_t dst_stride, const size_t a_stride, const size_t b_stride) noexcept {
 
             if ((m & 1) || (p & 1) || (n & 1) ||
-                (m * n * p < cpu_constants::THREAD_FLOPS_THRESHOLD * 7 && (m * n + n * p + p * m) < cpu_constants::CACHE_THRESHOLD / sizeof(float))) {
+                (m * n * p < cpu_constants::THREAD_WORKLOAD_THRESHOLD * 7 && (m * n + n * p + p * m) < cpu_constants::CACHE_THRESHOLD / sizeof(float))) {
 
                 plain_matmul<tr_a, tr_b>(m, p, n, dst, src_a, src_b, dst_stride, a_stride, b_stride);
                 return;

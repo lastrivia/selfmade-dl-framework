@@ -29,13 +29,8 @@ namespace kernel_func {
     using gemm = void(*)(size_t, size_t, size_t, char *, const char *, const char *) noexcept;
     using conv = void(*)(size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t,
                          char *, const char *, const char *, const char *) noexcept;
-
-
-    enum class conv_mode: char {
-        forward = 0,
-        input_grad = 1,
-        kernel_grad = 2
-    };
+    using conv_grad = void(*)(size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t,
+                              char *, const char *, const char *) noexcept;
 
 }
 
@@ -61,7 +56,9 @@ public:
     kernel_func::pool_backward maxpool_backward_fp32;
 
     kernel_func::gemm gemm_fp32[2][2]; // <bool transpose_a, bool transpose_b>
-    kernel_func::conv conv_fp32[3];
+
+    kernel_func::conv conv_fp32;
+    kernel_func::conv_grad conv_input_grad_fp32, conv_kernel_grad_fp32;
 
 private:
     kernel() = default;

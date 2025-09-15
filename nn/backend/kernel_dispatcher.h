@@ -2,9 +2,9 @@
 
 #include "base_kernel.h"
 #include "tensor.h"
-#include "cpu/conv.h"
-#include "cpu/gemm.h"
-#include "cpu/ewise.h"
+#include "cpu/operators/conv.h"
+#include "cpu/operators/gemm.h"
+#include "cpu/operators/common.h"
 
 class kernel_init_factory {
     public:
@@ -47,10 +47,9 @@ class kernel_init_factory {
         k.gemm_fp32[1][0] = cpu_kernel::gemm_fp32<true, false>;
         k.gemm_fp32[1][1] = cpu_kernel::gemm_fp32<true, true>;
 
-        using kernel_func::conv_mode;
-        k.conv_fp32[0] = cpu_kernel::conv_fp32_legacy<conv_mode::forward>;
-        k.conv_fp32[1] = cpu_kernel::conv_fp32_legacy<conv_mode::input_grad>;
-        k.conv_fp32[2] = cpu_kernel::conv_fp32_legacy<conv_mode::kernel_grad>;
+        k.conv_fp32 = cpu_kernel::conv_fp32;
+        k.conv_input_grad_fp32 = cpu_kernel::conv_input_grad_fp32;
+        k.conv_kernel_grad_fp32 = cpu_kernel::conv_kernel_grad_fp32;
 
         return k;
     }
