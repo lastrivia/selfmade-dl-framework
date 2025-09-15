@@ -5,45 +5,6 @@
 #include "nn/nn.h"
 #include "utils/progress_bar.h"
 
-// #include "nn/backend/cpu/conv.h"
-
-// int main() {
-//     float in[] = {
-//         1.0, 2.0, 3.0, 4.0, 5.0,
-//         1.0, 2.0, 3.0, 4.0, 5.0,
-//         1.0, 2.0, 3.0, 4.0, 5.0,
-//         1.0, 2.0, 3.0, 4.0, 5.0,
-//         1.0, 2.0, 3.0, 4.0, 5.0
-//     };
-//
-//     float kernel[] = {
-//         0.0, -1.0, 0.0,
-//         0.0, 1.0, 0.0,
-//         0.0, 0.0, 0.0,
-//         0.0, 0.0, 0.0,
-//         -1.0, 1.0, 0.0,
-//         0.0, 0.0, 0.0
-//     };
-//
-//     float out[50];
-//
-//     cpu_kernel::conv_fp32<true, true, false>(
-//         1, 1, 2,
-//         3, 3, 5, 5,
-//         1, 1,
-//         reinterpret_cast<char *>(out),
-//         reinterpret_cast<char *>(in),
-//         reinterpret_cast<char *>(kernel),
-//         nullptr
-//     );
-//
-//     for (int i = 0; i < 50; i += 5) {
-//         for (int j = 0; j < 5; ++j)
-//             std::cout << out[i + j] << " ";
-//         std::cout << std::endl;
-//     }
-// }
-
 int main() {
     size_t batch_size = 64;
     std::vector<mnist_sample> train_dataset = mnist_loader::load(
@@ -59,17 +20,22 @@ int main() {
 
     nn_model model(
         // [N, 1, 28, 28]
-        conv_layer(1, 4, 3, 3, 1, 1),
-        // [N, 4, 28, 28]
+        conv_layer(1, 8, 3, 3, 1, 1),
+        relu_layer(true),
+        // [N, 8, 28, 28]
+        conv_layer(8, 8, 3, 3, 1, 1),
+        relu_layer(true),
+        // [N, 8, 28, 28]
         maxpool_layer(2, 2),
-        // [N, 4, 14, 14]
+        // [N, 8, 14, 14]
+        conv_layer(8, 16, 3, 3, 0, 0),
         relu_layer(true),
-        conv_layer(4, 6, 3, 3, 0, 0),
-        // [N, 6, 12, 12]
+        // [N, 16, 12, 12]
+        conv_layer(16, 32, 3, 3, 0, 0),
         relu_layer(true),
-        conv_layer(6, 8, 3, 3, 0, 0),
-        // [N, 8, 10, 10]
-        relu_layer(true),
+        // [N, 32, 10, 10]
+        maxpool_layer(2, 2),
+        // [N, 32, 5, 5]
         flatten_layer(),
         // [1, 1, N, 800]
         fc_layer(800, 256),
