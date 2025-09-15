@@ -86,13 +86,14 @@ namespace cpu_kernel {
                             __m256 dst_vec = _mm256_set1_ps(bias[dim_j]);
 
                             for (size_t dim_k = 0; dim_k < c_i; ++dim_k) {
-                                const float *in_loc = in + dim_i * in_stride[0] + dim_k * in_stride[1] + (i_dst - h_pad) * w_in,
+                                const float *in_loc = in + dim_i * in_stride[0] + dim_k * in_stride[1],
                                             *ker_loc = ker + dim_j * ker_stride[0] + dim_k * ker_stride[1];
+                                const ptrdiff_t in_offset_r = (i_dst - h_pad) * w_in, in_offset = in_offset_r + (j_dst - w_pad);
 
                                 for (ssize_t i_ker = i_ker_start; i_ker < i_ker_end; ++i_ker) {
 
                                     auto boundary_load_in = [&](ssize_t j_in) {
-                                        const float *in_row = in_loc + i_ker * w_in;
+                                        const float *in_row = in_loc + (in_offset_r + i_ker * w_in);
                                         alignas(32) float in_tmp[AVX2_FP32_N] = {0.0f};
                                         for (ssize_t offset = 0; offset < static_cast<ssize_t>(AVX2_FP32_N); ++offset) {
                                             if (j_in + offset >= static_cast<ssize_t>(0) && j_in + offset < w_in)
@@ -112,7 +113,7 @@ namespace cpu_kernel {
                                     for (; j_ker < j_ker_loadu_end; ++j_ker)
                                         dst_vec = _mm256_fmadd_ps(
                                             _mm256_set1_ps(ker_loc[i_ker * w_ker + j_ker]),
-                                            _mm256_loadu_ps(in_loc + i_ker * w_in + (j_dst + j_ker - w_pad)),
+                                            _mm256_loadu_ps(in_loc + (in_offset + i_ker * w_in + j_ker)),
                                             dst_vec
                                         );
                                     for (; j_ker < j_ker_end; ++j_ker)
@@ -134,14 +135,13 @@ namespace cpu_kernel {
                                    j_ker_end = std::min(w_ker, w_in + w_pad - j_dst);
 
                             for (size_t dim_k = 0; dim_k < c_i; ++dim_k) {
-                                const float *in_loc = in + dim_i * in_stride[0] + dim_k * in_stride[1] + (i_dst - h_pad) * w_in,
+                                const float *in_loc = in + dim_i * in_stride[0] + dim_k * in_stride[1],
                                             *ker_loc = ker + dim_j * ker_stride[0] + dim_k * ker_stride[1];
+                                const ptrdiff_t in_offset = (i_dst - h_pad) * w_in + (j_dst - w_pad);
 
-                                for (size_t i_ker = i_ker_start; i_ker < i_ker_end; ++i_ker) {
-                                    for (size_t j_ker = j_ker_start; j_ker < j_ker_end; ++j_ker) {
-                                        dst_e += in_loc[i_ker * w_in + (j_dst + j_ker - w_pad)] * ker_loc[i_ker * w_ker + j_ker];
-                                    }
-                                }
+                                for (size_t i_ker = i_ker_start; i_ker < i_ker_end; ++i_ker)
+                                    for (size_t j_ker = j_ker_start; j_ker < j_ker_end; ++j_ker)
+                                        dst_e += in_loc[in_offset + i_ker * w_in + j_ker] * ker_loc[i_ker * w_ker + j_ker];
                             }
                             dst_loc[i_dst * w_dst + j_dst] = dst_e;
                         }
@@ -198,13 +198,14 @@ namespace cpu_kernel {
                             __m256 dst_vec = _mm256_setzero_ps();
 
                             for (size_t dim_k = 0; dim_k < c_o; ++dim_k) {
-                                const float *in_loc = in + dim_i * in_stride[0] + dim_k * in_stride[1] + (i_dst - h_pad) * w_in,
+                                const float *in_loc = in + dim_i * in_stride[0] + dim_k * in_stride[1],
                                             *ker_loc = ker + dim_k * ker_stride[0] + dim_j * ker_stride[1] + ker_stride[1] - 1;
+                                const ptrdiff_t in_offset_r = (i_dst - h_pad) * w_in, in_offset = in_offset_r + (j_dst - w_pad);
 
                                 for (ssize_t i_ker = i_ker_start; i_ker < i_ker_end; ++i_ker) {
 
                                     auto boundary_load_in = [&](ssize_t j_in) {
-                                        const float *in_row = in_loc + i_ker * w_in;
+                                        const float *in_row = in_loc + (in_offset_r + i_ker * w_in);
                                         alignas(32) float in_tmp[AVX2_FP32_N] = {0.0f};
                                         for (ssize_t offset = 0; offset < static_cast<ssize_t>(AVX2_FP32_N); ++offset) {
                                             if (j_in + offset >= static_cast<ssize_t>(0) && j_in + offset < w_in)
@@ -223,7 +224,7 @@ namespace cpu_kernel {
                                     for (; j_ker < j_ker_loadu_end; ++j_ker)
                                         dst_vec = _mm256_fmadd_ps(
                                             _mm256_set1_ps(ker_loc[-i_ker * w_ker - j_ker]),
-                                            _mm256_loadu_ps(in_loc + i_ker * w_in + (j_dst + j_ker - w_pad)),
+                                            _mm256_loadu_ps(in_loc + (in_offset + i_ker * w_in + j_ker)),
                                             dst_vec
                                         );
                                     for (; j_ker < j_ker_end; ++j_ker)
@@ -245,14 +246,13 @@ namespace cpu_kernel {
                                    j_ker_end = std::min(w_ker, w_in + w_pad - j_dst);
 
                             for (size_t dim_k = 0; dim_k < c_o; ++dim_k) {
-                                const float *in_loc = in + dim_i * in_stride[0] + dim_k * in_stride[1] + (i_dst - h_pad) * w_in,
+                                const float *in_loc = in + dim_i * in_stride[0] + dim_k * in_stride[1],
                                             *ker_loc = ker + dim_k * ker_stride[0] + dim_j * ker_stride[1] + ker_stride[1] - 1;
+                                const ptrdiff_t in_offset = (i_dst - h_pad) * w_in + (j_dst - w_pad);
 
-                                for (size_t i_ker = i_ker_start; i_ker < i_ker_end; ++i_ker) {
-                                    for (size_t j_ker = j_ker_start; j_ker < j_ker_end; ++j_ker) {
-                                        dst_e += in_loc[i_ker * w_in + (j_dst + j_ker - w_pad)] * ker_loc[-i_ker * w_ker - j_ker];
-                                    }
-                                }
+                                for (size_t i_ker = i_ker_start; i_ker < i_ker_end; ++i_ker)
+                                    for (size_t j_ker = j_ker_start; j_ker < j_ker_end; ++j_ker)
+                                        dst_e += in_loc[in_offset + i_ker * w_in + j_ker] * ker_loc[-i_ker * w_ker - j_ker];
                             }
                             dst_loc[i_dst * w_dst + j_dst] = dst_e;
                         }
