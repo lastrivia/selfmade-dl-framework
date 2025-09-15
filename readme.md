@@ -1,11 +1,23 @@
-A lightweight, self-made deep learning framework
+A lightweight, self-made deep learning framework on Windows
 - Manually implemented CPU backend
 - Written in standard C++ with no third-party dependencies
 
 ### Currently in development
 
 - CUDA backend
-- Additional layers (e.g., conv2d)
+- Autograd mechanics
+- Kernel operator fusion
+- Additional layers (e.g., BatchNorm)
+
+### 0915a - 2025-09-15
+
+- Added CNN support
+  - Additional layers: conv, maxpool, flatten
+  - Multithreaded, SIMD conv kernel for improved performance 
+- Refactorization and improvements
+  - Kernel dispatcher initialization & invocation
+  - Model class for more convenient network operations
+- Style improvement
 
 ### 0906a - 2025-09-06
 
