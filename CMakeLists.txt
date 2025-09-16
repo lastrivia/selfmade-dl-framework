@@ -1,15 +1,14 @@
 cmake_minimum_required(VERSION 3.10)
-project(nn_demo_cpu)
+project(dl_framework_demo)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(nn_demo_cpu demo.cpp)
+add_executable(dl_framework_demo demo.cpp)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(nn_demo_cpu PRIVATE
+    target_compile_options(dl_framework_demo PRIVATE
             -O3
             -march=native
-#            -ffast-math
             -save-temps
             -fverbose-asm
     )
@@ -20,16 +19,15 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(LIBGCC_DLL    "${GCC_BIN_DIR}/libgcc_s_seh-1.dll")
     set(LIBWPT_DLL    "${GCC_BIN_DIR}/libwinpthread-1.dll")
 
-    add_custom_command(TARGET nn_demo_cpu POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIBSTDCXX_DLL} $<TARGET_FILE_DIR:nn_demo_cpu>
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIBGCC_DLL}    $<TARGET_FILE_DIR:nn_demo_cpu>
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIBWPT_DLL}    $<TARGET_FILE_DIR:nn_demo_cpu>
+    add_custom_command(TARGET dl_framework_demo POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIBSTDCXX_DLL} $<TARGET_FILE_DIR:dl_framework_demo>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIBGCC_DLL}    $<TARGET_FILE_DIR:dl_framework_demo>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIBWPT_DLL}    $<TARGET_FILE_DIR:dl_framework_demo>
     )
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(nn_demo_cpu PRIVATE
+    target_compile_options(dl_framework_demo PRIVATE
             /Ox
             /GL
-#            /fp:fast
             /arch:AVX2
             /Oi
             /Ot
@@ -37,6 +35,6 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             /Fa
             /FAs
     )
-    target_link_options(nn_demo_cpu PRIVATE /LTCG)
+    target_link_options(dl_framework_demo PRIVATE /LTCG)
 endif()
 
