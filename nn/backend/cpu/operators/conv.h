@@ -131,7 +131,7 @@ namespace cpu_kernel {
                         ssize_t j_dst = 0;
 
                         // === AVX2 PART ===
-                        for (; j_dst + AVX2_FP32_N <= w_dst; j_dst += AVX2_FP32_N) {
+                        for (; j_dst + static_cast<ssize_t>(AVX2_FP32_N) <= w_dst; j_dst += static_cast<ssize_t>(AVX2_FP32_N)) {
 
                             // j_in[] = j_dst[] + j_ker - w_pad \in [0, w_in)
                             const ssize_t j_ker_start = std::max(static_cast<ssize_t>(0), w_pad - j_dst - static_cast<ssize_t>(AVX2_FP32_N) + 1),
@@ -278,7 +278,7 @@ namespace cpu_kernel {
                         ssize_t j_dst = 0;
 
                         // === AVX2 PART ===
-                        for (; j_dst + AVX2_FP32_N <= w_dst; j_dst += AVX2_FP32_N) {
+                        for (; j_dst + static_cast<ssize_t>(AVX2_FP32_N) <= w_dst; j_dst += static_cast<ssize_t>(AVX2_FP32_N)) {
 
                             // j_in[] = j_dst[] + j_ker - w_pad \in [0, w_in)
                             const ssize_t j_ker_start = std::max(static_cast<ssize_t>(0), w_pad - j_dst - static_cast<ssize_t>(AVX2_FP32_N) + 1),
@@ -435,7 +435,7 @@ namespace cpu_kernel {
                                     ssize_t j_ker = j_ker_start;
 
                                     __m256 dst_vec = _mm256_setzero_ps();
-                                    for (; j_ker + AVX2_FP32_N <= j_ker_end; j_ker += AVX2_FP32_N)
+                                    for (; j_ker + static_cast<ssize_t>(AVX2_FP32_N) <= j_ker_end; j_ker += static_cast<ssize_t>(AVX2_FP32_N))
                                         dst_vec = _mm256_fmadd_ps(
                                             _mm256_loadu_ps(in_loc + (in_offset + i_ker * w_in + j_ker)),
                                             _mm256_loadu_ps(ker_loc + i_ker * w_ker + j_ker),

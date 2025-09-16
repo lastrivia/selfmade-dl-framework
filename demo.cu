@@ -1,0 +1,127 @@
+#include <cassert>
+#include <iostream>
+#include <vector>
+#include <ranges>
+
+#include "nn/nn.h"
+#include "utils/progress_bar.h"
+
+__global__ void add(int *dst, const int *a, const int *b, size_t n) {
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n) {
+        dst[idx] = a[idx] + b[idx];
+    }
+}
+
+int main() {
+    int a[8] = {0, 1, 2, 3, 4, 5, 6, 7},
+        b[8] = {90, 80, 70, 60, 50, 40, 30, 20},
+        sum[8] = {0},
+        ans[8] = {90, 81, 72, 63, 54, 45, 36, 27};
+
+    int *a_cu, *b_cu, *sum_cu;
+
+    cudaMalloc(reinterpret_cast<void **>(&a_cu), sizeof(int) * 8);
+    cudaMalloc(reinterpret_cast<void **>(&b_cu), sizeof(int) * 8);
+    cudaMalloc(reinterpret_cast<void **>(&sum_cu), sizeof(int) * 8);
+
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+
+    cudaMemcpyAsync(a_cu, a, sizeof(int) * 8, cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(b_cu, b, sizeof(int) * 8, cudaMemcpyHostToDevice, stream);
+
+    add<<<1, 256, 0, stream>>>(sum_cu, a_cu, b_cu, 8);
+
+    cudaMemcpyAsync(sum, sum_cu, sizeof(int) * 8,cudaMemcpyDeviceToHost, stream);
+
+    cudaStreamSynchronize(stream);
+
+    for (int i = 0; i < 8; i++) {
+        if(sum[i] != ans[i])
+            throw std::runtime_error("Error");
+    }
+
+    std::cout << "CUDA: Hello, World!\n";
+
+
+    // size_t batch_size = 64;
+    // std::vector<mnist_sample> train_dataset = mnist_loader::load(
+    //     "../archive/train-images.idx3-ubyte",
+    //     "../archive/train-labels.idx1-ubyte",
+    //     batch_size
+    // );
+    // std::vector<mnist_sample> test_dataset = mnist_loader::load(
+    //     "../archive/t10k-images.idx3-ubyte",
+    //     "../archive/t10k-labels.idx1-ubyte",
+    //     batch_size
+    // );
+    //
+    //
+    // nn_model model(
+    //     // [N, 1, 28, 28]
+    //     conv_layer(1, 8, 3, 3, 1, 1),
+    //     relu_layer(true),
+    //     // [N, 8, 28, 28]
+    //     conv_layer(8, 8, 3, 3, 1, 1),
+    //     relu_layer(true),
+    //     // [N, 8, 28, 28]
+    //     maxpool_layer(2, 2),
+    //     // [N, 8, 14, 14]
+    //     conv_layer(8, 16, 3, 3, 0, 0),
+    //     relu_layer(true),
+    //     // [N, 16, 12, 12]
+    //     conv_layer(16, 32, 3, 3, 0, 0),
+    //     relu_layer(true),
+    //     // [N, 32, 10, 10]
+    //     maxpool_layer(2, 2),
+    //     // [N, 32, 5, 5]
+    //     flatten_layer(),
+    //     // [1, 1, N, 800]
+    //     fc_layer(800, 256),
+    //     relu_layer(true),
+    //     fc_layer(256, 10)
+    // );
+    //
+    // adam_optimizer optimizer(0.001f);
+    // optimizer.register_model(model);
+    //
+    // exponential_scheduler scheduler(0.9f);
+    // scheduler.bind_optimizer(&optimizer);
+    //
+    // int train_loops = 50;
+    //
+    // for (int i = 0; i < train_loops; ++i) {
+    //     std::cout << "epoch " << i + 1 << ':' << std::endl;
+    //
+    //     progress_bar train_progress_bar(train_dataset.size(), 20, "[train]");
+    //     train_progress_bar.start();
+    //     for (auto &data: train_dataset) {
+    //
+    //         tensor activation = model.forward_propagation(data.data());
+    //
+    //         tensor softmax_tensor = softmax(activation);
+    //         tensor gradient = cross_entropy_grad(softmax_tensor, data.label());
+    //
+    //         model.back_propagation(gradient);
+    //
+    //         optimizer.step();
+    //         train_progress_bar.step();
+    //     }
+    //     scheduler.step();
+    //
+    //     progress_bar test_progress_bar(test_dataset.size(), 20, "[test] ");
+    //     test_progress_bar.start();
+    //     size_t correct = 0, total = 0;
+    //     for (auto &data: test_dataset) {
+    //
+    //         tensor activation = model.forward_propagation(data.data());
+    //
+    //         correct += data.correct_count(activation);
+    //         total += data.batch_size();
+    //         test_progress_bar.step();
+    //     }
+    //     std::cout << "correct: " << static_cast<double>(correct) / static_cast<double>(total) * 100.0 << "%" << std::endl;
+    // }
+    return 0;
+}

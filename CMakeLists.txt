@@ -1,40 +1,29 @@
-cmake_minimum_required(VERSION 3.10)
-project(dl_framework_demo)
+cmake_minimum_required(VERSION 3.18)
 
-set(CMAKE_CXX_STANDARD 20)
+project(dl_framework CXX CUDA)
 
-add_executable(dl_framework_demo demo.cpp)
+if (NOT (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC"))
+    message(FATAL_ERROR "Fatal: CUDA only supports MSVC on Windows")
+endif ()
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(dl_framework_demo PRIVATE
-            -O3
-            -march=native
-            -save-temps
-            -fverbose-asm
-    )
-    get_filename_component(GCC_BIN_DIR ${CMAKE_CXX_COMPILER} DIRECTORY)
-    message(STATUS "GCC bin dir: ${GCC_BIN_DIR}")
+set(CMAKE_CUDA_STANDARD 20)
 
-    set(LIBSTDCXX_DLL "${GCC_BIN_DIR}/libstdc++-6.dll")
-    set(LIBGCC_DLL    "${GCC_BIN_DIR}/libgcc_s_seh-1.dll")
-    set(LIBWPT_DLL    "${GCC_BIN_DIR}/libwinpthread-1.dll")
+find_package(CUDAToolkit REQUIRED)
 
-    add_custom_command(TARGET dl_framework_demo POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIBSTDCXX_DLL} $<TARGET_FILE_DIR:dl_framework_demo>
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIBGCC_DLL}    $<TARGET_FILE_DIR:dl_framework_demo>
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LIBWPT_DLL}    $<TARGET_FILE_DIR:dl_framework_demo>
-    )
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(dl_framework_demo PRIVATE
-            /Ox
-            /GL
-            /arch:AVX2
-            /Oi
-            /Ot
-            /GS-
-            /Fa
-            /FAs
-    )
-    target_link_options(dl_framework_demo PRIVATE /LTCG)
-endif()
+add_executable(dl_framework_demo demo.cu)
 
+set_target_properties(dl_framework_demo PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON)
+
+set_target_properties(dl_framework_demo PROPERTIES
+        CUDA_ARCHITECTURES "86;75"
+)
+
+target_compile_options(dl_framework_demo
+        PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:
+        -Xcompiler "/Ox /arch:AVX2 /Oi /Ot /GS-"
+        >
+)
+
+# todo cpu version
