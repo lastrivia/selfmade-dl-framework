@@ -15,6 +15,10 @@ public:
         instance().recycle_(reinterpret_cast<char *>(p));
     }
 
+    static void recycle(void *p) {
+        instance().recycle_(static_cast<char *>(p));
+    }
+
 private:
     static mem_pool &instance() {
         thread_local mem_pool instance;

@@ -252,11 +252,10 @@ namespace cpu_kernel {
     }
 
     template<bool transpose_a, bool transpose_b>
-    void gemm_fp32(size_t m, size_t p, size_t n, char *dst_p, const char *src_p_a, const char *src_p_b) noexcept {
+    void gemm_fp32(size_t m, size_t p, size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
 
         gemm_utils_fp32::partition<transpose_a, transpose_b>(
-            m, p, n, reinterpret_cast<float *>(dst_p), reinterpret_cast<const float *>(src_p_a), reinterpret_cast<const float *>(src_p_b),
-            n, transpose_a ? m : p, transpose_b ? p : n
+            m, p, n, dst, src_a, src_b, n, transpose_a ? m : p, transpose_b ? p : n
         );
     }
 }

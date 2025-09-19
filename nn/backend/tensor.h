@@ -234,7 +234,7 @@ protected:
     device_type device_type_;
     data_type data_type_;
 
-    char *data_;
+    any_ptr data_;
     bool owns_data_;
 
     friend void assert_data_type(const tensor &, data_type);
@@ -249,7 +249,7 @@ protected:
             switch (data_type_) {
             case data_type::fp32:
                 if (alloc)
-                    data_ = reinterpret_cast<char *>(mem_pool::alloc<float>(size()));
+                    data_ = mem_pool::alloc<float>(size());
                 if (copy_src)
                     memcpy(data_, copy_src, sizeof(float) * samples_ * channels_ * height_ * width_);
                 break;
@@ -273,7 +273,7 @@ protected:
     T *access_data(size_t offset) const {
         if constexpr (std::is_same_v<T, float>) {
             if (data_type_ == data_type::fp32)
-                return reinterpret_cast<T *>(data_) + offset;
+                return static_cast<T *>(data_) + offset;
             throw std::runtime_error("accessed data type does not match");
         }
         else {

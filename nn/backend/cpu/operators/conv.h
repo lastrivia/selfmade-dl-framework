@@ -71,8 +71,8 @@ namespace cpu_kernel {
             const size_t n, const size_t c_i, const size_t c_o,
             const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
-            char *__restrict dst_p, const char *__restrict in_p, const char *__restrict ker_p,
-            const char *__restrict bias_p
+            float *__restrict dst_p, const float *__restrict in_p, const float *__restrict ker_p,
+            const float *__restrict bias_p
         ) noexcept {
             auto worker_call = [&](size_t mt_begin, size_t mt_end) {
                 conv_fp32_worker(
@@ -80,10 +80,7 @@ namespace cpu_kernel {
                     static_cast<ssize_t>(h_in), static_cast<ssize_t>(w_in),
                     static_cast<ssize_t>(h_ker), static_cast<ssize_t>(w_ker),
                     static_cast<ssize_t>(h_pad), static_cast<ssize_t>(w_pad),
-                    reinterpret_cast<float *__restrict>(dst_p),
-                    reinterpret_cast<const float *__restrict>(in_p),
-                    reinterpret_cast<const float *__restrict>(ker_p),
-                    reinterpret_cast<const float *__restrict>(bias_p)
+                    dst_p, in_p, ker_p, bias_p
                 );
             };
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
@@ -221,7 +218,7 @@ namespace cpu_kernel {
             const size_t n, const size_t c_i, const size_t c_o,
             const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
-            char *__restrict dst_p, const char *__restrict in_p, const char *__restrict ker_p
+            float *__restrict dst_p, const float *__restrict in_p, const float *__restrict ker_p
         ) noexcept {
             auto worker_call = [&](size_t mt_begin, size_t mt_end) {
                 conv_input_grad_fp32_worker(
@@ -229,9 +226,7 @@ namespace cpu_kernel {
                     static_cast<ssize_t>(h_in), static_cast<ssize_t>(w_in),
                     static_cast<ssize_t>(h_ker), static_cast<ssize_t>(w_ker),
                     static_cast<ssize_t>(h_pad), static_cast<ssize_t>(w_pad),
-                    reinterpret_cast<float *__restrict>(dst_p),
-                    reinterpret_cast<const float *__restrict>(in_p),
-                    reinterpret_cast<const float *__restrict>(ker_p)
+                    dst_p, in_p, ker_p
                 );
             };
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
@@ -366,7 +361,7 @@ namespace cpu_kernel {
             const size_t n, const size_t c_i, const size_t c_o,
             const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
-            char *__restrict dst_p, const char *__restrict in_p, const char *__restrict ker_p
+            float *__restrict dst_p, const float *__restrict in_p, const float *__restrict ker_p
         ) noexcept {
             auto worker_call = [&](size_t mt_begin, size_t mt_end) {
                 conv_kernel_grad_fp32_worker(
@@ -374,9 +369,7 @@ namespace cpu_kernel {
                     static_cast<ssize_t>(h_in), static_cast<ssize_t>(w_in),
                     static_cast<ssize_t>(h_ker), static_cast<ssize_t>(w_ker),
                     static_cast<ssize_t>(h_pad), static_cast<ssize_t>(w_pad),
-                    reinterpret_cast<float *__restrict>(dst_p),
-                    reinterpret_cast<const float *__restrict>(in_p),
-                    reinterpret_cast<const float *__restrict>(ker_p)
+                    dst_p, in_p, ker_p
                 );
             };
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;

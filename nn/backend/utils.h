@@ -32,14 +32,14 @@ public:
         if (size_)
             switch (device_type_) {
             case device_type::cpu:
-                data_ = mem_pool::alloc<char>(size_);
+                data_ = mem_pool::alloc<bool>(size_);
             }
     }
 
 protected:
     size_t size_;
     device_type device_type_;
-    char *data_;
+    bool *data_;
 
     friend tensor maxpool(const tensor &, tensor_mask &, size_t, size_t);
     friend tensor maxpool_backward(const tensor &, const tensor_mask &, size_t, size_t, size_t, size_t);
