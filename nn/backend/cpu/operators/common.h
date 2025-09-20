@@ -155,15 +155,15 @@ namespace cpu_kernel {
         }
     }
 
-    inline void maxpool_fp32(size_t blk_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
-                             float *dst, bool *mask, const float *src) noexcept{
+    inline void maxpool_fp32(size_t channel_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
+                             float *dst, bool *mask, const float *src) noexcept {
         size_t h_out = (h - 1) / h_stride + 1;
         size_t w_out = (w - 1) / w_stride + 1;
 
-        memset(dst, 0, blk_n * h_out * w_out * sizeof(float));
-        memset(mask, 0, blk_n * h * w * sizeof(bool));
+        memset(dst, 0, channel_n * h_out * w_out * sizeof(float));
+        memset(mask, 0, channel_n * h * w * sizeof(bool));
 
-        for (size_t i = 0; i < blk_n; i++) {
+        for (size_t i = 0; i < channel_n; i++) {
             for (size_t j = 0; j < h_out; j++) {
                 for (size_t k = 0; k < w_out; k++) {
 
@@ -191,7 +191,7 @@ namespace cpu_kernel {
         }
     }
 
-    inline void maxpool_backward_fp32(size_t blk_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
+    inline void maxpool_backward_fp32(size_t channel_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
                                       float *dst, const bool *mask, const float *src) noexcept {
         auto *dst_bits = reinterpret_cast<int32_t *>(dst);
         const auto *src_bits = reinterpret_cast<const int32_t *>(src);
@@ -199,7 +199,7 @@ namespace cpu_kernel {
         size_t h_src = (h - 1) / h_stride + 1;
         size_t w_src = (w - 1) / w_stride + 1;
 
-        for (size_t i = 0; i < blk_n; i++) {
+        for (size_t i = 0; i < channel_n; i++) {
             for (size_t j = 0; j < h_src; j++) {
                 for (size_t k = 0; k < w_src; k++) {
 

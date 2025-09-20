@@ -177,7 +177,7 @@ namespace cpu_kernel {
                        const size_t dst_stride, const size_t a_stride, const size_t b_stride) noexcept {
 
             if ((m & 1) || (p & 1) || (n & 1) ||
-                (m * n * p < cpu_constants::THREAD_WORKLOAD_THRESHOLD * 7 && (m * n + n * p + p * m) < cpu_constants::CACHE_THRESHOLD / sizeof(float))) {
+                (m * n * p < THREAD_WORKLOAD_THRESHOLD * 7 && (m * n + n * p + p * m) < CACHE_THRESHOLD / sizeof(float))) {
 
                 plain_matmul<tr_a, tr_b>(m, p, n, dst, src_a, src_b, dst_stride, a_stride, b_stride);
                 return;

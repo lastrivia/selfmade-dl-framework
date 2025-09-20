@@ -47,7 +47,6 @@ namespace cpu_kernel {
         }
 
         inline size_t num_of_threads(const size_t mt_dim, const size_t dims, const size_t dst_size, const size_t ker_size) {
-            using namespace cpu_constants;
             static constexpr size_t CONV_WORKLOAD_FACTOR = 4;
             size_t tmp = dims * dst_size;
             if (tmp > THREAD_WORKLOAD_THRESHOLD / CONV_WORKLOAD_FACTOR * MAX_THREADS) // prevent overflow
