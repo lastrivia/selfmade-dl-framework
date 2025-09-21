@@ -3,7 +3,8 @@
 #include <cstdint>
 
 enum class device_type: char {
-    cpu = 0
+    cpu  = 0,
+    cuda = 1
 };
 
 enum class data_type: char {
@@ -16,13 +17,16 @@ class tensor_mask;
 
 namespace kernel_func_fp32 {
 
-    using scalar = void(*)(size_t, float *, float) noexcept;
+    using broadcast = void(*)(size_t, float *, float) noexcept;
+
     using unary = void(*)(size_t, float *, const float *) noexcept;
     using unary_scalar = void(*)(size_t, float *, const float *, float) noexcept;
-    using unary_tile = void(*)(size_t, size_t, float *, const float *) noexcept;
     using binary = void(*)(size_t, float *, const float *, const float *) noexcept;
+
+    using unary_tile = void(*)(size_t, size_t, float *, const float *) noexcept;
     using binary_tile = void(*)(size_t, size_t, float *, const float *, const float *) noexcept;
 
+    using correct_count = void(*)(size_t, size_t, size_t *, const float *, const float *) noexcept;
     using pool = void(*)(size_t, size_t, size_t, size_t, size_t, float *, bool *, const float *) noexcept;
     using pool_backward = void(*)(size_t, size_t, size_t, size_t, size_t, float *, const bool *, const float *) noexcept;
     using gemm = void(*)(size_t, size_t, size_t, float *, const float *, const float *) noexcept;
@@ -38,7 +42,7 @@ public:
     kernel_func_fp32::binary add_ewise_fp32, sub_ewise_fp32, mul_ewise_fp32, div_ewise_fp32;
     kernel_func_fp32::unary_scalar add_scalar_fp32, mul_scalar_fp32, pow_fp32;
 
-    kernel_func_fp32::scalar broadcast_fp32;
+    kernel_func_fp32::broadcast broadcast_fp32;
 
     kernel_func_fp32::unary square_fp32, sqrt_fp32;
 
@@ -50,6 +54,8 @@ public:
     kernel_func_fp32::unary_tile sum_cyclic_fp32, sum_stretched_fp32;
 
     kernel_func_fp32::unary_tile softmax_fp32;
+
+    kernel_func_fp32::correct_count correct_count_fp32;
 
     kernel_func_fp32::pool maxpool_fp32;
     kernel_func_fp32::pool_backward maxpool_backward_fp32;

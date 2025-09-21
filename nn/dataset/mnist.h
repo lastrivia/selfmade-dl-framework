@@ -31,18 +31,9 @@ public:
 
     size_t batch_size() const { return batch_size_; }
 
-    int correct_count(const tensor &output) const {
-        assert_shape_consistency(output, label_);
-        int count = 0;
-        for (size_t i = 0; i < batch_size_; ++i) {
-            size_t predicted = 0;
-            for (size_t j = 1; j < 10; ++j)
-                if (output.at(i, j) > output.at(i, predicted))
-                    predicted = j;
-            if (label_.at(i, predicted) >= 0.5f) // 0.0f or 1.0f
-                ++count;
-        }
-        return count;
+    void to_device(device_type device) {
+        data_.to_device(device);
+        label_.to_device(device);
     }
 
 private:

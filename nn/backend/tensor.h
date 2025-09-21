@@ -1,7 +1,8 @@
 #pragma once
 
 #include "base_kernel.h"
-#include "cpu/mem_pool.h"
+#include "mem_pool.h"
+#include "cuda/operators/common.cuh"
 
 class tensor {
 public:
@@ -160,6 +161,46 @@ public:
         return samples_ * channels_ * height_ * width_;
     }
 
+    void to_device(device_type device) {
+
+        // Warning: this cannot handle reference tensors (!owns_data_)
+
+        // TODO refactor resource management of tensors
+
+        if (!owns_data_) {
+            throw std::runtime_error("tensor does not own data");
+        }
+        if (device_type_ == device_type::cpu && device == device_type::cuda) {
+            switch (data_type_) {
+            case data_type::fp32: {
+                char *next = reinterpret_cast<char *>(mem_pool<device_type::cuda>::alloc<float>(size()));
+                cudaMemcpyAsync(next, data_, size() * sizeof(float), cudaMemcpyHostToDevice, cuda_kernel::default_stream());
+                mem_pool<device_type::cpu>::recycle(data_);
+                data_ = next;
+            }
+                break;
+            default:
+                break;
+            }
+            device_type_ = device_type::cuda;
+        }
+        if (device_type_ == device_type::cuda && device == device_type::cpu) {
+            switch (data_type_) {
+            case data_type::fp32: {
+                char *next = reinterpret_cast<char *>(mem_pool<device_type::cpu>::alloc<float>(size()));
+                cudaMemcpyAsync(next, data_, size() * sizeof(float), cudaMemcpyDeviceToHost, cuda_kernel::default_stream());
+                cudaStreamSynchronize(cuda_kernel::default_stream());
+                mem_pool<device_type::cuda>::recycle(data_);
+                data_ = next;
+            }
+                break;
+            default:
+                break;
+            }
+            device_type_ = device_type::cpu;
+        }
+    }
+
     size_t samples() const { return samples_; }
     size_t channels() const { return channels_; }
     size_t height() const { return height_; }
@@ -202,6 +243,8 @@ public:
 
     friend tensor softmax(const tensor &);
     tensor &softmax();
+
+    friend size_t correct_count(const tensor &, const tensor &);
 
     friend class tensor_mask;
     friend tensor maxpool(const tensor &, tensor_mask &, size_t, size_t);
@@ -249,11 +292,24 @@ protected:
             switch (data_type_) {
             case data_type::fp32:
                 if (alloc)
-                    data_ = mem_pool::alloc<float>(size());
+                    data_ = mem_pool<device_type::cpu>::alloc<float>(size());
                 if (copy_src)
-                    memcpy(data_, copy_src, sizeof(float) * samples_ * channels_ * height_ * width_);
+                    memcpy(data_, copy_src, sizeof(float) * size());
                 break;
             }
+            break;
+        case device_type::cuda:
+            switch (data_type_) {
+            case data_type::fp32:
+                if (alloc)
+                    data_ = mem_pool<device_type::cuda>::alloc<float>(size());
+                if (copy_src)
+                    cudaMemcpyAsync(data_, copy_src, sizeof(float) * size(), cudaMemcpyDeviceToDevice, cuda_kernel::default_stream());
+                break;
+            }
+            break;
+        default:
+            throw std::runtime_error("unknown device");
             break;
         }
     }
@@ -261,7 +317,10 @@ protected:
     void release_data() {
         switch (device_type_) {
         case device_type::cpu:
-            mem_pool::recycle(data_);
+            mem_pool<device_type::cpu>::recycle(data_);
+            break;
+        case device_type::cuda:
+            mem_pool<device_type::cuda>::recycle(data_);
             break;
         default:
             break;
@@ -271,6 +330,8 @@ protected:
 
     template<typename T = float>
     T *access_data(size_t offset) const {
+        if (device_type_ != device_type::cpu)
+            throw std::runtime_error("cannot access data in VRAM");
         if constexpr (std::is_same_v<T, float>) {
             if (data_type_ == data_type::fp32)
                 return static_cast<T *>(data_) + offset;

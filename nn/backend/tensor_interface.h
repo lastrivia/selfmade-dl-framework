@@ -460,7 +460,7 @@ inline tensor &tensor::add_tile(const tensor &tile) {
 
 inline tensor add_tile(const tensor &t, const tensor &tile) {
     assert_type_consistency(t, tile);
-    tensor ret(t.height_, t.width_);
+    tensor ret(t.height_, t.width_, t.device_type_, t.data_type_);
     if (tile.height_ == t.height_ && tile.width_ == 1) {
         switch (ret.data_type_) {
         case data_type::fp32:
@@ -568,6 +568,17 @@ inline tensor softmax(const tensor &t) {
     switch (ret.data_type_) {
     case data_type::fp32:
         dispatch_kernel(ret).softmax_fp32(t.height_, t.width_, ret.data_, t.data_);
+        break;
+    }
+    return ret;
+}
+
+inline size_t correct_count(const tensor &out, const tensor &ans) {
+    size_t ret;
+    assert_layout_consistency(out, ans);
+    switch (out.data_type_) {
+    case data_type::fp32:
+        dispatch_kernel(out).correct_count_fp32(out.height_, out.width_, &ret, out.data_, ans.data_);
         break;
     }
     return ret;

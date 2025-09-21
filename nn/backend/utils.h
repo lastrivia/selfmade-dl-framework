@@ -13,7 +13,13 @@ public:
     ~tensor_mask() {
         switch (device_type_) {
         case device_type::cpu:
-            mem_pool::recycle(data_);
+            mem_pool<device_type::cpu>::recycle(data_);
+            break;
+        case device_type::cuda:
+            mem_pool<device_type::cuda>::recycle(data_);
+            break;
+        default:
+break;
         }
     }
 
@@ -23,7 +29,13 @@ public:
 
         switch (device_type_) {
         case device_type::cpu:
-            mem_pool::recycle(data_);
+            mem_pool<device_type::cpu>::recycle(data_);
+            break;
+        case device_type::cuda:
+            mem_pool<device_type::cuda>::recycle(data_);
+            break;
+        default:
+            throw std::runtime_error("unsupported device type");
         }
 
         size_ = t.size();
@@ -32,7 +44,13 @@ public:
         if (size_)
             switch (device_type_) {
             case device_type::cpu:
-                data_ = mem_pool::alloc<bool>(size_);
+                data_ = mem_pool<device_type::cpu>::alloc<bool>(size_);
+                break;
+            case device_type::cuda:
+                data_ = mem_pool<device_type::cuda>::alloc<bool>(size_);
+                break;
+            default:
+                throw std::runtime_error("unsupported device type");
             }
     }
 

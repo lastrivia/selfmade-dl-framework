@@ -155,6 +155,20 @@ namespace cpu_kernel {
         }
     }
 
+    inline void correct_count_fp32(size_t blk_n, size_t blk_len, size_t *ret, const float *out, const float *ans) noexcept {
+        size_t count = 0;
+        for (size_t i = 0; i < blk_n; i++) {
+            size_t predicted = 0;
+            const float *out_local = out + i * blk_len;
+            for (size_t j = 1; j < blk_len; j++)
+                if (out_local[j] > out_local[predicted])
+                    predicted = j;
+            if (ans[i * blk_len + predicted] > 0.5f) // 0.0f or 1.0f
+                count++;
+        }
+        *ret = count;
+    }
+
     inline void maxpool_fp32(size_t channel_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
                              float *dst, bool *mask, const float *src) noexcept {
         size_t h_out = (h - 1) / h_stride + 1;

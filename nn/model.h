@@ -28,6 +28,11 @@ public:
         return gradient;
     }
 
+    void to_device(device_type device) {
+        for (auto &layer : layers_)
+            layer->to_device(device);
+    }
+
 private:
     std::vector<std::unique_ptr<nn_layer> > layers_;
 
