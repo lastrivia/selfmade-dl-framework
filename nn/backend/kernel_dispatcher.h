@@ -8,6 +8,7 @@
 
 #ifdef __CUDACC__
 #include "cuda/operators/common.cuh"
+#include "cuda/operators/conv.cuh"
 #include "cuda/operators/gemm.cuh"
 #endif
 
@@ -100,10 +101,9 @@ public:
         k.gemm_fp32[1][0] = cuda_kernel::gemm_fp32<true, false>;
         k.gemm_fp32[1][1] = cuda_kernel::gemm_fp32<true, true>;
 
-        // todo conv kernel
-        k.conv_fp32 = nullptr;
-        k.conv_input_grad_fp32 = nullptr;
-        k.conv_kernel_grad_fp32 = nullptr;
+        k.conv_fp32 = cuda_kernel::conv_fp32;
+        k.conv_input_grad_fp32 = cuda_kernel::conv_input_grad_fp32;
+        k.conv_kernel_grad_fp32 = cuda_kernel::conv_kernel_grad_fp32;
 
         return k;
     }

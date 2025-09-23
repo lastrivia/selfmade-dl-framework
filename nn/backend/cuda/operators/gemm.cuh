@@ -10,10 +10,11 @@ namespace cuda_kernel {
     public:
         cublas_handle() {
             cublasStatus_t status = cublasCreate_v2(&handle_);
-            if (status != CUBLAS_STATUS_SUCCESS) {
+            if (status != CUBLAS_STATUS_SUCCESS)
                 throw std::runtime_error("cublas handle creation failed");
-            }
-            cublasSetStream_v2(handle_, default_stream());
+            status = cublasSetStream_v2(handle_, default_stream());
+            if (status != CUBLAS_STATUS_SUCCESS)
+                throw std::runtime_error("cublas handle creation failed");
         }
 
         ~cublas_handle() {

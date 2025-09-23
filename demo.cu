@@ -24,40 +24,31 @@ int main() {
     for (auto &sample: test_dataset)
         sample.to_device(device_type::cuda);
 
-
-    // nn_model model(
-    //     // [N, 1, 28, 28]
-    //     conv_layer(1, 8, 3, 3, 1, 1),
-    //     relu_layer(true),
-    //     // [N, 8, 28, 28]
-    //     conv_layer(8, 8, 3, 3, 1, 1),
-    //     relu_layer(true),
-    //     // [N, 8, 28, 28]
-    //     maxpool_layer(2, 2),
-    //     // [N, 8, 14, 14]
-    //     conv_layer(8, 16, 3, 3, 0, 0),
-    //     relu_layer(true),
-    //     // [N, 16, 12, 12]
-    //     conv_layer(16, 32, 3, 3, 0, 0),
-    //     relu_layer(true),
-    //     // [N, 32, 10, 10]
-    //     maxpool_layer(2, 2),
-    //     // [N, 32, 5, 5]
-    //     flatten_layer(),
-    //     // [1, 1, N, 800]
-    //     fc_layer(800, 256),
-    //     relu_layer(true),
-    //     fc_layer(256, 10)
-    // );
-
     nn_model model(
         // [N, 1, 28, 28]
+        conv_layer(1, 8, 3, 3, 1, 1),
+        relu_layer(true),
+        // [N, 8, 28, 28]
+        conv_layer(8, 8, 3, 3, 1, 1),
+        relu_layer(true),
+        // [N, 8, 28, 28]
+        maxpool_layer(2, 2),
+        // [N, 8, 14, 14]
+        conv_layer(8, 16, 3, 3, 0, 0),
+        relu_layer(true),
+        // [N, 16, 12, 12]
+        conv_layer(16, 32, 3, 3, 0, 0),
+        relu_layer(true),
+        // [N, 32, 10, 10]
+        maxpool_layer(2, 2),
+        // [N, 32, 5, 5]
         flatten_layer(),
-        // [1, 1, N, 784]
-        fc_layer(784, 256),
+        // [1, 1, N, 800]
+        fc_layer(800, 256),
         relu_layer(true),
         fc_layer(256, 10)
     );
+
     model.to_device(device_type::cuda);
 
     adam_optimizer optimizer(0.001f);

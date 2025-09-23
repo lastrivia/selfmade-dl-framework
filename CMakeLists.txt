@@ -26,6 +26,6 @@ set_target_properties(dl_framework_demo PROPERTIES
 #        >
 #)
 
-target_link_libraries(dl_framework_demo PRIVATE CUDA::cublas)
+target_link_libraries(dl_framework_demo PRIVATE cublas cudnn)
 
 # todo cpu version
