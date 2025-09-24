@@ -1,49 +1,48 @@
 #pragma once
 
-#include <stdexcept>
-
+#include "../except.h"
 #include "tensor.h"
 #include "kernel_dispatcher.h"
 #include "utils.h"
 
-inline void assert_data_type(const tensor &t, data_type dtype) {
+inline void assert_data_type(const tensor &t, data_type dtype, const char* file, int line) {
     if (t.data_type_ != dtype)
-        throw std::runtime_error("tensor data type does not match");
+        throw nn_except("tensor data type does not match", file, line);
 }
 
-inline void assert_type_consistency(const tensor &a, const tensor &b) {
+inline void assert_type_consistency(const tensor &a, const tensor &b, const char* file, int line) {
     if (a.device_type_ != b.device_type_)
-        throw std::runtime_error("tensor devices do not match");
+        throw nn_except("tensor devices do not match", file, line);
     if (a.data_type_ != b.data_type_)
-        throw std::runtime_error("tensor data types do not match");
+        throw nn_except("tensor data types do not match", file, line);
 }
 
-inline void assert_shape_consistency(const tensor &a, const tensor &b) {
+inline void assert_shape_consistency(const tensor &a, const tensor &b, const char* file, int line) {
     if (a.samples_ != b.samples_ || a.channels_ != b.channels_ || a.height_ != b.height_ || a.width_ != b.width_)
-        throw std::runtime_error("tensor shapes do not match");
+        throw nn_except("tensor shapes do not match", file, line);
 }
 
-inline void assert_layout_consistency(const tensor &a, const tensor &b) {
-    assert_type_consistency(a, b);
-    assert_shape_consistency(a, b);
+inline void assert_layout_consistency(const tensor &a, const tensor &b, const char* file, int line) {
+    assert_type_consistency(a, b, file, line);
+    assert_shape_consistency(a, b, file, line);
 }
 
-inline void assert_mask_consistency(const tensor &t, const tensor_mask &mask) {
+inline void assert_mask_consistency(const tensor &t, const tensor_mask &mask, const char* file, int line) {
     if (t.size() != mask.size_)
-        throw std::runtime_error("tensor mask size does not match");
+        throw nn_except("tensor mask size does not match", file, line);
     if (t.device_type_ != mask.device_type_)
-        throw std::runtime_error("tensor mask device does not match");
+        throw nn_except("tensor mask device does not match", file, line);
 }
 
 // ====== OPERATORS ======
 
 template<bool transpose_a, bool transpose_b>
 tensor matmul(const tensor &a, const tensor &b) {
-    assert_type_consistency(a, b);
-    // if (a.samples_ != 1 || b.samples_ != 1 || a.channels_ != 1 || b.channels_ != 1)
-    //     throw std::runtime_error("matmul does not support batched data");
+    assert_type_consistency(a, b, __FILE__, __LINE__);
+    if (a.samples_ != 1 || b.samples_ != 1 || a.channels_ != 1 || b.channels_ != 1)
+        throw nn_except("matmul does not support batched data", __FILE__, __LINE__);
     if ((transpose_a ? a.height_ : a.width_) != (transpose_b ? b.width_ : b.height_))
-        throw std::runtime_error("matrix sizes do not match");
+        throw nn_except("matrix sizes do not match", __FILE__, __LINE__);
 
     tensor ret(transpose_a ? a.width_ : a.height_, transpose_b ? b.height_ : b.width_, a.device_type_, a.data_type_);
 
@@ -67,12 +66,12 @@ inline tensor matmul(const tensor &a, const tensor &b) {
 inline tensor conv(const tensor &input, const tensor &kernel, const tensor &bias,
                    const size_t height_padding, const size_t width_padding) {
     // [n, c_i, h_i, w_i] * [c_o, c_i, h_k, w_k] + bias -> [n, c_o, h_o, w_o]
-    assert_type_consistency(input, kernel);
-    assert_type_consistency(input, bias);
+    assert_type_consistency(input, kernel, __FILE__, __LINE__);
+    assert_type_consistency(input, bias, __FILE__, __LINE__);
     if (input.channels_ != kernel.channels_)
-        throw std::runtime_error("conv channels do not match");
+        throw nn_except("conv channels do not match", __FILE__, __LINE__);
     if (height_padding >= kernel.height_ || width_padding >= kernel.width_)
-        throw std::runtime_error("padding cannot be larger than kernel");
+        throw nn_except("padding cannot be larger than kernel", __FILE__, __LINE__);
 
     tensor ret(
         input.samples_, kernel.samples_,
@@ -98,11 +97,11 @@ inline tensor conv(const tensor &input, const tensor &kernel, const tensor &bias
 inline tensor conv_input_grad(const tensor &output_grad, const tensor &kernel,
                               const size_t input_height_padding, const size_t input_width_padding) {
     // [n, c_o, h_o, w_o] * [c_o, c_i, h_k, w_k](rotated) -> [n, c_i, h_i, w_i]
-    assert_type_consistency(output_grad, kernel);
+    assert_type_consistency(output_grad, kernel, __FILE__, __LINE__);
     if (output_grad.channels_ != kernel.samples_)
-        throw std::runtime_error("conv channels do not match");
+        throw nn_except("conv channels do not match", __FILE__, __LINE__);
     if (input_height_padding >= kernel.height_ || input_width_padding >= kernel.width_)
-        throw std::runtime_error("padding cannot be larger than kernel");
+        throw nn_except("padding cannot be larger than kernel", __FILE__, __LINE__);
     const size_t height_padding = kernel.height_ - input_height_padding - 1,
                  width_padding = kernel.width_ - input_width_padding - 1;
 
@@ -130,11 +129,11 @@ inline tensor conv_input_grad(const tensor &output_grad, const tensor &kernel,
 inline tensor conv_kernel_grad(const tensor &input, const tensor &output_grad,
                                const size_t height_padding, const size_t width_padding) {
     // [n, c_i, h_i, w_i] * [n, c_o, h_o, w_o] -> [c_o, c_i, h_k, w_k]
-    assert_type_consistency(input, output_grad);
+    assert_type_consistency(input, output_grad, __FILE__, __LINE__);
     if (input.samples_ != output_grad.samples_)
-        throw std::runtime_error("conv channels do not match");
+        throw nn_except("conv channels do not match", __FILE__, __LINE__);
     if (height_padding >= output_grad.height_ || width_padding >= output_grad.width_)
-        throw std::runtime_error("padding cannot be larger than kernel");
+        throw nn_except("padding cannot be larger than kernel", __FILE__, __LINE__);
 
     tensor ret(
         output_grad.channels_, input.channels_,
@@ -158,7 +157,7 @@ inline tensor conv_kernel_grad(const tensor &input, const tensor &output_grad,
 }
 
 inline tensor &tensor::operator+=(const tensor &other) {
-    assert_layout_consistency(other, *this);
+    assert_layout_consistency(other, *this, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).add_ewise_fp32(size(), data_, data_, other.data_);
@@ -168,7 +167,7 @@ inline tensor &tensor::operator+=(const tensor &other) {
 }
 
 inline tensor operator+(const tensor &a, const tensor &b) {
-    assert_layout_consistency(a, b);
+    assert_layout_consistency(a, b, __FILE__, __LINE__);
     tensor ret(a.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -179,7 +178,7 @@ inline tensor operator+(const tensor &a, const tensor &b) {
 }
 
 inline tensor &tensor::operator-=(const tensor &other) {
-    assert_layout_consistency(other, *this);
+    assert_layout_consistency(other, *this, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).sub_ewise_fp32(size(), data_, data_, other.data_);
@@ -189,7 +188,7 @@ inline tensor &tensor::operator-=(const tensor &other) {
 }
 
 inline tensor operator-(const tensor &a, const tensor &b) {
-    assert_layout_consistency(a, b);
+    assert_layout_consistency(a, b, __FILE__, __LINE__);
     tensor ret(a.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -200,7 +199,7 @@ inline tensor operator-(const tensor &a, const tensor &b) {
 }
 
 inline tensor &tensor::mul_ewise(const tensor &other) {
-    assert_layout_consistency(other, *this);
+    assert_layout_consistency(other, *this, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).mul_ewise_fp32(size(), data_, data_, other.data_);
@@ -210,7 +209,7 @@ inline tensor &tensor::mul_ewise(const tensor &other) {
 }
 
 inline tensor mul_ewise(const tensor &a, const tensor &b) {
-    assert_layout_consistency(a, b);
+    assert_layout_consistency(a, b, __FILE__, __LINE__);
     tensor ret(a.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -221,7 +220,7 @@ inline tensor mul_ewise(const tensor &a, const tensor &b) {
 }
 
 inline tensor &tensor::div_ewise(const tensor &other) {
-    assert_layout_consistency(other, *this);
+    assert_layout_consistency(other, *this, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).div_ewise_fp32(size(), data_, data_, other.data_);
@@ -231,7 +230,7 @@ inline tensor &tensor::div_ewise(const tensor &other) {
 }
 
 inline tensor div_ewise(const tensor &a, const tensor &b) {
-    assert_layout_consistency(a, b);
+    assert_layout_consistency(a, b, __FILE__, __LINE__);
     tensor ret(a.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -299,7 +298,7 @@ inline tensor relu(const tensor &t) {
 }
 
 inline tensor &tensor::relu_mask(const tensor &mask) {
-    assert_layout_consistency(mask, *this);
+    assert_layout_consistency(mask, *this, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).relu_backward_fp32(size(), data_, data_, mask.data_);
@@ -309,7 +308,7 @@ inline tensor &tensor::relu_mask(const tensor &mask) {
 }
 
 inline tensor relu_mask(const tensor &t, const tensor &mask) {
-    assert_layout_consistency(t, mask);
+    assert_layout_consistency(t, mask, __FILE__, __LINE__);
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -322,7 +321,7 @@ inline tensor relu_mask(const tensor &t, const tensor &mask) {
 // ====== FP32 OPERATORS ======
 
 inline tensor &tensor::operator+=(float scalar) {
-    assert_data_type(*this, data_type::fp32);
+    assert_data_type(*this, data_type::fp32, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).add_scalar_fp32(size(), data_, data_, scalar);
@@ -332,7 +331,7 @@ inline tensor &tensor::operator+=(float scalar) {
 }
 
 inline tensor operator+(const tensor &t, float scalar) {
-    assert_data_type(t, data_type::fp32);
+    assert_data_type(t, data_type::fp32, __FILE__, __LINE__);
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -343,7 +342,7 @@ inline tensor operator+(const tensor &t, float scalar) {
 }
 
 inline tensor &tensor::operator-=(float scalar) {
-    assert_data_type(*this, data_type::fp32);
+    assert_data_type(*this, data_type::fp32, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).add_scalar_fp32(size(), data_, data_, -scalar);
@@ -353,7 +352,7 @@ inline tensor &tensor::operator-=(float scalar) {
 }
 
 inline tensor operator-(const tensor &t, float scalar) {
-    assert_data_type(t, data_type::fp32);
+    assert_data_type(t, data_type::fp32, __FILE__, __LINE__);
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -364,7 +363,7 @@ inline tensor operator-(const tensor &t, float scalar) {
 }
 
 inline tensor &tensor::operator*=(float scalar) {
-    assert_data_type(*this, data_type::fp32);
+    assert_data_type(*this, data_type::fp32, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).mul_scalar_fp32(size(), data_, data_, scalar);
@@ -374,7 +373,7 @@ inline tensor &tensor::operator*=(float scalar) {
 }
 
 inline tensor operator*(const tensor &t, float scalar) {
-    assert_data_type(t, data_type::fp32);
+    assert_data_type(t, data_type::fp32, __FILE__, __LINE__);
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -385,7 +384,7 @@ inline tensor operator*(const tensor &t, float scalar) {
 }
 
 inline tensor &tensor::operator/=(float scalar) {
-    assert_data_type(*this, data_type::fp32);
+    assert_data_type(*this, data_type::fp32, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).mul_scalar_fp32(size(), data_, data_, 1.0f / scalar);
@@ -395,7 +394,7 @@ inline tensor &tensor::operator/=(float scalar) {
 }
 
 inline tensor operator/(const tensor &t, float scalar) {
-    assert_data_type(t, data_type::fp32);
+    assert_data_type(t, data_type::fp32, __FILE__, __LINE__);
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -406,7 +405,7 @@ inline tensor operator/(const tensor &t, float scalar) {
 }
 
 inline void broadcast(tensor &t, float scalar) {
-    assert_data_type(t, data_type::fp32);
+    assert_data_type(t, data_type::fp32, __FILE__, __LINE__);
     switch (t.data_type_) {
     case data_type::fp32:
         dispatch_kernel(t).broadcast_fp32(t.size(), t.data_, scalar);
@@ -415,7 +414,7 @@ inline void broadcast(tensor &t, float scalar) {
 }
 
 inline tensor &tensor::pow(float scalar) {
-    assert_data_type(*this, data_type::fp32);
+    assert_data_type(*this, data_type::fp32, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
         dispatch_kernel(*this).pow_fp32(size(), data_, data_, scalar);
@@ -425,7 +424,7 @@ inline tensor &tensor::pow(float scalar) {
 }
 
 inline tensor pow(const tensor &t, float scalar) {
-    assert_data_type(t, data_type::fp32);
+    assert_data_type(t, data_type::fp32, __FILE__, __LINE__);
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -438,7 +437,7 @@ inline tensor pow(const tensor &t, float scalar) {
 // ====== TILE OPERATORS ======
 
 inline tensor &tensor::add_tile(const tensor &tile) {
-    assert_type_consistency(*this, tile);
+    assert_type_consistency(*this, tile, __FILE__, __LINE__);
     if (tile.height_ == height_ && tile.width_ == 1) {
         switch (data_type_) {
         case data_type::fp32:
@@ -454,12 +453,12 @@ inline tensor &tensor::add_tile(const tensor &tile) {
         }
     }
     else
-        throw std::invalid_argument("tensor tile shape does not match");
+        throw nn_except("tensor tile shape does not match", __FILE__, __LINE__);
     return *this;
 }
 
 inline tensor add_tile(const tensor &t, const tensor &tile) {
-    assert_type_consistency(t, tile);
+    assert_type_consistency(t, tile, __FILE__, __LINE__);
     tensor ret(t.height_, t.width_, t.device_type_, t.data_type_);
     if (tile.height_ == t.height_ && tile.width_ == 1) {
         switch (ret.data_type_) {
@@ -476,12 +475,12 @@ inline tensor add_tile(const tensor &t, const tensor &tile) {
         }
     }
     else
-        throw std::invalid_argument("tensor tile shape does not match");
+        throw nn_except("tensor tile shape does not match", __FILE__, __LINE__);
     return ret;
 }
 
 inline tensor &tensor::sub_tile(const tensor &tile) {
-    assert_type_consistency(*this, tile);
+    assert_type_consistency(*this, tile, __FILE__, __LINE__);
     if (tile.height_ == height_ && tile.width_ == 1) {
         switch (data_type_) {
         case data_type::fp32:
@@ -497,12 +496,12 @@ inline tensor &tensor::sub_tile(const tensor &tile) {
         }
     }
     else
-        throw std::invalid_argument("tensor tile shape does not match");
+        throw nn_except("tensor tile shape does not match", __FILE__, __LINE__);
     return *this;
 }
 
 inline tensor sub_tile(const tensor &t, const tensor &tile) {
-    assert_type_consistency(t, tile);
+    assert_type_consistency(t, tile, __FILE__, __LINE__);
     tensor ret(t.height_, t.width_, t.device_type_, t.data_type_);
     if (tile.height_ == t.height_ && tile.width_ == 1) {
         switch (ret.data_type_) {
@@ -519,7 +518,7 @@ inline tensor sub_tile(const tensor &t, const tensor &tile) {
         }
     }
     else
-        throw std::invalid_argument("tensor tile shape does not match");
+        throw nn_except("tensor tile shape does not match", __FILE__, __LINE__);
     return ret;
 }
 
@@ -575,7 +574,7 @@ inline tensor softmax(const tensor &t) {
 
 inline size_t correct_count(const tensor &out, const tensor &ans) {
     size_t ret;
-    assert_layout_consistency(out, ans);
+    assert_layout_consistency(out, ans, __FILE__, __LINE__);
     switch (out.data_type_) {
     case data_type::fp32:
         dispatch_kernel(out).correct_count_fp32(out.height_, out.width_, &ret, out.data_, ans.data_);
@@ -585,7 +584,7 @@ inline size_t correct_count(const tensor &out, const tensor &ans) {
 }
 
 inline tensor maxpool(const tensor &t, tensor_mask &mask, const size_t h_stride, const size_t w_stride) {
-    assert_mask_consistency(t, mask);
+    assert_mask_consistency(t, mask, __FILE__, __LINE__);
     tensor ret(
         t.samples_, t.channels_,
         (t.height_ - 1) / h_stride + 1, (t.width_ - 1) / w_stride + 1,
@@ -606,9 +605,9 @@ inline tensor maxpool_backward(const tensor &t, const tensor_mask &mask,
                                const size_t original_height, const size_t original_width,
                                const size_t h_stride, const size_t w_stride) {
     if (t.height_ != (original_height - 1) / h_stride + 1 || t.width_ != (original_width - 1) / w_stride + 1)
-        throw std::invalid_argument("pooled tensor shape does not match");
+        throw nn_except("pooling tensor shape does not match", __FILE__, __LINE__);
     tensor ret(t.samples_, t.channels_, original_height, original_width, t.device_type_, t.data_type_);
-    assert_mask_consistency(ret, mask);
+    assert_mask_consistency(ret, mask, __FILE__, __LINE__);
     switch (ret.data_type_) {
     case data_type::fp32:
         dispatch_kernel(ret).maxpool_backward_fp32(

@@ -20,7 +20,7 @@ namespace cpu_kernel {
         template<bool tr_a, bool tr_b>
         void plain_matmul(const size_t m, const size_t p, const size_t n,
                           float *__restrict dst, const float *__restrict src_a, const float *__restrict src_b,
-                          const size_t dst_stride, const size_t a_stride, const size_t b_stride) noexcept {
+                          const size_t dst_stride, const size_t a_stride, const size_t b_stride) {
 
             if constexpr (!tr_b) {
                 // a: row/col, b: row
@@ -118,7 +118,7 @@ namespace cpu_kernel {
 
         inline void plain_add(const size_t blk_n, const size_t blk_len,
                               float *__restrict dst, const float *__restrict src_a, const float *__restrict src_b,
-                              const size_t dst_stride, const size_t src_stride) noexcept {
+                              const size_t dst_stride, const size_t src_stride) {
             for (size_t i = 0; i < blk_n; ++i) {
                 size_t src_offset = i * src_stride, dst_offset = i * dst_stride;
                 size_t j = 0;
@@ -135,7 +135,7 @@ namespace cpu_kernel {
 
         inline void plain_sub(const size_t blk_n, const size_t blk_len,
                               float *__restrict dst, const float *__restrict src_a, const float *__restrict src_b,
-                              const size_t dst_stride, const size_t src_stride) noexcept {
+                              const size_t dst_stride, const size_t src_stride) {
             for (size_t i = 0; i < blk_n; ++i) {
                 size_t src_offset = i * src_stride, dst_offset = i * dst_stride;
                 size_t j = 0;
@@ -153,7 +153,7 @@ namespace cpu_kernel {
         inline void plain_add_add_sub(const size_t blk_n, const size_t blk_len,
                                       float *__restrict dst, const float *__restrict src_a, const float *__restrict src_b,
                                       const float *__restrict src_c, const float *__restrict src_sub,
-                                      const size_t dst_stride, const size_t src_stride) noexcept {
+                                      const size_t dst_stride, const size_t src_stride) {
             for (size_t i = 0; i < blk_n; ++i) {
                 size_t src_offset = i * src_stride, dst_offset = i * dst_stride;
                 size_t j = 0;
@@ -176,7 +176,7 @@ namespace cpu_kernel {
         template<bool tr_a, bool tr_b>
         void partition(const size_t m, const size_t p, const size_t n,
                        float *dst, const float *src_a, const float *src_b,
-                       const size_t dst_stride, const size_t a_stride, const size_t b_stride) noexcept {
+                       const size_t dst_stride, const size_t a_stride, const size_t b_stride) {
 
             if ((m & 1) || (p & 1) || (n & 1) ||
                 (m * n * p < THREAD_WORKLOAD_THRESHOLD * 7 && (m * n + n * p + p * m) < CACHE_THRESHOLD / sizeof(float))) {
@@ -254,7 +254,7 @@ namespace cpu_kernel {
     }
 
     template<bool transpose_a, bool transpose_b>
-    void gemm_fp32(size_t m, size_t p, size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    void gemm_fp32(size_t m, size_t p, size_t n, float *dst, const float *src_a, const float *src_b) {
 
         gemm_utils_fp32::partition<transpose_a, transpose_b>(
             m, p, n, dst, src_a, src_b, n, transpose_a ? m : p, transpose_b ? p : n

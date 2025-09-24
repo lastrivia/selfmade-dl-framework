@@ -8,80 +8,80 @@
 
 namespace cpu_kernel {
 
-    inline void add_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    inline void add_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = src_a[i] + src_b[i];
         }
     }
 
-    inline void sub_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    inline void sub_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = src_a[i] - src_b[i];
         }
     }
 
-    inline void mul_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    inline void mul_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = src_a[i] * src_b[i];
         }
     }
 
-    inline void div_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    inline void div_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = src_a[i] / src_b[i];
         }
     }
 
-    inline void add_scalar_fp32(size_t n, float *dst, const float *src, float scalar) noexcept {
+    inline void add_scalar_fp32(size_t n, float *dst, const float *src, float scalar) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = src[i] + scalar;
         }
     }
 
-    inline void mul_scalar_fp32(size_t n, float *dst, const float *src, float scalar) noexcept {
+    inline void mul_scalar_fp32(size_t n, float *dst, const float *src, float scalar) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = src[i] * scalar;
         }
     }
 
-    inline void pow_fp32(size_t n, float *dst, const float *src, float scalar) noexcept {
+    inline void pow_fp32(size_t n, float *dst, const float *src, float scalar) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = powf(src[i], scalar);
         }
     }
 
-    inline void broadcast_fp32(size_t n, float *dst, float val) noexcept {
+    inline void broadcast_fp32(size_t n, float *dst, float val) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = val;
         }
     }
 
-    inline void square_fp32(size_t n, float *dst, const float *src) noexcept {
+    inline void square_fp32(size_t n, float *dst, const float *src) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = src[i] * src[i];
         }
     }
 
-    inline void sqrt_fp32(size_t n, float *dst, const float *src) noexcept {
+    inline void sqrt_fp32(size_t n, float *dst, const float *src) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = sqrtf(src[i]);
         }
     }
 
-    inline void relu_fp32(size_t n, float *dst, const float *src) noexcept {
+    inline void relu_fp32(size_t n, float *dst, const float *src) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = fmaxf(src[i], 0.0f);
         }
     }
 
-    inline void relu_backward_fp32(size_t n, float *dst, const float *src, const float *mask) noexcept {
+    inline void relu_backward_fp32(size_t n, float *dst, const float *src, const float *mask) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = mask[i] > 0.0f ? src[i] : 0.0f;
         }
     }
 
     inline void add_cyclic_fp32(size_t blk_n, size_t blk_len,
-                                float *dst, const float *src, const float *tile) noexcept {
+                                float *dst, const float *src, const float *tile) {
         for (size_t i = 0; i < blk_n; i++) {
             for (size_t j = 0; j < blk_len; j++) {
                 dst[i * blk_len + j] = src[i * blk_len + j] + tile[j];
@@ -90,7 +90,7 @@ namespace cpu_kernel {
     }
 
     inline void sub_cyclic_fp32(size_t blk_n, size_t blk_len,
-                                float *dst, const float *src, const float *tile) noexcept {
+                                float *dst, const float *src, const float *tile) {
         for (size_t i = 0; i < blk_n; i++) {
             for (size_t j = 0; j < blk_len; j++) {
                 dst[i * blk_len + j] = src[i * blk_len + j] - tile[j];
@@ -99,7 +99,7 @@ namespace cpu_kernel {
     }
 
     inline void add_stretched_fp32(size_t blk_n, size_t blk_len,
-                                   float *dst, const float *src, const float *tile) noexcept {
+                                   float *dst, const float *src, const float *tile) {
         for (size_t i = 0; i < blk_n; i++) {
             for (size_t j = 0; j < blk_len; j++) {
                 dst[i * blk_len + j] = src[i * blk_len + j] + tile[i];
@@ -108,7 +108,7 @@ namespace cpu_kernel {
     }
 
     inline void sub_stretched_fp32(size_t blk_n, size_t blk_len,
-                                   float *dst, const float *src, const float *tile) noexcept {
+                                   float *dst, const float *src, const float *tile) {
         for (size_t i = 0; i < blk_n; i++) {
             for (size_t j = 0; j < blk_len; j++) {
                 dst[i * blk_len + j] = src[i * blk_len + j] - tile[i];
@@ -116,7 +116,7 @@ namespace cpu_kernel {
         }
     }
 
-    inline void sum_cyclic_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) noexcept {
+    inline void sum_cyclic_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) {
         memset(dst, 0, blk_len * sizeof(float));
         for (size_t i = 0; i < blk_n; i++) {
             for (size_t j = 0; j < blk_len; j++) {
@@ -125,7 +125,7 @@ namespace cpu_kernel {
         }
     }
 
-    inline void sum_stretched_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) noexcept {
+    inline void sum_stretched_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) {
         memset(dst, 0, blk_n * sizeof(float));
         for (size_t i = 0; i < blk_n; i++) {
             for (size_t j = 0; j < blk_len; j++) {
@@ -134,7 +134,7 @@ namespace cpu_kernel {
         }
     }
 
-    inline void softmax_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) noexcept {
+    inline void softmax_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) {
         for (size_t i = 0; i < blk_n; i++) {
             float *row_dst = dst + i * blk_len;
             const float *row_src = src + i * blk_len;
@@ -155,7 +155,7 @@ namespace cpu_kernel {
         }
     }
 
-    inline void correct_count_fp32(size_t blk_n, size_t blk_len, size_t *ret, const float *out, const float *ans) noexcept {
+    inline void correct_count_fp32(size_t blk_n, size_t blk_len, size_t *ret, const float *out, const float *ans) {
         size_t count = 0;
         for (size_t i = 0; i < blk_n; i++) {
             size_t predicted = 0;
@@ -170,7 +170,7 @@ namespace cpu_kernel {
     }
 
     inline void maxpool_fp32(size_t channel_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
-                             float *dst, bool *mask, const float *src) noexcept {
+                             float *dst, bool *mask, const float *src) {
         size_t h_out = (h - 1) / h_stride + 1;
         size_t w_out = (w - 1) / w_stride + 1;
 
@@ -206,7 +206,7 @@ namespace cpu_kernel {
     }
 
     inline void maxpool_backward_fp32(size_t channel_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
-                                      float *dst, const bool *mask, const float *src) noexcept {
+                                      float *dst, const bool *mask, const float *src) {
         auto *dst_bits = reinterpret_cast<int32_t *>(dst);
         const auto *src_bits = reinterpret_cast<const int32_t *>(src);
 

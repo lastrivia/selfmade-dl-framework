@@ -17,23 +17,23 @@ class tensor_mask;
 
 namespace kernel_func_fp32 {
 
-    using broadcast = void(*)(size_t, float *, float) noexcept;
+    using broadcast = void(*)(size_t, float *, float);
 
-    using unary = void(*)(size_t, float *, const float *) noexcept;
-    using unary_scalar = void(*)(size_t, float *, const float *, float) noexcept;
-    using binary = void(*)(size_t, float *, const float *, const float *) noexcept;
+    using unary = void(*)(size_t, float *, const float *);
+    using unary_scalar = void(*)(size_t, float *, const float *, float);
+    using binary = void(*)(size_t, float *, const float *, const float *);
 
-    using unary_tile = void(*)(size_t, size_t, float *, const float *) noexcept;
-    using binary_tile = void(*)(size_t, size_t, float *, const float *, const float *) noexcept;
+    using unary_tile = void(*)(size_t, size_t, float *, const float *);
+    using binary_tile = void(*)(size_t, size_t, float *, const float *, const float *);
 
-    using correct_count = void(*)(size_t, size_t, size_t *, const float *, const float *) noexcept;
-    using pool = void(*)(size_t, size_t, size_t, size_t, size_t, float *, bool *, const float *) noexcept;
-    using pool_backward = void(*)(size_t, size_t, size_t, size_t, size_t, float *, const bool *, const float *) noexcept;
-    using gemm = void(*)(size_t, size_t, size_t, float *, const float *, const float *) noexcept;
+    using correct_count = void(*)(size_t, size_t, size_t *, const float *, const float *);
+    using pool = void(*)(size_t, size_t, size_t, size_t, size_t, float *, bool *, const float *);
+    using pool_backward = void(*)(size_t, size_t, size_t, size_t, size_t, float *, const bool *, const float *);
+    using gemm = void(*)(size_t, size_t, size_t, float *, const float *, const float *);
     using conv = void(*)(size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t,
-                         float *, const float *, const float *, const float *) noexcept;
+                         float *, const float *, const float *, const float *);
     using conv_grad = void(*)(size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t,
-                              float *, const float *, const float *) noexcept;
+                              float *, const float *, const float *);
 
 }
 

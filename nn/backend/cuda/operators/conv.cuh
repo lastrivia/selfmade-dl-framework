@@ -1,18 +1,18 @@
 #pragma once
 
-#include "../arch.cuh"
-
-#include <cudnn.h>
 #include <unordered_map>
 
+#include <cudnn.h>
+
+#include "../../../except.h"
 #include "../../mem_pool.h"
+#include "../arch.cuh"
 
 namespace cuda_kernel {
 
     inline void cudnn_check(const cudnnStatus_t status, const char *file, int line) {
         if (status != CUDNN_STATUS_SUCCESS)
-            std::cerr << "cuDNN Error: " << cudnnGetErrorString(status)
-                    << " (" << file << ", line " << line << ")" << std::endl; // todo exception
+            throw nn_except(std::string("cudnn: ") + cudnnGetErrorString(status), file, line);
     }
 
 #define with_check(status) cudnn_check(status, __FILE__, __LINE__)
@@ -20,12 +20,8 @@ namespace cuda_kernel {
     class cudnn_handle {
     public:
         cudnn_handle() { // NOLINT(*-pro-type-member-init)
-            cudnnStatus_t status = cudnnCreate(&handle_);
-            if (status != CUDNN_STATUS_SUCCESS)
-                throw std::runtime_error("cudnn handle creation failed");
-            status = cudnnSetStream(handle_, default_stream());
-            if (status != CUDNN_STATUS_SUCCESS)
-                throw std::runtime_error("cudnn handle creation failed");
+            with_check(cudnnCreate(&handle_));
+            with_check(cudnnSetStream(handle_, default_stream()));
         }
 
         ~cudnn_handle() {
@@ -91,8 +87,11 @@ namespace cuda_kernel {
         class cudnn_tensor_desc {
         public:
             cudnn_tensor_desc(size_t n, size_t c, size_t h, size_t w) { // NOLINT(*-pro-type-member-init)
+                if (n > INT32_MAX || c > INT32_MAX || h > INT32_MAX || w > INT32_MAX)
+                    throw nn_except("cudnn: parameter out of int32 range", __FILE__, __LINE__);
                 with_check(cudnnCreateTensorDescriptor(&desc_));
-                with_check(cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, n, c, h, w));
+                with_check(cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                    static_cast<int>(n), static_cast<int>(c), static_cast<int>(h), static_cast<int>(w)));
             }
 
             ~cudnn_tensor_desc() {
@@ -115,8 +114,11 @@ namespace cuda_kernel {
         class cudnn_filter_desc {
         public:
             cudnn_filter_desc(size_t n, size_t c, size_t h, size_t w) { // NOLINT(*-pro-type-member-init)
+                if (n > INT32_MAX || c > INT32_MAX || h > INT32_MAX || w > INT32_MAX)
+                    throw nn_except("cudnn: parameter out of int32 range", __FILE__, __LINE__);
                 with_check(cudnnCreateFilterDescriptor(&desc_));
-                with_check(cudnnSetFilter4dDescriptor(desc_, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW, n, c, h, w));
+                with_check(cudnnSetFilter4dDescriptor(desc_, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW,
+                    static_cast<int>(n), static_cast<int>(c), static_cast<int>(h), static_cast<int>(w)));
             }
 
             ~cudnn_filter_desc() {
@@ -139,9 +141,11 @@ namespace cuda_kernel {
         class cudnn_conv_desc {
         public:
             cudnn_conv_desc(size_t h_pad, size_t w_pad) { // NOLINT(*-pro-type-member-init)
+                if (h_pad > INT32_MAX || w_pad > INT32_MAX)
+                    throw nn_except("cudnn: parameter out of int32 range", __FILE__, __LINE__);
                 with_check(cudnnCreateConvolutionDescriptor(&desc_));
-                with_check(cudnnSetConvolution2dDescriptor(desc_, h_pad, w_pad, 1, 1, 1, 1,
-                    CUDNN_CROSS_CORRELATION, CUDNN_DATA_FLOAT));
+                with_check(cudnnSetConvolution2dDescriptor(desc_, static_cast<int>(h_pad), static_cast<int>(w_pad),
+                    1, 1, 1, 1, CUDNN_CROSS_CORRELATION, CUDNN_DATA_FLOAT));
             }
 
             ~cudnn_conv_desc() {
@@ -185,7 +189,28 @@ namespace cuda_kernel {
             cudnnActivationDescriptor_t desc_;
         };
 
-        // todo refactor exception handling
+        class cudnn_workspace {
+        public:
+            explicit cudnn_workspace(size_t bytes) {
+                workspace_ = mem_pool<device_type::cuda>::alloc<char>(bytes);
+            }
+
+            ~cudnn_workspace() {
+                mem_pool<device_type::cuda>::recycle(workspace_);
+            }
+
+            cudnn_workspace(const cudnn_workspace &) = delete;
+            cudnn_workspace &operator=(const cudnn_workspace &) = delete;
+            cudnn_workspace(cudnn_workspace &&other) = delete;
+            cudnn_workspace &operator=(cudnn_workspace &&other) = delete;
+
+            operator void *() const {
+                return workspace_;
+            }
+
+        private:
+            void *workspace_;
+        };
 
         // todo replace with cuDNN 9 backend API
 
@@ -195,7 +220,7 @@ namespace cuda_kernel {
             const size_t h_pad, const size_t w_pad,
             float *__restrict dst, const float *__restrict in, const float *__restrict ker,
             const float *__restrict bias
-        ) noexcept {
+        ) {
 
             thread_local std::unordered_map<conv_args, cudnnConvolutionFwdAlgo_t, shape_hash> perf_results;
 
@@ -228,8 +253,7 @@ namespace cuda_kernel {
             with_check(cudnnGetConvolutionForwardWorkspaceSize(
                 default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
             ));
-
-            void *workspace = mem_pool<device_type::cuda>::alloc<char>(workspace_size);
+            cudnn_workspace workspace(workspace_size);
 
             float alpha1 = 1.0f, alpha2 = 0.0f;
             cudnn_activation_desc identity(CUDNN_ACTIVATION_IDENTITY);
@@ -237,8 +261,6 @@ namespace cuda_kernel {
                 default_cudnn_handle(), &alpha1, in_desc, in, ker_desc, ker, conv_desc, algo, workspace,
                 workspace_size, &alpha2, dst_desc, dst, bias_desc, bias, identity, dst_desc, dst
             ));
-
-            mem_pool<device_type::cuda>::recycle(workspace);
         }
 
         inline void conv_input_grad_fp32(
@@ -246,7 +268,7 @@ namespace cuda_kernel {
             const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
             float *__restrict dst /*in_grad*/, const float *__restrict in /*out_grad*/, const float *__restrict ker
-        ) noexcept {
+        ) {
 
             thread_local std::unordered_map<conv_args, cudnnConvolutionBwdDataAlgo_t, shape_hash> perf_results;
 
@@ -278,15 +300,13 @@ namespace cuda_kernel {
             with_check(cudnnGetConvolutionBackwardDataWorkspaceSize(
                 default_cudnn_handle(), ker_desc, in_desc, conv_desc, dst_desc, algo, &workspace_size
             ));
-            void *workspace = mem_pool<device_type::cuda>::alloc<char>(workspace_size);
+            cudnn_workspace workspace(workspace_size);
 
             float alpha = 1.0f, beta = 0.0f;
             with_check(cudnnConvolutionBackwardData(
                 default_cudnn_handle(), &alpha, ker_desc, ker, in_desc, in, conv_desc,
                 algo, workspace, workspace_size, &beta, dst_desc, dst
             ));
-
-            mem_pool<device_type::cuda>::recycle(workspace);
         }
 
         inline void conv_kernel_grad_fp32(
@@ -294,7 +314,7 @@ namespace cuda_kernel {
             const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
             float *__restrict dst /*kernel_grad*/, const float *__restrict in, const float *__restrict ker /*out_grad*/
-        ) noexcept {
+        ) {
 
             thread_local std::unordered_map<conv_args, cudnnConvolutionBwdFilterAlgo_t, shape_hash> perf_results;
 
@@ -326,15 +346,13 @@ namespace cuda_kernel {
             with_check(cudnnGetConvolutionBackwardFilterWorkspaceSize(
                 default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
             ));
-            void *workspace = mem_pool<device_type::cuda>::alloc<char>(workspace_size);
+            cudnn_workspace workspace(workspace_size);
 
             float alpha = 1.0f, beta = 0.0f;
             with_check(cudnnConvolutionBackwardFilter(
                 default_cudnn_handle(), &alpha, in_desc, in, ker_desc, ker, conv_desc,
                 algo, workspace, workspace_size, &beta, dst_desc, dst
             ));
-
-            mem_pool<device_type::cuda>::recycle(workspace);
         }
     }
 

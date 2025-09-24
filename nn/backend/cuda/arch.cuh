@@ -11,7 +11,7 @@ namespace cuda_kernel {
         cuda_stream() {
             cudaError_t err = cudaStreamCreate(&stream_);
             if (err != cudaSuccess) {
-                throw std::runtime_error("cuda stream creation failed");
+                throw nn_except("cuda stream creation failed", __FILE__, __LINE__);
             }
         }
 

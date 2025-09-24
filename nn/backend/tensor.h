@@ -168,7 +168,7 @@ public:
         // TODO refactor resource management of tensors
 
         if (!owns_data_) {
-            throw std::runtime_error("tensor does not own data");
+            throw nn_except("tensor does not own data", __FILE__, __LINE__);
         }
         if (device_type_ == device_type::cpu && device == device_type::cuda) {
             switch (data_type_) {
@@ -280,11 +280,11 @@ protected:
     any_ptr data_;
     bool owns_data_;
 
-    friend void assert_data_type(const tensor &, data_type);
-    friend void assert_type_consistency(const tensor &, const tensor &);
-    friend void assert_shape_consistency(const tensor &, const tensor &);
-    friend void assert_layout_consistency(const tensor &, const tensor &);
-    friend void assert_mask_consistency(const tensor &, const tensor_mask &);
+    friend void assert_data_type(const tensor &, data_type, const char*, int);
+    friend void assert_type_consistency(const tensor &, const tensor &, const char*, int);
+    friend void assert_shape_consistency(const tensor &, const tensor &, const char*, int);
+    friend void assert_layout_consistency(const tensor &, const tensor &, const char*, int);
+    friend void assert_mask_consistency(const tensor &, const tensor_mask &, const char*, int);
 
     void construct_data(bool alloc = true, const char *copy_src = nullptr) {
         switch (device_type_) {
@@ -309,7 +309,7 @@ protected:
             }
             break;
         default:
-            throw std::runtime_error("unknown device");
+            throw nn_except("unknown device", __FILE__, __LINE__);
             break;
         }
     }
@@ -331,14 +331,14 @@ protected:
     template<typename T = float>
     T *access_data(size_t offset) const {
         if (device_type_ != device_type::cpu)
-            throw std::runtime_error("cannot access data in VRAM");
+            throw nn_except("cannot access data in VRAM", __FILE__, __LINE__);
         if constexpr (std::is_same_v<T, float>) {
             if (data_type_ == data_type::fp32)
                 return static_cast<T *>(data_) + offset;
-            throw std::runtime_error("accessed data type does not match");
+            throw nn_except("accessed data type does not match", __FILE__, __LINE__);
         }
         else {
-            throw std::runtime_error("unsupported data type");
+            throw nn_except("unsupported data type", __FILE__, __LINE__);
         }
     }
 

@@ -7,7 +7,7 @@
 namespace cuda_kernel {
 
     template<typename Fn, typename... Args>
-    void launch_common_kernel(Fn fn, size_t n, Args... args) noexcept {
+    void launch_common_kernel(Fn fn, size_t n, Args... args) {
         size_t blocks = (n + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
         fn<<<static_cast<unsigned int>(blocks), static_cast<unsigned int>(THREADS_PER_BLOCK), 0, default_stream()>>>(n, args...);
     }
@@ -28,7 +28,7 @@ namespace cuda_kernel {
             dst[idx] = src_a[idx] + src_b[idx];
     }
 
-    inline void add_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    inline void add_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
         launch_common_kernel(add_ewise_fp32_worker, n, dst, src_a, src_b);
     }
 
@@ -38,7 +38,7 @@ namespace cuda_kernel {
             dst[idx] = src_a[idx] - src_b[idx];
     }
 
-    inline void sub_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    inline void sub_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
         launch_common_kernel(sub_ewise_fp32_worker, n, dst, src_a, src_b);
     }
 
@@ -48,7 +48,7 @@ namespace cuda_kernel {
             dst[idx] = src_a[idx] * src_b[idx];
     }
 
-    inline void mul_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    inline void mul_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
         launch_common_kernel(mul_ewise_fp32_worker, n, dst, src_a, src_b);
     }
 
@@ -58,7 +58,7 @@ namespace cuda_kernel {
             dst[idx] = src_a[idx] / src_b[idx];
     }
 
-    inline void div_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    inline void div_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
         launch_common_kernel(div_ewise_fp32_worker, n, dst, src_a, src_b);
     }
 
@@ -68,7 +68,7 @@ namespace cuda_kernel {
             dst[idx] = src[idx] + scalar;
     }
 
-    inline void add_scalar_fp32(size_t n, float *dst, const float *src, float scalar) noexcept {
+    inline void add_scalar_fp32(size_t n, float *dst, const float *src, float scalar) {
         launch_common_kernel(add_scalar_fp32_worker, n, dst, src, scalar);
     }
 
@@ -78,7 +78,7 @@ namespace cuda_kernel {
             dst[idx] = src[idx] * scalar;
     }
 
-    inline void mul_scalar_fp32(size_t n, float *dst, const float *src, float scalar) noexcept {
+    inline void mul_scalar_fp32(size_t n, float *dst, const float *src, float scalar) {
         launch_common_kernel(mul_scalar_fp32_worker, n, dst, src, scalar);
     }
 
@@ -88,7 +88,7 @@ namespace cuda_kernel {
             dst[idx] = powf(src[idx], scalar);
     }
 
-    inline void pow_fp32(size_t n, float *dst, const float *src, float scalar) noexcept {
+    inline void pow_fp32(size_t n, float *dst, const float *src, float scalar) {
         launch_common_kernel(pow_fp32_worker, n, dst, src, scalar);
     }
 
@@ -98,7 +98,7 @@ namespace cuda_kernel {
             dst[idx] = val;
     }
 
-    inline void broadcast_fp32(size_t n, float *dst, float val) noexcept {
+    inline void broadcast_fp32(size_t n, float *dst, float val) {
         launch_common_kernel(broadcast_fp32_worker, n, dst, val);
     }
 
@@ -108,7 +108,7 @@ namespace cuda_kernel {
             dst[idx] = src[idx] * src[idx];
     }
 
-    inline void square_fp32(size_t n, float *dst, const float *src) noexcept {
+    inline void square_fp32(size_t n, float *dst, const float *src) {
         launch_common_kernel(square_fp32_worker, n, dst, src);
     }
 
@@ -118,7 +118,7 @@ namespace cuda_kernel {
             dst[idx] = sqrtf(src[idx]);
     }
 
-    inline void sqrt_fp32(size_t n, float *dst, const float *src) noexcept {
+    inline void sqrt_fp32(size_t n, float *dst, const float *src) {
         launch_common_kernel(sqrt_fp32_worker, n, dst, src);
     }
 
@@ -128,7 +128,7 @@ namespace cuda_kernel {
             dst[idx] = fmaxf(src[idx], 0.0f);
     }
 
-    inline void relu_fp32(size_t n, float *dst, const float *src) noexcept {
+    inline void relu_fp32(size_t n, float *dst, const float *src) {
         launch_common_kernel(relu_fp32_worker, n, dst, src);
     }
 
@@ -138,7 +138,7 @@ namespace cuda_kernel {
             dst[idx] = mask[idx] > 0.0f ? src[idx] : 0.0f;
     }
 
-    inline void relu_backward_fp32(size_t n, float *dst, const float *src, const float *mask) noexcept {
+    inline void relu_backward_fp32(size_t n, float *dst, const float *src, const float *mask) {
         launch_common_kernel(relu_backward_fp32_worker, n, dst, src, mask);
     }
 
@@ -150,7 +150,7 @@ namespace cuda_kernel {
     }
 
     inline void add_cyclic_fp32(size_t group_n, size_t group_size,
-                                float *dst, const float *src, const float *tile) noexcept {
+                                float *dst, const float *src, const float *tile) {
         launch_common_kernel(add_cyclic_fp32_worker, group_n * group_size, group_size, dst, src, tile);
     }
 
@@ -162,7 +162,7 @@ namespace cuda_kernel {
     }
 
     inline void sub_cyclic_fp32(size_t group_n, size_t group_size,
-                                float *dst, const float *src, const float *tile) noexcept {
+                                float *dst, const float *src, const float *tile) {
         launch_common_kernel(sub_cyclic_fp32_worker, group_n * group_size, group_size, dst, src, tile);
     }
 
@@ -174,7 +174,7 @@ namespace cuda_kernel {
     }
 
     inline void add_stretched_fp32(size_t group_n, size_t group_size,
-                                   float *dst, const float *src, const float *tile) noexcept {
+                                   float *dst, const float *src, const float *tile) {
         launch_common_kernel(add_stretched_fp32_worker, group_n * group_size, group_size, dst, src, tile);
     }
 
@@ -186,7 +186,7 @@ namespace cuda_kernel {
     }
 
     inline void sub_stretched_fp32(size_t group_n, size_t group_size,
-                                   float *dst, const float *src, const float *tile) noexcept {
+                                   float *dst, const float *src, const float *tile) {
         launch_common_kernel(sub_stretched_fp32_worker, group_n * group_size, group_size, dst, src, tile);
     }
 
@@ -201,7 +201,7 @@ namespace cuda_kernel {
         }
     }
 
-    inline void sum_cyclic_fp32(size_t group_n, size_t group_size, float *dst, const float *src) noexcept {
+    inline void sum_cyclic_fp32(size_t group_n, size_t group_size, float *dst, const float *src) {
         launch_common_kernel(sum_cyclic_fp32_worker, group_size, group_n, dst, src);
     }
 
@@ -216,7 +216,7 @@ namespace cuda_kernel {
         }
     }
 
-    inline void sum_stretched_fp32(size_t group_n, size_t group_size, float *dst, const float *src) noexcept {
+    inline void sum_stretched_fp32(size_t group_n, size_t group_size, float *dst, const float *src) {
         launch_common_kernel(sum_stretched_fp32_worker, group_n, group_size, dst, src);
     }
 
@@ -242,7 +242,7 @@ namespace cuda_kernel {
         }
     }
 
-    inline void softmax_fp32(size_t group_n, size_t group_size, float *dst, const float *src) noexcept {
+    inline void softmax_fp32(size_t group_n, size_t group_size, float *dst, const float *src) {
         launch_common_kernel(softmax_fp32_worker, group_n, group_size, dst, src);
     }
 
@@ -260,7 +260,7 @@ namespace cuda_kernel {
     }
 
     inline void correct_count_fp32(size_t blk_n, size_t blk_len,
-                                   size_t *ret /* host */, const float *out, const float *ans) noexcept {
+                                   size_t *ret /* host */, const float *out, const float *ans) {
         bool *flags = mem_pool<device_type::cpu>::alloc<bool>(blk_n);
         bool *flags_cuda = mem_pool<device_type::cuda>::alloc<bool>(blk_n);
         launch_common_kernel(correct_count_fp32_worker, blk_n, blk_len, flags_cuda, out, ans);
@@ -307,7 +307,7 @@ namespace cuda_kernel {
     }
 
     inline void maxpool_fp32(size_t channel_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
-                             float *dst, bool *mask, const float *src) noexcept {
+                             float *dst, bool *mask, const float *src) {
         size_t h_out = (h - 1) / h_stride + 1;
         size_t w_out = (w - 1) / w_stride + 1;
         cudaMemsetAsync(mask, 0, channel_n * h * w * sizeof(bool), default_stream());
@@ -347,7 +347,7 @@ namespace cuda_kernel {
     }
 
     inline void maxpool_backward_fp32(size_t channel_n, size_t h, size_t w, size_t h_stride, size_t w_stride,
-                                      float *dst, const bool *mask, const float *src) noexcept {
+                                      float *dst, const bool *mask, const float *src) {
         size_t h_src = (h - 1) / h_stride + 1;
         size_t w_src = (w - 1) / w_stride + 1;
         launch_common_kernel(maxpool_backward_fp32_worker, channel_n * h_src * w_src, h, w,

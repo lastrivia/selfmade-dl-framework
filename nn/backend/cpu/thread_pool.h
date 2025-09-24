@@ -12,10 +12,10 @@ class thread_pool {
 public:
     class task_token {
     public:
-        explicit task_token(std::shared_future<void> fut) noexcept
+        explicit task_token(std::shared_future<void> fut)
             : future_(std::move(fut)) {}
 
-        void join() noexcept {
+        void join() {
             future_.wait();
         }
 
@@ -23,7 +23,7 @@ public:
         std::shared_future<void> future_;
     };
 
-    static task_token run(const std::function<void()> &func) noexcept {
+    static task_token run(const std::function<void()> &func) {
         static thread_pool pool;
         return pool.run_(func);
     }
@@ -47,7 +47,7 @@ private:
         }
     }
 
-    task_token run_(const std::function<void()> &func) noexcept {
+    task_token run_(const std::function<void()> &func) {
         std::shared_ptr<std::packaged_task<void()> > task =
             std::make_shared<std::packaged_task<void()> >(func);
 
@@ -62,7 +62,7 @@ private:
         return task_token(fut);
     }
 
-    void worker_loop() noexcept {
+    void worker_loop() {
         while (true) {
             std::function<void()> task;
 

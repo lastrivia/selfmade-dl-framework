@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 
+#include "../except.h"
 #include "../backend.h"
 
 class mnist_sample {
@@ -20,7 +21,7 @@ public:
                     data_.at(i, 0, j, k) = static_cast<float>(image_buf[i * 784 + j * 28 + k]) / 255.0f;
             size_t tag = label_buf[i];
             if (tag > 9)
-                throw std::invalid_argument("Invalid label");
+                throw nn_except("invalid label from dataset file", __FILE__, __LINE__);
             label_.at(i, tag) = 1.0f;
         }
     }
@@ -67,7 +68,7 @@ public:
                  label_count = read_big_endian(label_is);
         if (image_magic != 2051 || label_magic != 2049 || image_count != label_count ||
             image_rows != 28 || image_cols != 28)
-            throw std::invalid_argument("Invalid dataset");
+                throw nn_except("invalid mnist dataset", __FILE__, __LINE__);
 
         auto *image_buf = new unsigned char[784 * batch_size];
         auto *label_buf = new unsigned char[batch_size];

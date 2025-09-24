@@ -4,12 +4,13 @@
 #include <vector>
 
 #include "base_kernel.h"
+#include "../except.h"
 
 template<device_type device>
 class mem_pool {
 public:
     template<typename T>
-    static T *alloc(size_t size) {
+    [[nodiscard]] static T *alloc(size_t size) {
         return reinterpret_cast<T *>(instance().alloc_p(size * sizeof(T)));
     }
 
@@ -39,7 +40,7 @@ private:
         else if constexpr (device == device_type::cuda) {
             cudaError_t err = cudaMalloc(reinterpret_cast<void **>(&ret), size_bytes);
             if (err != cudaSuccess) {
-                throw std::runtime_error("cuda memory allocation failed");
+                throw nn_except("cuda memory allocation failed", __FILE__, __LINE__);
             }
         }
         return ret;

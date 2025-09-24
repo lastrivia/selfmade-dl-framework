@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../arch.cuh"
-
 #include <cublas_v2.h>
+
+#include "../../../except.h"
+#include "../arch.cuh"
 
 namespace cuda_kernel {
 
@@ -11,10 +12,10 @@ namespace cuda_kernel {
         cublas_handle() {
             cublasStatus_t status = cublasCreate_v2(&handle_);
             if (status != CUBLAS_STATUS_SUCCESS)
-                throw std::runtime_error("cublas handle creation failed");
+                throw nn_except("cublas handle creation failed", __FILE__, __LINE__);
             status = cublasSetStream_v2(handle_, default_stream());
             if (status != CUBLAS_STATUS_SUCCESS)
-                throw std::runtime_error("cublas handle creation failed");
+                throw nn_except("cublas handle creation failed", __FILE__, __LINE__);
         }
 
         ~cublas_handle() {
@@ -51,7 +52,7 @@ namespace cuda_kernel {
     }
 
     template<bool transpose_a, bool transpose_b>
-    void gemm_fp32(size_t m, size_t p, size_t n, float *dst, const float *src_a, const float *src_b) noexcept {
+    void gemm_fp32(size_t m, size_t p, size_t n, float *dst, const float *src_a, const float *src_b) {
 
         // C: row-major, CUBLAS: col-major
         // memory(A, row-major) == memory(A^T, col-major)
@@ -59,15 +60,18 @@ namespace cuda_kernel {
         float alpha = 1.0f, beta = 0.0f;
 
         // for C-style C(m*n) = A(m*p)B(p*n), invoke CUBLAS C^T(n*m) = B^T(n*p)A^T(p*m)
-        cublasSgemm_v2_64(default_cublas_handle(),
-                          transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
-                          transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
-                          n, m, p,
-                          &alpha,
-                          src_b, transpose_b ? p : n,
-                          src_a, transpose_a ? m : p,
-                          &beta,
-                          dst, n);
+
+        cublasStatus_t status = cublasSgemm_v2_64(default_cublas_handle(),
+                                                  transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
+                                                  transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
+                                                  n, m, p,
+                                                  &alpha,
+                                                  src_b, transpose_b ? p : n,
+                                                  src_a, transpose_a ? m : p,
+                                                  &beta,
+                                                  dst, n);
+        if (status != CUBLAS_STATUS_SUCCESS)
+            throw nn_except("cublas gemm failed", __FILE__, __LINE__);
     }
 
 }

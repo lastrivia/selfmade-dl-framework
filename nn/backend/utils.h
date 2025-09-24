@@ -19,7 +19,7 @@ public:
             mem_pool<device_type::cuda>::recycle(data_);
             break;
         default:
-break;
+            break;
         }
     }
 
@@ -35,7 +35,8 @@ break;
             mem_pool<device_type::cuda>::recycle(data_);
             break;
         default:
-            throw std::runtime_error("unsupported device type");
+            throw nn_except("unsupported device type", __FILE__, __LINE__);
+            break;
         }
 
         size_ = t.size();
@@ -50,7 +51,8 @@ break;
                 data_ = mem_pool<device_type::cuda>::alloc<bool>(size_);
                 break;
             default:
-                throw std::runtime_error("unsupported device type");
+                throw nn_except("unsupported device type", __FILE__, __LINE__);
+                break;
             }
     }
 
@@ -62,5 +64,5 @@ protected:
     friend tensor maxpool(const tensor &, tensor_mask &, size_t, size_t);
     friend tensor maxpool_backward(const tensor &, const tensor_mask &, size_t, size_t, size_t, size_t);
 
-    friend void assert_mask_consistency(const tensor &, const tensor_mask &);
+    friend void assert_mask_consistency(const tensor &, const tensor_mask &, const char*, int);
 };

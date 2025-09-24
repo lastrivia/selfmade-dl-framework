@@ -2,13 +2,10 @@
 
 #include <immintrin.h>
 #include <algorithm>
-#include <cstdint>
-#include <cstring>
 #include <functional>
 
 #include "../arch.h"
 #include "../thread_pool.h"
-#include "../../base_kernel.h"
 
 #ifdef _MSC_VER
 using ssize_t = ptrdiff_t;
@@ -22,19 +19,19 @@ namespace cpu_kernel {
             size_t c_i, size_t c_o, size_t mt_begin, size_t mt_end,
             ssize_t h_in, ssize_t w_in, ssize_t h_ker, ssize_t w_ker, ssize_t h_pad, ssize_t w_pad,
             float *__restrict dst, const float *__restrict in, const float *__restrict ker, const float *__restrict bias
-        ) noexcept;
+        );
 
         inline void conv_input_grad_fp32_worker(
             size_t c_i, size_t c_o, size_t mt_begin, size_t mt_end,
             ssize_t h_in, ssize_t w_in, ssize_t h_ker, ssize_t w_ker, ssize_t h_pad, ssize_t w_pad,
             float *__restrict dst, const float *__restrict in, const float *__restrict ker
-        ) noexcept;
+        );
 
         inline void conv_kernel_grad_fp32_worker(
             size_t n, size_t c_i, size_t c_o, size_t mt_begin, size_t mt_end,
             ssize_t h_in, ssize_t w_in, ssize_t h_ker, ssize_t w_ker, ssize_t h_pad, ssize_t w_pad,
             float *__restrict dst, const float *__restrict in, const float *__restrict ker
-        ) noexcept;
+        );
 
         inline void divide_jobs(const size_t jobs, const size_t threads, size_t *clips) { // out[threads + 1]
             size_t a = jobs / threads, b = jobs % threads;
@@ -72,7 +69,7 @@ namespace cpu_kernel {
             const size_t h_pad, const size_t w_pad,
             float *__restrict dst_p, const float *__restrict in_p, const float *__restrict ker_p,
             const float *__restrict bias_p
-        ) noexcept {
+        ) {
             auto worker_call = [&](size_t mt_begin, size_t mt_end) {
                 conv_fp32_worker(
                     c_i, c_o, mt_begin, mt_end,
@@ -106,7 +103,7 @@ namespace cpu_kernel {
             const ssize_t h_pad, const ssize_t w_pad,
             float *__restrict dst, const float *__restrict in, const float *__restrict ker,
             const float *__restrict bias
-        ) noexcept {
+        ) {
 
             const ssize_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
 
@@ -218,7 +215,7 @@ namespace cpu_kernel {
             const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
             float *__restrict dst_p, const float *__restrict in_p, const float *__restrict ker_p
-        ) noexcept {
+        ) {
             auto worker_call = [&](size_t mt_begin, size_t mt_end) {
                 conv_input_grad_fp32_worker(
                     c_i, c_o, mt_begin, mt_end,
@@ -251,7 +248,7 @@ namespace cpu_kernel {
             const ssize_t h_in, const ssize_t w_in, const ssize_t h_ker, const ssize_t w_ker,
             const ssize_t h_pad, const ssize_t w_pad,
             float *__restrict dst, const float *__restrict in, const float *__restrict ker
-        ) noexcept {
+        ) {
 
             const ssize_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
 
@@ -361,7 +358,7 @@ namespace cpu_kernel {
             const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
             float *__restrict dst_p, const float *__restrict in_p, const float *__restrict ker_p
-        ) noexcept {
+        ) {
             auto worker_call = [&](size_t mt_begin, size_t mt_end) {
                 conv_kernel_grad_fp32_worker(
                     n, c_i, c_o, mt_begin, mt_end,
@@ -394,7 +391,7 @@ namespace cpu_kernel {
             const ssize_t h_in, const ssize_t w_in, const ssize_t h_ker, const ssize_t w_ker,
             const ssize_t h_pad, const ssize_t w_pad,
             float *__restrict dst, const float *__restrict in, const float *__restrict ker
-        ) noexcept {
+        ) {
 
             const ssize_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
 
