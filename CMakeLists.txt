@@ -19,12 +19,12 @@ set_target_properties(dl_framework_demo PROPERTIES
         CUDA_ARCHITECTURES "native"
 )
 
-#target_compile_options(dl_framework_demo
-#        PRIVATE
-#        $<$<COMPILE_LANGUAGE:CUDA>:
-#        -Xcompiler "/Ox /arch:AVX2 /Oi /Ot /GS-"
-#        >
-#)
+target_compile_options(dl_framework_demo
+        PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:
+        -Xcompiler "/Ox /arch:AVX2 /Oi /Ot /GS-"
+        >
+)
 
 target_link_libraries(dl_framework_demo PRIVATE cublas cudnn)
 
