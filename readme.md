@@ -1,20 +1,35 @@
 A lightweight, self-made deep learning framework on Windows
-- Manually implemented CPU backend
-- Written in standard C++ with no third-party dependencies
+
+- CPU Backend
+  - Manual C++ implementation with no third-party dependencies
+  - SIMD acceleration & multithreading support
+- CUDA Backend
+  - Dependencies: CUDA (12.0+), cuBLAS (12.0+), cuDNN (8.0+)
 
 ### Currently in development
 
+- Extend support for more NN architectures (RNN, GAN, Transformer, etc.)
+- Autograd system
+- Kernel operator fusion (JIT compilation)
+- Manual CUDA backend implementation (without cuBLAS/cuDNN)
+- Model serialization and deserialization
+- CPU-fallback compatible build
+
+### 0924a - 2025-09-24
+
 - CUDA backend
-- Autograd mechanics
-- Kernel operator fusion
-- Additional layers (e.g., BatchNorm)
+  - GEMM and convolution via cuBLAS/cuDNN 
+  - Runtime backend switching support
+- Refactors & improvements
+  - Improved exception handling
+  - More readable interface design
 
 ### 0915a - 2025-09-15
 
 - Added CNN support
   - Additional layers: conv, maxpool, flatten
   - Multithreaded, SIMD conv kernel for improved performance 
-- Refactorization and improvements
+- Refactors & improvements
   - Kernel dispatcher initialization & invocation
   - Model class for more convenient network operations
 - Style improvement
