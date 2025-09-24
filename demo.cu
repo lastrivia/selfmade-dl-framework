@@ -44,7 +44,7 @@ int main() {
         // [N, 32, 5, 5]
         flatten_layer(),
         // [1, 1, N, 800]
-        fc_layer(800, 256),
+        fc_layer(801, 256), // test exception
         relu_layer(true),
         fc_layer(256, 10)
     );
