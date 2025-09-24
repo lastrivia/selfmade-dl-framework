@@ -29,11 +29,18 @@ namespace kernel_func_fp32 {
     using correct_count = void(*)(size_t, size_t, size_t *, const float *, const float *);
     using pool = void(*)(size_t, size_t, size_t, size_t, size_t, float *, bool *, const float *);
     using pool_backward = void(*)(size_t, size_t, size_t, size_t, size_t, float *, const bool *, const float *);
+
     using gemm = void(*)(size_t, size_t, size_t, float *, const float *, const float *);
-    using conv = void(*)(size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t,
-                         float *, const float *, const float *, const float *);
-    using conv_grad = void(*)(size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t, size_t,
-                              float *, const float *, const float *);
+
+    using conv = void(*)(size_t, size_t, size_t,
+                         const float *, size_t, size_t,
+                         const float *, size_t, size_t,
+                         size_t, size_t, const float *, float *);
+
+    using conv_grad = void(*)(size_t, size_t, size_t,
+                              const float *, size_t, size_t,
+                              const float *, size_t, size_t,
+                              size_t, size_t, float *);
 
 }
 

@@ -214,12 +214,17 @@ namespace cuda_kernel {
 
         // todo replace with cuDNN 9 backend API
 
+        /** === FORWARD ===
+         *
+         *  x * w + b -> y
+         *  in[n, c_i, h_x, w_x] * ker[c_o, c_i, h_k, w_k] + bias -> dst[n, c_o, h_y, w_y]
+        */
         inline void conv_fp32(
             const size_t n, const size_t c_i, const size_t c_o,
-            const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
+            const float *__restrict in, const size_t h_in, const size_t w_in,
+            const float *__restrict ker, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
-            float *__restrict dst, const float *__restrict in, const float *__restrict ker,
-            const float *__restrict bias
+            const float *__restrict bias, float *__restrict dst
         ) {
 
             thread_local std::unordered_map<conv_args, cudnnConvolutionFwdAlgo_t, shape_hash> perf_results;
@@ -263,21 +268,30 @@ namespace cuda_kernel {
             ));
         }
 
+        /** === INPUT GRAD ===
+         *
+         *  dy * w(rotated) -> dx
+         *  in[n, c_o, h_y, w_y] * ker[c_o, c_i, h_k, w_k](rotated) -> dst[n, c_i, h_x, w_x]
+         *
+         *  argument h_pad = h_ker - forward_h_pad - 1
+         */
         inline void conv_input_grad_fp32(
             const size_t n, const size_t c_i, const size_t c_o,
-            const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
+            const float *__restrict in /* dy */, const size_t h_in, const size_t w_in,
+            const float *__restrict ker, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
-            float *__restrict dst /*in_grad*/, const float *__restrict in /*out_grad*/, const float *__restrict ker
+            float *__restrict dst /* dx */
         ) {
 
             thread_local std::unordered_map<conv_args, cudnnConvolutionBwdDataAlgo_t, shape_hash> perf_results;
 
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
+            const size_t forward_h_pad = h_ker - 1 - h_pad, forward_w_pad = w_ker - 1 - w_pad;
 
             cudnn_tensor_desc in_desc(n, c_o, h_in, w_in),
                               dst_desc(n, c_i, h_dst, w_dst);
             cudnn_filter_desc ker_desc(c_o, c_i, h_ker, w_ker);
-            cudnn_conv_desc conv_desc(h_ker - 1 - h_pad, w_ker - 1 - w_pad);
+            cudnn_conv_desc conv_desc(forward_h_pad, forward_w_pad);
 
             cudnnConvolutionBwdDataAlgo_t algo;
             conv_args args = {n, c_i, c_o, h_in, w_in, h_ker, w_ker, h_pad, w_pad};
@@ -309,11 +323,17 @@ namespace cuda_kernel {
             ));
         }
 
+        /** === KERNEL GRAD ===
+         *
+         *  x * dy -> dw
+         *  in[n, c_i, h_x, w_x] * ker[n, c_o, h_y, w_y] -> dst[c_o, c_i, h_k, w_k]
+         */
         inline void conv_kernel_grad_fp32(
             const size_t n, const size_t c_i, const size_t c_o,
-            const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
+            const float *__restrict in, const size_t h_in, const size_t w_in,
+            const float *__restrict ker /* dy */, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
-            float *__restrict dst /*kernel_grad*/, const float *__restrict in, const float *__restrict ker /*out_grad*/
+            float *__restrict dst /* dw */
         ) {
 
             thread_local std::unordered_map<conv_args, cudnnConvolutionBwdFilterAlgo_t, shape_hash> perf_results;

@@ -55,20 +55,20 @@ namespace cpu_kernel {
 
         /** === FORWARD ===
          *
-         *  in * kernel + bias -> out
-         *  [n, c_i, h_i, w_i] * [c_o, c_i, h_k, w_k] + bias -> [n, c_o, h_o, w_o]
+         *  x * w + b -> y
+         *  in[n, c_i, h_x, w_x] * ker[c_o, c_i, h_k, w_k] + bias -> dst[n, c_o, h_y, w_y]
          *
          *  multithreading over: n
-         *  vectorize: w_i (code: w_in) & w_o (code: w_dst)
+         *  vectorize: w_x (code: w_in) & w_y (code: w_dst)
          *
          *  requires padding < kernel_size
         */
         inline void conv_fp32(
             const size_t n, const size_t c_i, const size_t c_o,
-            const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
+            const float *__restrict in, const size_t h_in, const size_t w_in,
+            const float *__restrict ker, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
-            float *__restrict dst_p, const float *__restrict in_p, const float *__restrict ker_p,
-            const float *__restrict bias_p
+            const float *__restrict bias, float *__restrict dst
         ) {
             auto worker_call = [&](size_t mt_begin, size_t mt_end) {
                 conv_fp32_worker(
@@ -76,7 +76,7 @@ namespace cpu_kernel {
                     static_cast<ssize_t>(h_in), static_cast<ssize_t>(w_in),
                     static_cast<ssize_t>(h_ker), static_cast<ssize_t>(w_ker),
                     static_cast<ssize_t>(h_pad), static_cast<ssize_t>(w_pad),
-                    dst_p, in_p, ker_p, bias_p
+                    dst, in, ker, bias
                 );
             };
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
@@ -199,22 +199,22 @@ namespace cpu_kernel {
             }
         }
 
-
         /** === INPUT GRAD ===
          *
-         *  out_grad * kernel(rotated) -> in_grad
-         *  [n, c_o, h_o, w_o] * [c_o, c_i, h_k, w_k](rotated) -> [n, c_i, h_i, w_i]
+         *  dy * w(rotated) -> dx
+         *  in[n, c_o, h_y, w_y] * ker[c_o, c_i, h_k, w_k](rotated) -> dst[n, c_i, h_x, w_x]
          *
          *  multithreading over: n
-         *  vectorize: w_i (code: w_dst) & w_o (code: w_in)
+         *  vectorize: w_x (code: w_dst) & w_y (code: w_in)
          *
-         *  here h_pad = h_ker - (forward)h_pad - 1
+         *  argument h_pad = h_ker - forward_h_pad - 1
          */
         inline void conv_input_grad_fp32(
             const size_t n, const size_t c_i, const size_t c_o,
-            const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
+            const float *__restrict in /* dy */, const size_t h_in, const size_t w_in,
+            const float *__restrict ker, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
-            float *__restrict dst_p, const float *__restrict in_p, const float *__restrict ker_p
+            float *__restrict dst /* dx */
         ) {
             auto worker_call = [&](size_t mt_begin, size_t mt_end) {
                 conv_input_grad_fp32_worker(
@@ -222,7 +222,7 @@ namespace cpu_kernel {
                     static_cast<ssize_t>(h_in), static_cast<ssize_t>(w_in),
                     static_cast<ssize_t>(h_ker), static_cast<ssize_t>(w_ker),
                     static_cast<ssize_t>(h_pad), static_cast<ssize_t>(w_pad),
-                    dst_p, in_p, ker_p
+                    dst, in, ker
                 );
             };
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
@@ -345,19 +345,18 @@ namespace cpu_kernel {
 
         /** === KERNEL GRAD ===
          *
-         *  in * out_grad -> kernel_grad
-         *  [n, c_i, h_i, w_i] * [n, c_o, h_o, w_o] -> [c_o, c_i, h_k, w_k]
+         *  x * dy -> dw
+         *  in[n, c_i, h_x, w_x] * ker[n, c_o, h_y, w_y] -> dst[c_o, c_i, h_k, w_k]
          *
          *  multithreading over: c_o
-         *  vectorize: w_i (code: w_in) & w_o (code: w_ker)
-         *
-         *  here out_grad is referred as "ker", kernel_grad is "dst"
+         *  vectorize: w_x (code: w_in) & w_y (code: w_ker)
          */
         inline void conv_kernel_grad_fp32(
             const size_t n, const size_t c_i, const size_t c_o,
-            const size_t h_in, const size_t w_in, const size_t h_ker, const size_t w_ker,
+            const float *__restrict in, const size_t h_in, const size_t w_in,
+            const float *__restrict ker /* dy */, const size_t h_ker, const size_t w_ker,
             const size_t h_pad, const size_t w_pad,
-            float *__restrict dst_p, const float *__restrict in_p, const float *__restrict ker_p
+            float *__restrict dst /* dw */
         ) {
             auto worker_call = [&](size_t mt_begin, size_t mt_end) {
                 conv_kernel_grad_fp32_worker(
@@ -365,7 +364,7 @@ namespace cpu_kernel {
                     static_cast<ssize_t>(h_in), static_cast<ssize_t>(w_in),
                     static_cast<ssize_t>(h_ker), static_cast<ssize_t>(w_ker),
                     static_cast<ssize_t>(h_pad), static_cast<ssize_t>(w_pad),
-                    dst_p, in_p, ker_p
+                    dst, in, ker
                 );
             };
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;

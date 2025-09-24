@@ -178,7 +178,7 @@ public:
                 mem_pool<device_type::cpu>::recycle(data_);
                 data_ = next;
             }
-                break;
+            break;
             default:
                 break;
             }
@@ -193,7 +193,7 @@ public:
                 mem_pool<device_type::cuda>::recycle(data_);
                 data_ = next;
             }
-                break;
+            break;
             default:
                 break;
             }
@@ -211,9 +211,12 @@ public:
     template<bool, bool>
     friend tensor matmul(const tensor &, const tensor &);
 
-    friend tensor conv(const tensor &, const tensor &, const tensor &, size_t, size_t);
-    friend tensor conv_input_grad(const tensor &, const tensor &, size_t, size_t);
-    friend tensor conv_kernel_grad(const tensor &, const tensor &, size_t, size_t);
+    friend tensor conv(const tensor &input, const tensor &kernel, const tensor &bias,
+                       size_t height_padding, size_t width_padding);
+    friend tensor conv_input_grad(const tensor &output_grad, const tensor &kernel,
+                                  size_t forward_height_padding, size_t forward_width_padding);
+    friend tensor conv_kernel_grad(const tensor &input, const tensor &output_grad,
+                                   size_t height_padding, size_t width_padding);
 
     friend tensor operator+(const tensor &, const tensor &);
     tensor &operator+=(const tensor &);
@@ -230,13 +233,13 @@ public:
     tensor &sqrt();
     friend tensor relu(const tensor &);
     tensor &relu();
-    friend tensor relu_mask(const tensor &, const tensor &);
-    tensor &relu_mask(const tensor &);
+    friend tensor relu_backward(const tensor &t, const tensor &input);
+    tensor &relu_backward(const tensor &input);
 
-    friend tensor add_tile(const tensor &, const tensor &);
-    tensor &add_tile(const tensor &);
-    friend tensor sub_tile(const tensor &, const tensor &);
-    tensor &sub_tile(const tensor &);
+    friend tensor add_tile(const tensor &t, const tensor &tile);
+    tensor &add_tile(const tensor &tile);
+    friend tensor sub_tile(const tensor &t, const tensor &tile);
+    tensor &sub_tile(const tensor &tile);
     friend tensor sum_rows(const tensor &);
     friend tensor sum_cols(const tensor &);
     friend tensor sum_by_channel(const tensor &);
@@ -244,11 +247,13 @@ public:
     friend tensor softmax(const tensor &);
     tensor &softmax();
 
-    friend size_t correct_count(const tensor &, const tensor &);
+    friend size_t correct_count(const tensor &out, const tensor &ans);
 
     friend class tensor_mask;
-    friend tensor maxpool(const tensor &, tensor_mask &, size_t, size_t);
-    friend tensor maxpool_backward(const tensor &, const tensor_mask &, size_t, size_t, size_t, size_t);
+    friend tensor maxpool(const tensor &t, tensor_mask &mask, size_t h_stride, size_t w_stride);
+    friend tensor maxpool_backward(const tensor &t, const tensor_mask &mask,
+                                   size_t original_height, size_t original_width,
+                                   size_t h_stride, size_t w_stride);
 
     // fp32
     friend tensor operator+(const tensor &, float);
@@ -280,11 +285,11 @@ protected:
     any_ptr data_;
     bool owns_data_;
 
-    friend void assert_data_type(const tensor &, data_type, const char*, int);
-    friend void assert_type_consistency(const tensor &, const tensor &, const char*, int);
-    friend void assert_shape_consistency(const tensor &, const tensor &, const char*, int);
-    friend void assert_layout_consistency(const tensor &, const tensor &, const char*, int);
-    friend void assert_mask_consistency(const tensor &, const tensor_mask &, const char*, int);
+    friend void assert_data_type(const tensor &, data_type, const char *, int);
+    friend void assert_type_consistency(const tensor &, const tensor &, const char *, int);
+    friend void assert_shape_consistency(const tensor &, const tensor &, const char *, int);
+    friend void assert_layout_consistency(const tensor &, const tensor &, const char *, int);
+    friend void assert_mask_consistency(const tensor &, const tensor_mask &, const char *, int);
 
     void construct_data(bool alloc = true, const char *copy_src = nullptr) {
         switch (device_type_) {

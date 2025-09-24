@@ -5,29 +5,29 @@
 #include "kernel_dispatcher.h"
 #include "utils.h"
 
-inline void assert_data_type(const tensor &t, data_type dtype, const char* file, int line) {
+inline void assert_data_type(const tensor &t, data_type dtype, const char *file, int line) {
     if (t.data_type_ != dtype)
         throw nn_except("tensor data type does not match", file, line);
 }
 
-inline void assert_type_consistency(const tensor &a, const tensor &b, const char* file, int line) {
+inline void assert_type_consistency(const tensor &a, const tensor &b, const char *file, int line) {
     if (a.device_type_ != b.device_type_)
         throw nn_except("tensor devices do not match", file, line);
     if (a.data_type_ != b.data_type_)
         throw nn_except("tensor data types do not match", file, line);
 }
 
-inline void assert_shape_consistency(const tensor &a, const tensor &b, const char* file, int line) {
+inline void assert_shape_consistency(const tensor &a, const tensor &b, const char *file, int line) {
     if (a.samples_ != b.samples_ || a.channels_ != b.channels_ || a.height_ != b.height_ || a.width_ != b.width_)
         throw nn_except("tensor shapes do not match", file, line);
 }
 
-inline void assert_layout_consistency(const tensor &a, const tensor &b, const char* file, int line) {
+inline void assert_layout_consistency(const tensor &a, const tensor &b, const char *file, int line) {
     assert_type_consistency(a, b, file, line);
     assert_shape_consistency(a, b, file, line);
 }
 
-inline void assert_mask_consistency(const tensor &t, const tensor_mask &mask, const char* file, int line) {
+inline void assert_mask_consistency(const tensor &t, const tensor_mask &mask, const char *file, int line) {
     if (t.size() != mask.size_)
         throw nn_except("tensor mask size does not match", file, line);
     if (t.device_type_ != mask.device_type_)
@@ -84,9 +84,10 @@ inline tensor conv(const tensor &input, const tensor &kernel, const tensor &bias
     case data_type::fp32:
         dispatch_kernel(ret).conv_fp32(
             input.samples_, input.channels_, kernel.samples_,
-            input.height_, input.width_, kernel.height_, kernel.width_,
+            input.data_, input.height_, input.width_,
+            kernel.data_, kernel.height_, kernel.width_,
             height_padding, width_padding,
-            ret.data_, input.data_, kernel.data_, bias.data_
+            bias.data_, ret.data_
         );
         break;
     }
@@ -95,15 +96,15 @@ inline tensor conv(const tensor &input, const tensor &kernel, const tensor &bias
 }
 
 inline tensor conv_input_grad(const tensor &output_grad, const tensor &kernel,
-                              const size_t input_height_padding, const size_t input_width_padding) {
+                              const size_t forward_height_padding, const size_t forward_width_padding) {
     // [n, c_o, h_o, w_o] * [c_o, c_i, h_k, w_k](rotated) -> [n, c_i, h_i, w_i]
     assert_type_consistency(output_grad, kernel, __FILE__, __LINE__);
     if (output_grad.channels_ != kernel.samples_)
         throw nn_except("conv channels do not match", __FILE__, __LINE__);
-    if (input_height_padding >= kernel.height_ || input_width_padding >= kernel.width_)
+    if (forward_height_padding >= kernel.height_ || forward_width_padding >= kernel.width_)
         throw nn_except("padding cannot be larger than kernel", __FILE__, __LINE__);
-    const size_t height_padding = kernel.height_ - input_height_padding - 1,
-                 width_padding = kernel.width_ - input_width_padding - 1;
+    const size_t height_padding = kernel.height_ - forward_height_padding - 1,
+                 width_padding = kernel.width_ - forward_width_padding - 1;
 
     tensor ret(
         output_grad.samples_, kernel.channels_,
@@ -116,9 +117,10 @@ inline tensor conv_input_grad(const tensor &output_grad, const tensor &kernel,
     case data_type::fp32:
         dispatch_kernel(ret).conv_input_grad_fp32(
             output_grad.samples_, kernel.channels_, output_grad.channels_,
-            output_grad.height_, output_grad.width_, kernel.height_, kernel.width_,
+            output_grad.data_, output_grad.height_, output_grad.width_,
+            kernel.data_, kernel.height_, kernel.width_,
             height_padding, width_padding,
-            ret.data_, output_grad.data_, kernel.data_
+            ret.data_
         );
         break;
     }
@@ -146,9 +148,10 @@ inline tensor conv_kernel_grad(const tensor &input, const tensor &output_grad,
     case data_type::fp32:
         dispatch_kernel(ret).conv_kernel_grad_fp32(
             input.samples_, input.channels_, output_grad.channels_,
-            input.height_, input.width_, output_grad.height_, output_grad.width_,
+            input.data_, input.height_, input.width_,
+            output_grad.data_, output_grad.height_, output_grad.width_,
             height_padding, width_padding,
-            ret.data_, input.data_, output_grad.data_
+            ret.data_
         );
         break;
     }
@@ -297,22 +300,22 @@ inline tensor relu(const tensor &t) {
     return ret;
 }
 
-inline tensor &tensor::relu_mask(const tensor &mask) {
-    assert_layout_consistency(mask, *this, __FILE__, __LINE__);
+inline tensor &tensor::relu_backward(const tensor &input) {
+    assert_layout_consistency(input, *this, __FILE__, __LINE__);
     switch (data_type_) {
     case data_type::fp32:
-        dispatch_kernel(*this).relu_backward_fp32(size(), data_, data_, mask.data_);
+        dispatch_kernel(*this).relu_backward_fp32(size(), data_, data_, input.data_);
         break;
     }
     return *this;
 }
 
-inline tensor relu_mask(const tensor &t, const tensor &mask) {
-    assert_layout_consistency(t, mask, __FILE__, __LINE__);
+inline tensor relu_backward(const tensor &t, const tensor &input) {
+    assert_layout_consistency(t, input, __FILE__, __LINE__);
     tensor ret(t.layout());
     switch (ret.data_type_) {
     case data_type::fp32:
-        dispatch_kernel(ret).relu_backward_fp32(ret.size(), ret.data_, t.data_, mask.data_);
+        dispatch_kernel(ret).relu_backward_fp32(ret.size(), ret.data_, t.data_, input.data_);
         break;
     }
     return ret;

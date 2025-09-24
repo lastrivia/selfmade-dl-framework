@@ -20,11 +20,11 @@ public:
 
     tensor back_propagation(tensor &output_grad) override {
         if (in_place_) {
-            output_grad.relu_mask(input_);
+            output_grad.relu_backward(input_);
             return output_grad;
         }
         else
-            return relu_mask(output_grad, input_);
+            return relu_backward(output_grad, input_);
     }
 
     std::vector<param> enum_params() override {
