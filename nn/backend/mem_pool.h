@@ -7,7 +7,7 @@
 #include "../except.h"
 
 template<device_type device>
-class mem_pool {
+class base_mem_pool {
 public:
     template<typename T>
     [[nodiscard]] static T *alloc(size_t size) {
@@ -24,8 +24,8 @@ public:
     }
 
 private:
-    static mem_pool<device> &instance() {
-        thread_local mem_pool<device> instance;
+    static base_mem_pool &instance() {
+        thread_local base_mem_pool instance;
         return instance;
     }
 
@@ -35,8 +35,13 @@ private:
 
     char *device_new(size_t size_bytes) {
         char *ret;
-        if constexpr (device == device_type::cpu)
-            ret = new char[size_bytes];
+        if constexpr (device == device_type::cpu) {
+            try {
+                ret = new char[size_bytes];
+            } catch (std::bad_alloc &e) {
+                throw nn_except("memory allocation failed", __FILE__, __LINE__);
+            }
+        }
         else if constexpr (device == device_type::cuda) {
             cudaError_t err = cudaMalloc(reinterpret_cast<void **>(&ret), size_bytes);
             if (err != cudaSuccess) {
@@ -50,7 +55,7 @@ private:
         if constexpr (device == device_type::cpu)
             delete[] p;
         else if constexpr (device == device_type::cuda)
-            cudaFree(reinterpret_cast<void *>(p));
+            cudaFree(p);
     }
 
     char *alloc_p(size_t size_bytes) {
@@ -73,7 +78,7 @@ private:
         if (p == nullptr)
             return;
         auto it = allocated_pool_.find(p);
-        if (it == allocated_pool_.end())  // unexpected
+        if (it == allocated_pool_.end()) // unexpected
             device_delete(p);
         else {
             recycle_pool_[it->second].push_back(p);
@@ -81,11 +86,14 @@ private:
         }
     }
 
-    ~mem_pool() {
+    ~base_mem_pool() {
         for (const auto &it: recycle_pool_)
             for (char *p: it.second)
-            device_delete(p);
+                device_delete(p);
         for (auto it: allocated_pool_)
             device_delete(it.first);
     }
 };
+
+using mem_pool = base_mem_pool<device_type::cpu>;
+using cuda_mem_pool = base_mem_pool<device_type::cuda>;

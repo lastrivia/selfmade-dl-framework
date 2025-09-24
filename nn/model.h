@@ -28,7 +28,7 @@ public:
         return gradient;
     }
 
-    void to_device(device_type device) {
+    void to_device(device_type_arg device) {
         for (auto &layer : layers_)
             layer->to_device(device);
     }

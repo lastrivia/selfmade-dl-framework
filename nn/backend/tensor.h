@@ -161,7 +161,7 @@ public:
         return samples_ * channels_ * height_ * width_;
     }
 
-    void to_device(device_type device) {
+    void to_device(device_type_arg device) {
 
         // Warning: this cannot handle reference tensors (!owns_data_)
 
@@ -173,9 +173,9 @@ public:
         if (device_type_ == device_type::cpu && device == device_type::cuda) {
             switch (data_type_) {
             case data_type::fp32: {
-                char *next = reinterpret_cast<char *>(mem_pool<device_type::cuda>::alloc<float>(size()));
+                char *next = reinterpret_cast<char *>(cuda_mem_pool::alloc<float>(size()));
                 cudaMemcpyAsync(next, data_, size() * sizeof(float), cudaMemcpyHostToDevice, cuda_kernel::default_stream());
-                mem_pool<device_type::cpu>::recycle(data_);
+                mem_pool::recycle(data_);
                 data_ = next;
             }
             break;
@@ -187,10 +187,10 @@ public:
         if (device_type_ == device_type::cuda && device == device_type::cpu) {
             switch (data_type_) {
             case data_type::fp32: {
-                char *next = reinterpret_cast<char *>(mem_pool<device_type::cpu>::alloc<float>(size()));
+                char *next = reinterpret_cast<char *>(mem_pool::alloc<float>(size()));
                 cudaMemcpyAsync(next, data_, size() * sizeof(float), cudaMemcpyDeviceToHost, cuda_kernel::default_stream());
                 cudaStreamSynchronize(cuda_kernel::default_stream());
-                mem_pool<device_type::cuda>::recycle(data_);
+                cuda_mem_pool::recycle(data_);
                 data_ = next;
             }
             break;
@@ -297,7 +297,7 @@ protected:
             switch (data_type_) {
             case data_type::fp32:
                 if (alloc)
-                    data_ = mem_pool<device_type::cpu>::alloc<float>(size());
+                    data_ = mem_pool::alloc<float>(size());
                 if (copy_src)
                     memcpy(data_, copy_src, sizeof(float) * size());
                 break;
@@ -307,7 +307,7 @@ protected:
             switch (data_type_) {
             case data_type::fp32:
                 if (alloc)
-                    data_ = mem_pool<device_type::cuda>::alloc<float>(size());
+                    data_ = cuda_mem_pool::alloc<float>(size());
                 if (copy_src)
                     cudaMemcpyAsync(data_, copy_src, sizeof(float) * size(), cudaMemcpyDeviceToDevice, cuda_kernel::default_stream());
                 break;
@@ -322,10 +322,10 @@ protected:
     void release_data() {
         switch (device_type_) {
         case device_type::cpu:
-            mem_pool<device_type::cpu>::recycle(data_);
+            mem_pool::recycle(data_);
             break;
         case device_type::cuda:
-            mem_pool<device_type::cuda>::recycle(data_);
+            cuda_mem_pool::recycle(data_);
             break;
         default:
             break;

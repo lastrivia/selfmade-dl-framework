@@ -32,7 +32,7 @@ public:
 
     size_t batch_size() const { return batch_size_; }
 
-    void to_device(device_type device) {
+    void to_device(device_type_arg device) {
         data_.to_device(device);
         label_.to_device(device);
     }

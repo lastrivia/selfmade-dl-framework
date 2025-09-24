@@ -11,8 +11,6 @@ namespace cpu_kernel {
 
     namespace gemm_utils_fp32 {
 
-        using mem_pool = mem_pool<device_type::cpu>;
-
         // stride: offset between adjacent rows(row-major) or cols(col-major)
 
         // transpose tag: only affects if data is (false:)row-major or (true:)col-major

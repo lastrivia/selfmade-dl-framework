@@ -19,7 +19,7 @@ public:
 
     virtual std::vector<param> enum_params() = 0;
 
-    void to_device(device_type device) {
+    void to_device(device_type_arg device) {
         for (auto &p: enum_params()) {
             p.data.to_device(device);
             p.grad.to_device(device);

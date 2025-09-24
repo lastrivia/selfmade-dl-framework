@@ -2,9 +2,32 @@
 
 #include <cstdint>
 
+#include "../except.h"
+
 enum class device_type: char {
     cpu  = 0,
     cuda = 1
+};
+
+class device_type_arg {
+public:
+    device_type_arg(device_type device) : device_(device) {}
+
+    operator device_type() const { return device_; }
+
+    device_type_arg(const char *device_name) {
+        if (device_name == nullptr)
+            throw nn_except("device name not provided", __FILE__, __LINE__);
+        if (strcmp("cpu", device_name) == 0)
+            device_ = device_type::cpu;
+        else if (strcmp("cuda", device_name) == 0)
+            device_ = device_type::cuda;
+        else
+            throw nn_except("unknown device name", __FILE__, __LINE__);
+    }
+
+private:
+    device_type device_;
 };
 
 enum class data_type: char {

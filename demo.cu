@@ -20,9 +20,9 @@ int main() {
     );
 
     for (auto &sample: train_dataset)
-        sample.to_device(device_type::cuda);
+        sample.to_device("cuda");
     for (auto &sample: test_dataset)
-        sample.to_device(device_type::cuda);
+        sample.to_device("cuda");
 
     nn_model model(
         // [N, 1, 28, 28]
@@ -49,7 +49,7 @@ int main() {
         fc_layer(256, 10)
     );
 
-    model.to_device(device_type::cuda);
+    model.to_device("cuda");
 
     adam_optimizer optimizer(0.001f);
     optimizer.register_model(model);

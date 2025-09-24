@@ -192,11 +192,11 @@ namespace cuda_kernel {
         class cudnn_workspace {
         public:
             explicit cudnn_workspace(size_t bytes) {
-                workspace_ = mem_pool<device_type::cuda>::alloc<char>(bytes);
+                workspace_ = cuda_mem_pool::alloc<char>(bytes);
             }
 
             ~cudnn_workspace() {
-                mem_pool<device_type::cuda>::recycle(workspace_);
+                cuda_mem_pool::recycle(workspace_);
             }
 
             cudnn_workspace(const cudnn_workspace &) = delete;

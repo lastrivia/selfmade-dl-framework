@@ -261,8 +261,8 @@ namespace cuda_kernel {
 
     inline void correct_count_fp32(size_t blk_n, size_t blk_len,
                                    size_t *ret /* host */, const float *out, const float *ans) {
-        bool *flags = mem_pool<device_type::cpu>::alloc<bool>(blk_n);
-        bool *flags_cuda = mem_pool<device_type::cuda>::alloc<bool>(blk_n);
+        bool *flags = mem_pool::alloc<bool>(blk_n);
+        bool *flags_cuda = cuda_mem_pool::alloc<bool>(blk_n);
         launch_common_kernel(correct_count_fp32_worker, blk_n, blk_len, flags_cuda, out, ans);
         cudaMemcpyAsync(flags, flags_cuda, blk_n * sizeof(bool), cudaMemcpyDeviceToHost, default_stream());
         cudaStreamSynchronize(default_stream());
