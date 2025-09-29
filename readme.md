@@ -1,4 +1,4 @@
-A lightweight, self-made deep learning framework on Windows
+Lightweight, self-made deep learning framework (i.e. a toy-class pytorch/tensorflow imitation), built on Windows
 
 - CPU Backend
   - Manual C++ implementation with no third-party dependencies
@@ -6,16 +6,24 @@ A lightweight, self-made deep learning framework on Windows
 - CUDA Backend
   - Dependencies: CUDA (12.0+), cuBLAS (12.0+), cuDNN (8.0+)
 
-### Currently in development
+### Roadmap
 
 - Extend support for more NN architectures (RNN, GAN, Transformer, etc.)
-- Autograd system
 - Kernel operator fusion (JIT compilation)
-- Manual CUDA backend implementation (without cuBLAS/cuDNN)
-- Model serialization and deserialization
-- CPU-fallback compatible build
+- ONNX Model serialization and deserialization
+- CPU-fallback compatible build target
 
-### 0924a - 2025-09-24
+### v0.5 - Coming soon
+
+- Autograd system
+- Reworked tensor type
+  - Seperated handle & implementation
+  - Automatic garbage collection
+  - Variable dimension
+- Build with code generation
+  - Reduce code duplication and improve maintainability
+
+### 0924a (v0.4) - 2025-09-24
 
 - CUDA backend
   - GEMM and convolution via cuBLAS/cuDNN 
@@ -24,7 +32,7 @@ A lightweight, self-made deep learning framework on Windows
   - Improved exception handling
   - More readable interface design
 
-### 0915a - 2025-09-15
+### 0915a (v0.3) - 2025-09-15
 
 - Added CNN support
   - Additional layers: conv, maxpool, flatten
@@ -34,14 +42,14 @@ A lightweight, self-made deep learning framework on Windows
   - Model class for more convenient network operations
 - Style improvement
 
-### 0906a - 2025-09-06
+### 0906a (v0.2.1) - 2025-09-06
 
 - Optimized backend
   - Memory pool
   - Multithreading, SIMD, Strassen partition... for GEMM
 - Misc fixes & style improvements
 
-### 0905a - 2025-09-05
+### 0905a (v0.2) - 2025-09-05
 
 - A completely new backend framework
   - Separated kernel function implementation
@@ -50,11 +58,11 @@ A lightweight, self-made deep learning framework on Windows
   - Demo performance improvement ~30%
 - Batched training
 
-### 0826a - 2025-08-26
+### 0826a (v0.1.1) - 2025-08-26
 
 - Separated optimizer & scheduler class
 - Adam optimizer
 
-### 0820a - 2025-08-20
+### 0820a (v0.1) - 2025-08-20
 
 - Initial commit
