@@ -38,7 +38,7 @@ private:
         if constexpr (device == device_type::cpu) {
             try {
                 ret = new char[size_bytes];
-            } catch (std::bad_alloc &e) {
+            } catch (std::bad_alloc &) {
                 throw nn_except("memory allocation failed", __FILE__, __LINE__);
             }
         }
@@ -97,3 +97,45 @@ private:
 
 using mem_pool = base_mem_pool<device_type::cpu>;
 using cuda_mem_pool = base_mem_pool<device_type::cuda>;
+
+template<device_type device>
+class base_workspace {
+public:
+    base_workspace() {
+        workspace_ = nullptr;
+    }
+
+    void init(size_t bytes) {
+        if (workspace_)
+            base_mem_pool<device>::recycle(workspace_);
+        workspace_ = base_mem_pool<device>::template alloc<char>(bytes);
+    }
+
+    explicit base_workspace(size_t bytes) {
+        workspace_ = base_mem_pool<device>::template alloc<char>(bytes);
+    }
+
+    ~base_workspace() {
+        base_mem_pool<device>::recycle(workspace_);
+    }
+
+    base_workspace(const base_workspace &) = delete;
+    base_workspace &operator=(const base_workspace &) = delete;
+    base_workspace(base_workspace &&other) = delete;
+    base_workspace &operator=(base_workspace &&other) = delete;
+
+    operator void *() const {
+        return workspace_;
+    }
+
+    template<typename T>
+    operator T *() const {
+        return static_cast<T *>(workspace_);
+    }
+
+private:
+    void *workspace_;
+};
+
+using workspace = base_workspace<device_type::cpu>;
+using cuda_workspace = base_workspace<device_type::cuda>;

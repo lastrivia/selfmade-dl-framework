@@ -36,12 +36,15 @@ public:
         k.relu_fp32 = cpu_kernel::relu_fp32;
         k.relu_backward_fp32 = cpu_kernel::relu_backward_fp32;
 
-        k.add_cyclic_fp32 = cpu_kernel::add_cyclic_fp32;
+        k.add_cyclic_fp32 = cpu_kernel::add_cyclic_fp32; // 6 abandoned
         k.sub_cyclic_fp32 = cpu_kernel::sub_cyclic_fp32;
         k.add_stretched_fp32 = cpu_kernel::add_stretched_fp32;
         k.sub_stretched_fp32 = cpu_kernel::sub_stretched_fp32;
         k.sum_cyclic_fp32 = cpu_kernel::sum_cyclic_fp32;
         k.sum_stretched_fp32 = cpu_kernel::sum_stretched_fp32;
+
+        k.add_broadcast_fp32 = cpu_kernel::add_broadcast_fp32;
+        k.sum_fp32 = cpu_kernel::sum_fp32;
 
         k.softmax_fp32 = cpu_kernel::softmax_fp32;
 
@@ -82,12 +85,15 @@ public:
         k.relu_fp32 = cuda_kernel::relu_fp32;
         k.relu_backward_fp32 = cuda_kernel::relu_backward_fp32;
 
-        k.add_cyclic_fp32 = cuda_kernel::add_cyclic_fp32;
+        k.add_cyclic_fp32 = cuda_kernel::add_cyclic_fp32; // 6 abandoned
         k.sub_cyclic_fp32 = cuda_kernel::sub_cyclic_fp32;
         k.add_stretched_fp32 = cuda_kernel::add_stretched_fp32;
         k.sub_stretched_fp32 = cuda_kernel::sub_stretched_fp32;
         k.sum_cyclic_fp32 = cuda_kernel::sum_cyclic_fp32;
         k.sum_stretched_fp32 = cuda_kernel::sum_stretched_fp32;
+
+        k.add_broadcast_fp32 = cuda_kernel::add_broadcast_fp32;
+        k.sum_fp32 = cuda_kernel::sum_fp32;
 
         k.softmax_fp32 = cuda_kernel::softmax_fp32;
 

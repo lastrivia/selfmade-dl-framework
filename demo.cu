@@ -6,6 +6,13 @@
 #include "utils/progress_bar.h"
 
 int main() {
+    // tensor t(65, 8, 29, 29, device_type::cuda);
+    // broadcast(t, 1.0f);
+    // tensor s = sum(t, {0, 1, 3});
+    // s.to_device("cpu");
+    // std::cout << s.size() << std::endl;
+    // for (int i = 0; i < 8; ++i)
+    //     std::cout << s.at(i) << ' ';
 
     size_t batch_size = 64;
     std::vector<mnist_sample> train_dataset = mnist_loader::load(

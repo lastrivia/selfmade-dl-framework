@@ -2,6 +2,9 @@
 
 #include <cmath>
 
+#include "../../mem_pool.h"
+#include "../arch.h"
+
 // auto simd by compiler optimization
 
 // todo simd intrinsics, cache optimization, multithreading
@@ -130,6 +133,81 @@ namespace cpu_kernel {
         for (size_t i = 0; i < blk_n; i++) {
             for (size_t j = 0; j < blk_len; j++) {
                 dst[i] += src[i * blk_len + j];
+            }
+        }
+    }
+
+    inline void add_broadcast_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask_a, const bool *mask_b,
+                                   float *dst, const float *src_a, const float *src_b) {
+        size_t ndim_buf[3][NDIM_STACK_BUF_SIZE];
+
+        workspace ndim_workspace;
+        size_t *strides_a, *strides_b, *coord;
+        if (ndim > NDIM_STACK_BUF_SIZE) {
+            ndim_workspace.init(sizeof(size_t) * ndim * 3);
+            strides_a = static_cast<size_t *>(ndim_workspace);
+            strides_b = static_cast<size_t *>(ndim_workspace) + ndim;
+            coord = static_cast<size_t *>(ndim_workspace) + ndim * 2;
+        }
+        else {
+            strides_a = ndim_buf[0];
+            strides_b = ndim_buf[1];
+            coord = ndim_buf[2];
+        }
+        calc_strides(strides_a, ndim, lengths, mask_a);
+        calc_strides(strides_b, ndim, lengths, mask_b);
+
+        memset(coord, 0, ndim * sizeof(size_t));
+        size_t idx_a = 0, idx_b = 0;
+        for (size_t i = 0; i < n; i++) {
+            // todo simd
+            dst[i] = src_a[idx_a] + src_b[idx_b];
+            for (size_t j = 0; j < ndim; ++j) {
+                coord[j]++;
+                if (coord[j] < lengths[j]) {
+                    idx_a += strides_a[j];
+                    idx_b += strides_b[j];
+                    break;
+                }
+                // else: coordination carry
+                coord[j] = 0;
+                idx_a -= strides_a[j] * (lengths[j] - 1);
+                idx_b -= strides_b[j] * (lengths[j] - 1);
+            }
+        }
+    }
+
+    inline void sum_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask, float *dst, const float *src) {
+        size_t ndim_buf[2][NDIM_STACK_BUF_SIZE];
+
+        workspace ndim_workspace;
+        size_t *strides_dst, *coord;
+        if (ndim > NDIM_STACK_BUF_SIZE) {
+            ndim_workspace.init(sizeof(size_t) * ndim * 2);
+            strides_dst = static_cast<size_t *>(ndim_workspace);
+            coord = static_cast<size_t *>(ndim_workspace) + ndim;
+        }
+        else {
+            strides_dst = ndim_buf[0];
+            coord = ndim_buf[1];
+        }
+        size_t m = calc_strides(strides_dst, ndim, lengths, mask);
+        memset(dst, 0, m * sizeof(float));
+
+        memset(coord, 0, ndim * sizeof(size_t));
+        size_t idx_dst = 0;
+        for (size_t i = 0; i < n; i++) {
+            // todo simd
+            dst[idx_dst] += src[i];
+            for (size_t j = 0; j < ndim; ++j) {
+                coord[j]++;
+                if (coord[j] < lengths[j]) {
+                    idx_dst += strides_dst[j];
+                    break;
+                }
+                // else: coordination carry
+                coord[j] = 0;
+                idx_dst -= strides_dst[j] * (lengths[j] - 1);
             }
         }
     }

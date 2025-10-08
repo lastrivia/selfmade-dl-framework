@@ -189,29 +189,6 @@ namespace cuda_kernel {
             cudnnActivationDescriptor_t desc_;
         };
 
-        class cudnn_workspace {
-        public:
-            explicit cudnn_workspace(size_t bytes) {
-                workspace_ = cuda_mem_pool::alloc<char>(bytes);
-            }
-
-            ~cudnn_workspace() {
-                cuda_mem_pool::recycle(workspace_);
-            }
-
-            cudnn_workspace(const cudnn_workspace &) = delete;
-            cudnn_workspace &operator=(const cudnn_workspace &) = delete;
-            cudnn_workspace(cudnn_workspace &&other) = delete;
-            cudnn_workspace &operator=(cudnn_workspace &&other) = delete;
-
-            operator void *() const {
-                return workspace_;
-            }
-
-        private:
-            void *workspace_;
-        };
-
         // todo replace with cuDNN 9 backend API
 
         /** === FORWARD ===
@@ -258,7 +235,7 @@ namespace cuda_kernel {
             with_check(cudnnGetConvolutionForwardWorkspaceSize(
                 default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
             ));
-            cudnn_workspace workspace(workspace_size);
+            cuda_workspace workspace(workspace_size);
 
             float alpha1 = 1.0f, alpha2 = 0.0f;
             cudnn_activation_desc identity(CUDNN_ACTIVATION_IDENTITY);
@@ -314,7 +291,7 @@ namespace cuda_kernel {
             with_check(cudnnGetConvolutionBackwardDataWorkspaceSize(
                 default_cudnn_handle(), ker_desc, in_desc, conv_desc, dst_desc, algo, &workspace_size
             ));
-            cudnn_workspace workspace(workspace_size);
+            cuda_workspace workspace(workspace_size);
 
             float alpha = 1.0f, beta = 0.0f;
             with_check(cudnnConvolutionBackwardData(
@@ -366,7 +343,7 @@ namespace cuda_kernel {
             with_check(cudnnGetConvolutionBackwardFilterWorkspaceSize(
                 default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
             ));
-            cudnn_workspace workspace(workspace_size);
+            cuda_workspace workspace(workspace_size);
 
             float alpha = 1.0f, beta = 0.0f;
             with_check(cudnnConvolutionBackwardFilter(

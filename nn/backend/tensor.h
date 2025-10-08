@@ -236,13 +236,16 @@ public:
     friend tensor relu_backward(const tensor &t, const tensor &input);
     tensor &relu_backward(const tensor &input);
 
-    friend tensor add_tile(const tensor &t, const tensor &tile);
-    tensor &add_tile(const tensor &tile);
-    friend tensor sub_tile(const tensor &t, const tensor &tile);
-    tensor &sub_tile(const tensor &tile);
-    friend tensor sum_rows(const tensor &);
-    friend tensor sum_cols(const tensor &);
-    friend tensor sum_by_channel(const tensor &);
+    friend tensor add_broadcast(const tensor &, const tensor &);
+    friend tensor sum(const tensor &, std::vector<size_t>);
+
+    friend tensor add_tile(const tensor &t, const tensor &tile); // abandoned
+    tensor &add_tile(const tensor &tile); // abandoned
+    friend tensor sub_tile(const tensor &t, const tensor &tile); // abandoned
+    tensor &sub_tile(const tensor &tile); // abandoned
+    friend tensor sum_rows(const tensor &); // abandoned
+    friend tensor sum_cols(const tensor &); // abandoned
+    friend tensor sum_by_channel(const tensor &); // abandoned
 
     friend tensor softmax(const tensor &);
     tensor &softmax();

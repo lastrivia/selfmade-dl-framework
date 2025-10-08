@@ -34,7 +34,8 @@ public:
 
     tensor back_propagation(tensor &output_grad) override {
         kernel_grad_ = conv_kernel_grad(input_, output_grad, height_padding_, width_padding_);
-        bias_grad_ = sum_by_channel(output_grad);
+        // bias_grad_ = sum_by_channel(output_grad);
+        bias_grad_ = sum(output_grad, {0, 1, 3});
         return conv_input_grad(output_grad, kernel_, height_padding_, width_padding_);
     }
 

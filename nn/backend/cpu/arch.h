@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <thread>
 
+#include "ndim.h"
+
 namespace cpu_kernel {
     static constexpr size_t CACHE_THRESHOLD = 1048576LL, THREAD_WORKLOAD_THRESHOLD = 1048576LL;
 

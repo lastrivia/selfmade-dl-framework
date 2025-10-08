@@ -25,12 +25,14 @@ public:
 
     tensor forward_propagation(tensor &input) override {
         input_ = input;
-        return add_tile(matmul(input, weight_), bias_);
+        // return add_tile(matmul(input, weight_), bias_);
+        return add_broadcast(matmul(input, weight_), bias_);
     }
 
     tensor back_propagation(tensor &output_grad) override {
         weight_grad_ = matmul<true, false>(input_, output_grad);
-        bias_grad_ = sum_rows(output_grad);
+        // bias_grad_ = sum_rows(output_grad);
+        bias_grad_ = sum(output_grad, {1});
         return matmul<false, true>(output_grad, weight_);
     }
 

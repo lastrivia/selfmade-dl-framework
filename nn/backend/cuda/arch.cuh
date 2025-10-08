@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdexcept>
+#include "../except.h"
+#include "../cpu/ndim.h"
 
 namespace cuda_kernel {
 
@@ -47,4 +48,31 @@ namespace cuda_kernel {
         static cuda_stream stream;
         return stream.get();
     }
+
+    static constexpr size_t NDIM_STACK_BUF_SIZE = cpu_kernel::NDIM_STACK_BUF_SIZE,
+                            NDIM_STACK_BUF_ELEMENTS = 10;
+    using cpu_kernel::calc_strides;
+
+    class ndim_device_buf_t {
+    public:
+        ndim_device_buf_t(size_t elements) {
+            cudaError_t err = cudaMalloc(&buf, elements * NDIM_STACK_BUF_SIZE * sizeof(size_t));
+            if (err != cudaSuccess)
+                throw nn_except("cuda memory allocation failed", __FILE__, __LINE__);
+        }
+
+        ~ndim_device_buf_t() {
+            cudaFree(buf);
+        }
+
+        size_t *operator[](size_t index) const {
+            return buf + index * NDIM_STACK_BUF_SIZE;
+        }
+
+    private:
+        size_t *buf;
+
+    };
+
+    static ndim_device_buf_t ndim_device_buf(NDIM_STACK_BUF_ELEMENTS);
 }

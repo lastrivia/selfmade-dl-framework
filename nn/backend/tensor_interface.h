@@ -439,7 +439,7 @@ inline tensor pow(const tensor &t, float scalar) {
 
 // ====== TILE OPERATORS ======
 
-inline tensor &tensor::add_tile(const tensor &tile) {
+inline tensor &tensor::add_tile(const tensor &tile) { // abandoned
     assert_type_consistency(*this, tile, __FILE__, __LINE__);
     if (tile.height_ == height_ && tile.width_ == 1) {
         switch (data_type_) {
@@ -460,7 +460,7 @@ inline tensor &tensor::add_tile(const tensor &tile) {
     return *this;
 }
 
-inline tensor add_tile(const tensor &t, const tensor &tile) {
+inline tensor add_tile(const tensor &t, const tensor &tile) { // abandoned
     assert_type_consistency(t, tile, __FILE__, __LINE__);
     tensor ret(t.height_, t.width_, t.device_type_, t.data_type_);
     if (tile.height_ == t.height_ && tile.width_ == 1) {
@@ -482,7 +482,7 @@ inline tensor add_tile(const tensor &t, const tensor &tile) {
     return ret;
 }
 
-inline tensor &tensor::sub_tile(const tensor &tile) {
+inline tensor &tensor::sub_tile(const tensor &tile) { // abandoned
     assert_type_consistency(*this, tile, __FILE__, __LINE__);
     if (tile.height_ == height_ && tile.width_ == 1) {
         switch (data_type_) {
@@ -503,7 +503,7 @@ inline tensor &tensor::sub_tile(const tensor &tile) {
     return *this;
 }
 
-inline tensor sub_tile(const tensor &t, const tensor &tile) {
+inline tensor sub_tile(const tensor &t, const tensor &tile) { // abandoned
     assert_type_consistency(t, tile, __FILE__, __LINE__);
     tensor ret(t.height_, t.width_, t.device_type_, t.data_type_);
     if (tile.height_ == t.height_ && tile.width_ == 1) {
@@ -525,7 +525,7 @@ inline tensor sub_tile(const tensor &t, const tensor &tile) {
     return ret;
 }
 
-inline tensor sum_rows(const tensor &t) {
+inline tensor sum_rows(const tensor &t) { // abandoned
     tensor ret(1, t.width_, t.device_type_, t.data_type_);
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -535,7 +535,7 @@ inline tensor sum_rows(const tensor &t) {
     return ret;
 }
 
-inline tensor sum_cols(const tensor &t) {
+inline tensor sum_cols(const tensor &t) { // abandoned
     tensor ret(t.height_, 1, t.device_type_, t.data_type_);
     switch (ret.data_type_) {
     case data_type::fp32:
@@ -545,13 +545,64 @@ inline tensor sum_cols(const tensor &t) {
     return ret;
 }
 
-inline tensor sum_by_channel(const tensor &t) {
+inline tensor sum_by_channel(const tensor &t) { // abandoned
     tensor tmp(t.samples_, t.channels_, 1, 1, t.device_type_, t.data_type_);
     tensor ret(1, t.channels_, 1, 1, t.device_type_, t.data_type_);
     switch (ret.data_type_) {
     case data_type::fp32:
         dispatch_kernel(ret).sum_stretched_fp32(t.samples_ * t.channels_, t.height_ * t.width_, tmp.data_, t.data_);
         dispatch_kernel(ret).sum_cyclic_fp32(t.samples_, t.channels_, ret.data_, tmp.data_);
+    }
+    return ret;
+}
+
+inline tensor add_broadcast(const tensor &a, const tensor &b) {
+    assert_type_consistency(a, b, __FILE__, __LINE__);
+    size_t a_dim[4] = {a.width_, a.height_, a.channels_, a.samples_},
+           b_dim[4] = {b.width_, b.height_, b.channels_, b.samples_},
+           ret_dim[4];
+    bool a_mask[4], b_mask[4];
+    for (size_t i = 0; i < 4; i++) {
+        if (a_dim[i] == b_dim[i]) {
+            ret_dim[i] = a_dim[i];
+            a_mask[i] = true;
+            b_mask[i] = true;
+        }
+        else if (a_dim[i] == 1) {
+            ret_dim[i] = b_dim[i];
+            a_mask[i] = false;
+            b_mask[i] = true;
+        }
+        else if (b_dim[i] == 1) {
+            ret_dim[i] = a_dim[i];
+            a_mask[i] = true;
+            b_mask[i] = false;
+        }
+        else
+            throw nn_except("tensor shapes does not match broadcast rules", __FILE__, __LINE__);
+    }
+    tensor ret(ret_dim[3], ret_dim[2], ret_dim[1], ret_dim[0], a.device_type_, a.data_type_);
+    switch (ret.data_type_) {
+    case data_type::fp32:
+        dispatch_kernel(ret).add_broadcast_fp32(ret.size(), 4, ret_dim, a_mask, b_mask, ret.data_, a.data_, b.data_);
+        break;
+    }
+    return ret;
+}
+
+inline tensor sum(const tensor &t, std::vector<size_t> dims) {
+    size_t t_dim[4] = {t.width_, t.height_, t.channels_, t.samples_},
+    ret_dim[4] = {t.width_, t.height_, t.channels_, t.samples_};
+    bool mask[4] = {true, true, true, true};
+    for (size_t &i: dims) {
+        mask[i] = false;
+        ret_dim[i] = 1;
+    }
+    tensor ret(ret_dim[3], ret_dim[2], ret_dim[1], ret_dim[0], t.device_type_, t.data_type_);
+    switch (ret.data_type_) {
+    case data_type::fp32:
+        dispatch_kernel(ret).sum_fp32(t.size(), 4, t_dim, mask, ret.data_, t.data_);
+        break;
     }
     return ret;
 }
