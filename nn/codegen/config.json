@@ -1,0 +1,396 @@
+{
+  "dtypes": {
+    "fp32": {
+      "cpp_key": "float",
+      "suffix": ".0f"
+    },
+    "int32": {
+      "cpp_key": "int32_t",
+      "suffix": ""
+    }
+  },
+  "operators": [
+    {
+      "name": "add",
+      "interface": {
+        "operator": "+",
+        "inplace_operator": "+="
+      },
+      "shape": {
+        "ewise": ["a", "b"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["add_ewise(size, result, a, b)"],
+      "backward": {
+        "a": ["apply grad"],
+        "b": ["apply grad"]
+      }
+    },
+    {
+      "name": "sub",
+      "interface": {
+        "operator": "-",
+        "inplace_operator": "-="
+      },
+      "shape": {
+        "ewise": ["a", "b"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["sub_ewise(size, result, a, b)"],
+      "backward": {
+        "a": ["apply grad"],
+        "b": [
+          "workspace tmp b.size",
+          "mul_scalar(b.size, tmp, grad, auto(-1))",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "mul",
+      "interface": {
+        "operator": "*",
+        "inplace_operator": "*="
+      },
+      "shape": {
+        "ewise": ["a", "b"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["mul_ewise(size, result, a, b)"],
+      "backward": {
+        "a": [
+          "workspace tmp a.size",
+          "mul_ewise(a.size, tmp, grad, b)",
+          "apply tmp"
+        ],
+        "b": [
+          "workspace tmp b.size",
+          "mul_ewise(b.size, tmp, grad, a)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "div",
+      "interface": {
+        "operator": "/",
+        "inplace_operator": "/="
+      },
+      "shape": {
+        "ewise": ["a", "b"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["div_ewise(size, result, a, b)"],
+      "backward": {
+        "a": [
+          "workspace tmp a.size",
+          "div_ewise(a.size, tmp, grad, b)",
+          "apply tmp"
+        ],
+        "b": [
+          "workspace tmp b.size",
+          "mul_scalar(b.size, tmp, grad, auto(-1))",
+          "mul_ewise(b.size, tmp, tmp, a)",
+          "div_ewise(b.size, tmp, tmp, b)",
+          "div_ewise(b.size, tmp, tmp, b)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "square",
+      "interface": {
+        "function": "square"
+      },
+      "shape": {
+        "identity": "t"
+      },
+      "dtypes": ["fp32"],
+      "forward": ["square(size, result, t)"],
+      "backward": {
+        "t": [
+          "workspace tmp t.size",
+          "mul_ewise(t.size, tmp, grad, t)",
+          "mul_scalar(t.size, tmp, tmp, auto(2))",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "sqrt",
+      "interface": {
+        "function": "sqrt"
+      },
+      "shape": {
+        "identity": "t"
+      },
+      "dtypes": ["fp32"],
+      "forward": ["sqrt(size, result, t)"],
+      "backward": {
+        "t": [
+          "workspace tmp t.size",
+          "sqrt(t.size, tmp, t)",
+          "mul_scalar(t.size, tmp, tmp, auto(2))",
+          "div_ewise(t.size, tmp, grad, tmp)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "relu",
+      "interface": {
+        "function": "relu"
+      },
+      "shape": {
+        "identity": "t"
+      },
+      "dtypes": ["fp32"],
+      "forward": ["relu(size, result, t)"],
+      "backward": {
+        "t": [
+          "workspace tmp t.size",
+          "relu_backward(t.size, tmp, grad, t)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "add_scalar",
+      "interface": {
+        "operator": "+",
+        "inplace_operator": "+="
+      },
+      "shape": {
+        "identity": "t",
+        "scalar": ["scalar"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["add_scalar(size, result, t, scalar)"],
+      "backward": {
+        "t": ["apply grad"]
+      }
+    },
+    {
+      "name": "sub_scalar",
+      "interface": {
+        "operator": "-",
+        "inplace_operator": "-="
+      },
+      "shape": {
+        "identity": "t",
+        "scalar": ["scalar"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["add_scalar(size, result, t, -scalar)"],
+      "backward": {
+        "t": ["apply grad"]
+      }
+    },
+    {
+      "name": "mul_scalar",
+      "interface": {
+        "operator": "*",
+        "inplace_operator": "*="
+      },
+      "shape": {
+        "identity": "t",
+        "scalar": ["scalar"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["mul_scalar(size, result, t, scalar)"],
+      "backward": {
+        "t": [
+          "workspace tmp t.size",
+          "mul_scalar(t.size, tmp, grad, scalar)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "div_scalar",
+      "interface": {
+        "operator": "/",
+        "inplace_operator": "/="
+      },
+      "shape": {
+        "identity": "t",
+        "scalar": ["scalar"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["mul_scalar(size, result, t, auto(1) / scalar)"],
+      "backward": {
+        "t": [
+          "workspace tmp t.size",
+          "mul_scalar(t.size, tmp, grad, auto(1) / scalar)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "pow",
+      "interface": {
+        "function": "pow"
+      },
+      "shape": {
+        "identity": "t",
+        "scalar": ["scalar"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["pow(size, result, t, scalar)"],
+      "backward": {
+        "t": [
+          "workspace tmp t.size",
+          "pow(t.size, tmp, t, scalar - auto(1))",
+          "mul_scalar(t.size, tmp, tmp, scalar)",
+          "mul_ewise(t.size, tmp, tmp, grad)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "add_broadcast",
+      "interface": {
+        "function": "add_broadcast"
+      },
+      "shape": {
+        "broadcast": ["a", "b"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["add_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"],
+      "backward": {
+        "a": [
+          {
+            "if": "a.shape_identity",
+            "then": ["apply grad"],
+            "else": [
+              "workspace tmp a.size",
+              "sum(size, ndim, lengths, a.mask, tmp, grad)",
+              "apply tmp"
+            ]
+          }
+        ],
+        "b": [
+          {
+            "if": "b.shape_identity",
+            "then": ["apply grad"],
+            "else": [
+              "workspace tmp b.size",
+              "sum(size, ndim, lengths, b.mask, tmp, grad)",
+              "apply tmp"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "sum",
+      "interface": {
+        "function": "sum"
+      },
+      "shape": {
+        "reduction": {
+          "source": "t",
+          "dims": "dims"
+        }
+      },
+      "dtypes": ["fp32"],
+      "forward": ["sum(t.size, ndim, t.lengths, $mask, result, t)"],
+      "backward": "reject"
+    },
+    {
+      "name": "maxpool",
+      "interface": {
+        "function": "maxpool"
+      },
+      "dtypes": ["fp32"],
+      "shape": {
+        "pooling": {
+          "source": "t",
+          "strides": {
+            "1": "h_stride",
+            "0": "w_stride"
+          }
+        }
+      },
+      "forward": [
+        "maxpool(t.size / t.lengths[1] / t.lengths[0], t.lengths[1], t.lengths[0], h_stride, w_stride, result, $mask, t)"
+      ],
+      "backward": {
+        "t": [
+          "workspace tmp t.size",
+          "maxpool_backward(t.size / t.lengths[1] / t.lengths[0], t.lengths[1], t.lengths[0], h_stride, w_stride, tmp, $mask, t)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "matmul",
+      "interface": {
+        "function": "matmul"
+      },
+      "shape": {
+        "matmul": {
+          "first": "a",
+          "second": "b"
+        }
+      },
+      "dtypes": ["fp32"],
+      "forward": ["gemm<a.transpose, b.transpose>($m, $k, $n, result, a, b)"],
+      "backward": {
+        "a": [
+          "workspace tmp a.size",
+          {
+            "if": "a.transpose",
+            "then": ["gemm<b.transpose, true>($k, $n, $m, tmp, b, grad)"],
+            "else": ["gemm<false, !b.transpose>($m, $n, $k, tmp, grad, b)"]
+          },
+          "apply tmp"
+        ],
+        "b": [
+          "workspace tmp b.size",
+          {
+            "if": "b.transpose",
+            "then": ["gemm<true, a.transpose>($n, $m, $k, tmp, grad, a)"],
+            "else": ["gemm<!a.transpose, false>($k, $m, $n, tmp, a, grad)"]
+          },
+          "apply tmp"
+        ]
+      }
+    },
+    {
+      "name": "conv",
+      "interface": {
+        "function": "conv"
+      },
+      "shape": {
+        "conv": {
+          "input": "input",
+          "kernel": "kernel",
+          "bias": "bias",
+          "h_padding": "h_padding",
+          "w_padding": "w_padding"
+        }
+      },
+      "dtypes": ["fp32"],
+      "forward": ["conv($n, $ci, $co, input, $hi, $wi, kernel, $hk, $wk, h_padding, w_padding, bias, result)"],
+      "backward": {
+        "input": [
+          "workspace tmp input.size",
+          "conv_input_grad($n, $ci, $co, grad, $ho, $wo, kernel, $hk, $wk, $hk - h_padding - 1, $wk - w_padding - 1, tmp)",
+          "apply tmp"
+        ],
+        "kernel": [
+          "workspace tmp kernel.size",
+          "conv_kernel_grad($n, $ci, $co, input, $hi, $wi, grad, $ho, $wo, h_padding, w_padding, tmp)",
+          "apply tmp"
+        ],
+        "bias": [
+          "value bool sum_mask[4] = {false, false, true, false}",
+          "workspace tmp bias.size",
+          "sum(result.size, 4, result.lengths, sum_mask, tmp, grad)",
+          "apply tmp"
+        ]
+      }
+    }
+  ]
+}

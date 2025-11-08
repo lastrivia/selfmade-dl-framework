@@ -1,5 +1,4 @@
 cmake-build-*/
 archive/
 archive.zip
-.idea/
-**/codegen~*.h
+**/.idea/

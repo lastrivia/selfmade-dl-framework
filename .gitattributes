@@ -1,0 +1,2 @@
+**/*.h.j2         linguist-language=C++
+**/*.generated.*  linguist-generated
