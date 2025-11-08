@@ -425,5 +425,5 @@ if __name__ == "__main__":
                     else:
                         raise RuntimeError(f"illegal interface type {interface_type}")
 
-    with open("interface.generated.json", "w", encoding="utf-8") as f:
+    with open("interface_ctx.generated.json", "w", encoding="utf-8") as f:
         json.dump(interface_ctx, f, indent=2, ensure_ascii=False)

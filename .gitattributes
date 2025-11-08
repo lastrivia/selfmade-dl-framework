@@ -1,2 +1,3 @@
 **/*.h.j2         linguist-language=C++
 **/*.generated.*  linguist-generated
+**/config.json    linguist-language=JSON linguist-detectable=true
