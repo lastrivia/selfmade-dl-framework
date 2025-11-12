@@ -1,27 +1,34 @@
 Lightweight, self-made deep learning framework (i.e. a toy-class pytorch/tensorflow imitation), built on Windows
 
-- CPU Backend
-  - Manual C++ implementation with no third-party dependencies
-  - SIMD acceleration & multithreading support
-- CUDA Backend
-  - Dependencies: CUDA (12.0+), cuBLAS (12.0+), cuDNN (8.0+)
+### Features
+- Supported network architectures: MLP, CNN
+- Runtime-selectable backends:
+  - CPU (Manual SIMD & multithreading implementation)
+  - CUDA
+- Autograd system
+
+### Build dependencies
+- CUDA 12.0+, cuBLAS 12.0+, cuDNN 8.0+
+- Python Interpreter 3.11+
 
 ### Roadmap
 
-- Extend support for more NN architectures (RNN, GAN, Transformer, etc.)
-- Kernel operator fusion (JIT compilation)
+- Support for additional NN architectures (RNN, GAN, Transformer, etc.)
+- Kernel/operator fusion via JIT compilation
 - ONNX Model serialization and deserialization
-- CPU-fallback compatible build target
+- CPU-fallback compatible build
 
-### v0.5 - Coming soon
+### v0.5 - 2025-11-12
 
 - Autograd system
+  - Runtime computation graph construction
 - Reworked tensor type
-  - Seperated handle & implementation
+  - Separated handle & implementation
   - Automatic garbage collection
-  - Variable dimension
-- Build with code generation
+  - Support for variable dimensions
+- Code-generation-based build
   - Reduce code duplication and improve maintainability
+- Universal broadcast & reduction operator
 
 ### 0924a (v0.4) - 2025-09-24
 
@@ -51,7 +58,7 @@ Lightweight, self-made deep learning framework (i.e. a toy-class pytorch/tensorf
 
 ### 0905a (v0.2) - 2025-09-05
 
-- A completely new backend framework
+- Reworked backend framework
   - Separated kernel function implementation
   - Improved tensor class & interface
   - Kernel dispatcher to allow more devices in the future
