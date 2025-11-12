@@ -40,13 +40,6 @@ public:
         k.relu_fp32 = cpu_kernel::relu_fp32;
         k.relu_backward_fp32 = cpu_kernel::relu_backward_fp32;
 
-        k.add_cyclic_fp32 = cpu_kernel::add_cyclic_fp32; // 6 abandoned
-        k.sub_cyclic_fp32 = cpu_kernel::sub_cyclic_fp32;
-        k.add_stretched_fp32 = cpu_kernel::add_stretched_fp32;
-        k.sub_stretched_fp32 = cpu_kernel::sub_stretched_fp32;
-        k.sum_cyclic_fp32 = cpu_kernel::sum_cyclic_fp32;
-        k.sum_stretched_fp32 = cpu_kernel::sum_stretched_fp32;
-
         k.add_broadcast_fp32 = cpu_kernel::add_broadcast_fp32;
         k.sum_fp32 = cpu_kernel::sum_fp32;
 
@@ -95,13 +88,6 @@ public:
         k.relu_fp32 = cuda_kernel::relu_fp32;
         k.relu_backward_fp32 = cuda_kernel::relu_backward_fp32;
 
-        k.add_cyclic_fp32 = cuda_kernel::add_cyclic_fp32; // 6 abandoned
-        k.sub_cyclic_fp32 = cuda_kernel::sub_cyclic_fp32;
-        k.add_stretched_fp32 = cuda_kernel::add_stretched_fp32;
-        k.sub_stretched_fp32 = cuda_kernel::sub_stretched_fp32;
-        k.sum_cyclic_fp32 = cuda_kernel::sum_cyclic_fp32;
-        k.sum_stretched_fp32 = cuda_kernel::sum_stretched_fp32;
-
         k.add_broadcast_fp32 = cuda_kernel::add_broadcast_fp32;
         k.sum_fp32 = cuda_kernel::sum_fp32;
 
@@ -130,10 +116,6 @@ inline const kernel kernel_dispatch_table[] = {
     kernel_init_factory::init_cpu_kernel(), // device_type::cpu  == 0
     kernel_init_factory::init_cuda_kernel() // device_type::cuda == 1
 };
-
-// inline const kernel &dispatch_kernel(const tensor_v2 &t) { // legacy, todo remove
-//     return kernel_dispatch_table[static_cast<size_t>(t.device_type_)];
-// }
 
 inline const kernel &dispatch_kernel(device_desc device) {
     return kernel_dispatch_table[static_cast<size_t>(device.type)];

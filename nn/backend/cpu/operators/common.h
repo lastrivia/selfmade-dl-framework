@@ -94,60 +94,6 @@ namespace cpu_kernel {
         }
     }
 
-    inline void add_cyclic_fp32(size_t blk_n, size_t blk_len,
-                                float *dst, const float *src, const float *tile) {
-        for (size_t i = 0; i < blk_n; i++) {
-            for (size_t j = 0; j < blk_len; j++) {
-                dst[i * blk_len + j] = src[i * blk_len + j] + tile[j];
-            }
-        }
-    }
-
-    inline void sub_cyclic_fp32(size_t blk_n, size_t blk_len,
-                                float *dst, const float *src, const float *tile) {
-        for (size_t i = 0; i < blk_n; i++) {
-            for (size_t j = 0; j < blk_len; j++) {
-                dst[i * blk_len + j] = src[i * blk_len + j] - tile[j];
-            }
-        }
-    }
-
-    inline void add_stretched_fp32(size_t blk_n, size_t blk_len,
-                                   float *dst, const float *src, const float *tile) {
-        for (size_t i = 0; i < blk_n; i++) {
-            for (size_t j = 0; j < blk_len; j++) {
-                dst[i * blk_len + j] = src[i * blk_len + j] + tile[i];
-            }
-        }
-    }
-
-    inline void sub_stretched_fp32(size_t blk_n, size_t blk_len,
-                                   float *dst, const float *src, const float *tile) {
-        for (size_t i = 0; i < blk_n; i++) {
-            for (size_t j = 0; j < blk_len; j++) {
-                dst[i * blk_len + j] = src[i * blk_len + j] - tile[i];
-            }
-        }
-    }
-
-    inline void sum_cyclic_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) {
-        memset(dst, 0, blk_len * sizeof(float));
-        for (size_t i = 0; i < blk_n; i++) {
-            for (size_t j = 0; j < blk_len; j++) {
-                dst[j] += src[i * blk_len + j];
-            }
-        }
-    }
-
-    inline void sum_stretched_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) {
-        memset(dst, 0, blk_n * sizeof(float));
-        for (size_t i = 0; i < blk_n; i++) {
-            for (size_t j = 0; j < blk_len; j++) {
-                dst[i] += src[i * blk_len + j];
-            }
-        }
-    }
-
     inline void add_broadcast_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask_a, const bool *mask_b,
                                    float *dst, const float *src_a, const float *src_b) {
         size_t ndim_buf[3][NDIM_STACK_BUF_SIZE];

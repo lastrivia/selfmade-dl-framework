@@ -18,7 +18,6 @@ class tensor_impl {
     // grad nodes
     friend class grad_node;
     friend class grad_engine;
-    // friend class grad_node_add_fp32;
 #include "autograd_decl.generated.h"
 
     friend class nn_optimizer;
@@ -107,16 +106,6 @@ public:
         }
     };
 
-    // struct layout_t {
-    //     shape_t shape;
-    //     device_desc device;
-    //     data_type dtype;
-    //
-    //     layout_t() : device{device_type::cpu}, dtype(data_type::fp32) {}
-    //
-    //     layout_t(shape_t shape, device_desc device, data_type dtype) : shape(std::move(shape)), device(device), dtype(dtype) {}
-    // };
-
 private:
     explicit tensor_impl(device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
         device_(device), dtype_(dtype), ref_count_(0), version_(0), grad_node_(nullptr), requires_grad_(false) {
@@ -124,14 +113,6 @@ private:
         if (tensor_log)
             std::cout << "<TENSOR> NEW " << std::string(shape_) << std::endl;
     }
-
-    // template<typename... Dims>
-    //     requires (sizeof...(Dims) > 0) && (std::convertible_to<Dims, size_t> && ...)
-    // explicit tensor_impl(Dims... dims, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
-    //     shape_(dims), device_(device), dtype_(dtype),
-    //     ref_count_(0), version_(0), grad_node_(nullptr), requires_grad_(false) {
-    //     data_ = alloc_data(nullptr);
-    // }
 
     explicit tensor_impl(const shape_t &shape, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
         shape_(shape), device_(device), dtype_(dtype),
@@ -339,27 +320,15 @@ class tensor {
     // grad nodes
     friend class grad_node;
     friend class grad_engine;
-    // friend class grad_node_add_fp32; // example
 #include "autograd_decl.generated.h"
 
 public:
     // creating new object
-    // tensor() {
-    //     object_ = new tensor_impl();
-    //     object_->ref_count_++;
-    // }
 
     explicit tensor(device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
         object_(new tensor_impl(device, dtype)) {
         object_->ref_count_++;
     }
-
-    // template<typename... Dims>
-    //     requires (sizeof...(Dims) > 0) && (std::convertible_to<Dims, size_t> && ...)
-    // explicit tensor_handle(Dims... dims, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
-    //     object_(new tensor_impl(dims, device, dtype)) {
-    //     object_->ref_count_++;
-    // }
 
     explicit tensor(const tensor_impl::shape_t &shape, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
         object_(new tensor_impl(shape, device, dtype)) {

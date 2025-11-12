@@ -16,16 +16,8 @@ public:
 
     tensor operator()(const tensor &x) {
         tensor activation = x;
-        int layer_n = 0;
         for (auto &layer : layers_) {
             activation = (*layer)(activation);
-            // cudaError_t err = cudaDeviceSynchronize();
-            // if (err != cudaSuccess) {
-            //     throw nn_except(std::string() + cudaGetErrorString(err) + " at layer " + std::to_string(layer_n), __FILE__, __LINE__);
-            // }
-            // else
-            //     std::cout << "layer " << layer_n << " executed;" << std::endl;
-            ++layer_n;
         }
         return activation;
     }

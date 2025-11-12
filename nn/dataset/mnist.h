@@ -9,6 +9,9 @@
 
 class mnist_sample {
 public:
+    mnist_sample() :
+        batch_size_(0) {}
+
     mnist_sample(size_t batch_size, const unsigned char *image_buf, const unsigned char *label_buf) :
         data_({batch_size, 1, 28, 28}),
         label_({batch_size, 10}),
@@ -68,7 +71,7 @@ public:
                  label_count = read_big_endian(label_is);
         if (image_magic != 2051 || label_magic != 2049 || image_count != label_count ||
             image_rows != 28 || image_cols != 28)
-                throw nn_except("invalid mnist dataset", __FILE__, __LINE__);
+            throw nn_except("invalid mnist dataset", __FILE__, __LINE__);
 
         auto *image_buf = new unsigned char[784 * batch_size];
         auto *label_buf = new unsigned char[batch_size];

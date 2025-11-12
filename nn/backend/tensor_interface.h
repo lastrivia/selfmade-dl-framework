@@ -5,40 +5,6 @@
 
 #include "interface_impl.generated.h"
 
-// inline tensor tensor::operator+(const tensor &b) const {
-//     const tensor &a = *this;
-//     if (a->device_ != b->device_)
-//         throw nn_except("tensor: operands for operator+ are on different devices", __FILE__, __LINE__);
-//     if (a->dtype_ != b->dtype_)
-//         throw nn_except("tensor: operands for operator+ have different data types", __FILE__, __LINE__);
-//
-//     // [codegen] requires shape_equal: a, b
-//     if (a->shape_ != b->shape_)
-//         throw nn_except(std::string() + "tensor: operator+ cannot handle tensors " + std::string(a->shape_) + " and " + std::string(b->shape_), __FILE__,__LINE__);
-//
-//     switch (a->dtype_) {
-//     case data_type::fp32:
-//         tensor result(a->shape_, a->device_, a->dtype_);
-//
-//         // [codegen] "add_ewise(size, result, a, b)"
-//         dispatch_kernel(result->device_).add_ewise_fp32(result->shape_.size, result->data_, a->data_, b->data_);
-//
-//         if ((a->requires_grad_ || b->requires_grad_) && !global_no_grad) {
-//             result->requires_grad_ = true;
-//             result->grad_node_ = new grad_node_add_fp32(result, a, b);
-//         }
-//
-//         return result;
-//         break;
-//     case data_type::int32:
-//         throw nn_except("tensor: operator+ does not support data type int32", __FILE__, __LINE__);
-//         break;
-//     default:
-//         throw nn_except("tensor: unknown data type", __FILE__, __LINE__);
-//         break;
-//     }
-// }
-
 
 inline tensor flatten(const tensor &src) {
     // temporary, todo use tensor_view to replace this

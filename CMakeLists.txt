@@ -26,12 +26,12 @@ target_include_directories(dl_framework_demo
         ${CMAKE_SOURCE_DIR}/nn/codegen/generated
 )
 
-#target_compile_options(dl_framework_demo
-#        PRIVATE
-#        $<$<COMPILE_LANGUAGE:CUDA>:
-#        -Xcompiler "/Ox /arch:AVX2 /Oi /Ot /GS-"
-#        >
-#)
+target_compile_options(dl_framework_demo
+        PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:
+        -Xcompiler "/Ox /arch:AVX2 /Oi /Ot /GS-"
+        >
+)
 
 target_link_libraries(dl_framework_demo PRIVATE cublas cudnn)
 

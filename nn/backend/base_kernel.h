@@ -132,10 +132,6 @@ public:
     kernel_func::fp32::unary relu_fp32;
     kernel_func::fp32::binary relu_backward_fp32;
 
-    kernel_func::fp32::binary_tile add_cyclic_fp32, sub_cyclic_fp32; // abandoned
-    kernel_func::fp32::binary_tile add_stretched_fp32, sub_stretched_fp32; // abandoned
-    kernel_func::fp32::unary_tile sum_cyclic_fp32, sum_stretched_fp32; // abandoned
-
     kernel_func::fp32::binary_ndim add_broadcast_fp32;
     kernel_func::fp32::unary_ndim sum_fp32;
 

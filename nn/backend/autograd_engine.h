@@ -129,13 +129,6 @@ private:
                     if (!next_info.edges_in)
                         ready.push_back(next);
                 }
-
-                // cudaError_t err = cudaDeviceSynchronize();
-                // if (err != cudaSuccess) {
-                //     throw nn_except(std::string() + cudaGetErrorString(err) + " at " + std::string(object->shape_), __FILE__, __LINE__);
-                // }
-                // else
-                //     std::cout << "backward " << std::string(object->shape_) << " executed;" << std::endl;
             }
         }
     }
