@@ -4,6 +4,10 @@ import lark
 
 expr_grammar = r"""
 ?expr: sum
+     | sum COMP_OP sum        -> comp
+
+COMP_OP: "<" | ">" | "<=" | ">=" | "==" | "!="
+
 ?sum: sum "+" product         -> add
     | sum "-" product         -> sub
     | product
@@ -40,7 +44,7 @@ statement_grammar = r"""
           | value_stmt
           | call
 
-workspace_stmt: "workspace" NAME expr TYPE?         -> workspace
+workspace_stmt: "workspace" NAME expr TYPE?          -> workspace
 
 apply_stmt: "apply" NAME                             -> apply
 
@@ -88,8 +92,8 @@ if __name__ == '__main__':
         "value bool sum_mask[4] = {false, false, true, false}",
         "apply tmp"
     ]
-    tree = parse(test_string[3])
-    # tree = parse("a+b*7", is_expr=True)
+    # tree = parse(test_string[3])
+    tree = parse("(a+b*7 == 5) == true", is_expr=True)
     print(tree.pretty())
     print(tree)
     # print(json.dumps(tree, indent=2))

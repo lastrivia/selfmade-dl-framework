@@ -1,361 +1,503 @@
 #pragma once
 
+#include <cassert>
+#include <sstream>
+#include <utility>
+
+#include "autograd_base.h"
 #include "base_kernel.h"
 #include "mem_pool.h"
-#include "cuda/operators/common.cuh"
+#include "cuda/arch.cuh"
 
-class tensor {
+inline bool tensor_log = false;
+
+class tensor_impl {
+    friend class tensor;
+    friend class tensor_it;
+
+    // grad nodes
+    friend class grad_node;
+    friend class grad_engine;
+    // friend class grad_node_add_fp32;
+#include "autograd_decl.generated.h"
+
+    friend class nn_optimizer;
+    friend class adam_optimizer;
+    friend class sgd_optimizer;
+
 public:
-    struct layout_t {
-        size_t samples, channels, height, width;
-        device_type device_type;
-        data_type data_type;
+    struct shape_t {
+        size_t ndim;
+        size_t size;
+        std::vector<size_t> lengths;
 
-        bool operator==(const layout_t &layout) const = default;
+        shape_t() : ndim(0), size(0) {}
+
+        template<typename... Dims>
+            requires (sizeof...(Dims) > 0) && (std::convertible_to<Dims, size_t> && ...)
+        shape_t(Dims... dims) { // NOLINT(*-explicit-constructor)
+            ndim = sizeof...(dims);
+
+            lengths.resize(ndim);
+            size_t j = ndim;
+            ((lengths[--j] = dims), ...);
+            size = calc_size();
+        }
+
+        shape_t(std::initializer_list<size_t> dims) : ndim(dims.size()) {
+            std::vector<size_t> tmp(dims);
+            lengths.resize(ndim);
+            for (size_t i = 0; i < ndim; i++)
+                lengths[i] = tmp[ndim - i - 1];
+            size = calc_size();
+        }
+
+        shape_t(size_t ndim, const size_t *lengths) {
+            this->ndim = ndim;
+            this->lengths.resize(ndim);
+            for (size_t i = 0; i < ndim; i++)
+                this->lengths[i] = lengths[i];
+            size = calc_size();
+        }
+
+        size_t calc_size() const {
+            size_t result = 1;
+            for (size_t i = 0; i < ndim; i++) {
+                if (lengths[i] == 0)
+                    throw nn_except("tensor dim length cannot be 0", __FILE__, __LINE__);
+                size_t size_next = result * lengths[i];
+                if (size_next / lengths[i] != result)
+                    throw nn_except("tensor size overflow", __FILE__, __LINE__);
+                result = size_next;
+            }
+            return result;
+        }
+
+        shape_t(const shape_t &shape) = default;
+        shape_t &operator=(const shape_t &shape) = default;
+        shape_t(shape_t &&shape) noexcept = default;
+        shape_t &operator=(shape_t &&shape) noexcept = default;
+
+        bool operator==(const shape_t &other) const {
+            if (size != other.size)
+                return false;
+            size_t min_dim = std::min(ndim, other.ndim);
+            for (size_t i = 0; i < min_dim; i++) {
+                if (lengths[i] != other.lengths[i])
+                    return false;
+            }
+            return true;
+        }
+
+        bool operator!=(const shape_t &other) const { return !(*this == other); }
+
+        explicit operator std::string() const {
+            std::stringstream ss;
+            ss << '[';
+            for (size_t i = ndim - 1; true; i--) {
+                ss << lengths[i];
+                if (i > 0)
+                    ss << ", ";
+                else {
+                    ss << ']';
+                    break;
+                }
+            }
+            return ss.str();
+        }
     };
 
-    tensor(
-        size_t samples, size_t channels, size_t height, size_t width,
-        device_type device_type = device_type::cpu,
-        data_type data_type = data_type::fp32
-    ) :
-        samples_(samples), channels_(channels),
-        height_(height), width_(width),
-        device_type_(device_type), data_type_(data_type) {
+    // struct layout_t {
+    //     shape_t shape;
+    //     device_desc device;
+    //     data_type dtype;
+    //
+    //     layout_t() : device{device_type::cpu}, dtype(data_type::fp32) {}
+    //
+    //     layout_t(shape_t shape, device_desc device, data_type dtype) : shape(std::move(shape)), device(device), dtype(dtype) {}
+    // };
 
-        if (size() == 0) {
-            data_ = nullptr;
-            owns_data_ = false;
+private:
+    explicit tensor_impl(device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
+        device_(device), dtype_(dtype), ref_count_(0), version_(0), grad_node_(nullptr), requires_grad_(false) {
+        data_ = nullptr;
+        if (tensor_log)
+            std::cout << "<TENSOR> NEW " << std::string(shape_) << std::endl;
+    }
+
+    // template<typename... Dims>
+    //     requires (sizeof...(Dims) > 0) && (std::convertible_to<Dims, size_t> && ...)
+    // explicit tensor_impl(Dims... dims, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
+    //     shape_(dims), device_(device), dtype_(dtype),
+    //     ref_count_(0), version_(0), grad_node_(nullptr), requires_grad_(false) {
+    //     data_ = alloc_data(nullptr);
+    // }
+
+    explicit tensor_impl(const shape_t &shape, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
+        shape_(shape), device_(device), dtype_(dtype),
+        ref_count_(0), version_(0), grad_node_(nullptr), requires_grad_(false) {
+        data_ = alloc_data(nullptr);
+        if (tensor_log)
+            std::cout << "<TENSOR> NEW " << std::string(shape_) << std::endl;
+    }
+
+    explicit tensor_impl(shape_t &&shape, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
+        shape_(std::move(shape)), device_(device), dtype_(dtype),
+        ref_count_(0), version_(0), grad_node_(nullptr), requires_grad_(false) {
+        data_ = alloc_data(nullptr);
+        if (tensor_log)
+            std::cout << "<TENSOR> NEW " << std::string(shape_) << std::endl;
+    }
+
+    tensor_impl(const tensor_impl &other) :
+        shape_(other.shape_), device_(other.device_), dtype_(other.dtype_),
+        ref_count_(0), version_(0), grad_node_(nullptr), requires_grad_(false) {
+        data_ = alloc_data(other.data_);
+        if (tensor_log)
+            std::cout << "<TENSOR> NEW " << std::string(shape_) << std::endl;
+    }
+
+public:
+    ~tensor_impl() {
+        if (tensor_log)
+            std::cout << "<TENSOR> DELETE " << std::string(shape_) << std::endl;
+        if (data_ != nullptr)
+            release_data(data_);
+        if (grad_node_ != nullptr)
+            delete grad_node_;
+        if (grad_data_ != nullptr)
+            release_data(grad_data_);
+    }
+
+    void requires_grad(bool mode) {
+        // set leaf tensors
+        if (grad_node_)
+            throw nn_except("tensor: cannot modify requires_grad attribution of an internal result", __FILE__, __LINE__);
+
+        if (mode == requires_grad_)
+            return;
+        if (mode) { // enable grad
+            requires_grad_ = true;
+            grad_data_ = alloc_data(nullptr);
+            zero_grad();
         }
-        else {
-            construct_data();
-            owns_data_ = true;
+        else { // disable grad
+            requires_grad_ = false;
+            release_data(grad_data_);
+            grad_data_ = nullptr;
         }
     }
 
-    tensor(
-        size_t height, size_t width,
-        device_type device_type = device_type::cpu,
-        data_type data_type = data_type::fp32
-    ) :
-        tensor(1, 1, height, width, device_type, data_type) {}
-
-    explicit tensor(
-        size_t size,
-        device_type device_type = device_type::cpu,
-        data_type data_type = data_type::fp32
-    ) :
-        tensor(1, 1, size, 1, device_type, data_type) {}
-
-    tensor() : tensor(0, 0, 0, 0, device_type::cpu, data_type::fp32) {}
-
-    explicit tensor(const layout_t &tensor_shape) : tensor(
-        tensor_shape.samples, tensor_shape.channels, tensor_shape.height, tensor_shape.width,
-        tensor_shape.device_type, tensor_shape.data_type
-    ) {}
-
-    [[nodiscard]] layout_t layout() const {
-        return {samples_, channels_, height_, width_, device_type_, data_type_};
+    void zero_grad() {
+        if (grad_data_ == nullptr)
+            return;
+        switch (device_.type) {
+        case device_type::cpu:
+            switch (dtype_) {
+            case data_type::fp32:
+                memset(grad_data_, 0, sizeof(float) * shape_.size);
+                break;
+            case data_type::int32:
+                memset(grad_data_, 0, sizeof(int32_t) * shape_.size);
+                break;
+            }
+            break;
+        case device_type::cuda:
+            switch (dtype_) {
+            case data_type::fp32:
+                cudaMemsetAsync(grad_data_, 0, sizeof(float) * shape_.size, cuda_kernel::default_stream());
+                break;
+            case data_type::int32:
+                cudaMemsetAsync(grad_data_, 0, sizeof(int32_t) * shape_.size, cuda_kernel::default_stream());
+                break;
+            }
+            break;
+        }
     }
 
-    ~tensor() {
-        if (owns_data_)
-            release_data();
+    shape_t shape() const { return shape_; }
+    device_desc device() const { return device_; }
+    // layout_t layout() const { return {shape_, device_, dtype_}; }
+
+#include "interface_decl.generated.h"
+    friend tensor flatten(const tensor &src);
+    friend size_t correct_count(const tensor &logits, const tensor &label);
+
+private:
+    shape_t shape_;
+    const device_desc device_;
+    const data_type dtype_;
+
+    data_ptr data_;
+
+    size_t ref_count_; // count of handles pointing to this
+    size_t version_; // only count impl-level in-place operations
+
+    grad_node *grad_node_;
+    bool requires_grad_;
+    data_ptr grad_data_;
+    /* leaf tensors that requires grad:
+     *     owns grad_data
+     *     grad_node is nullptr
+     * intermediate tensors that requires grad:
+     *     owns grad_node
+     *     grad_data allocated & recycled by grad_engine
+     */
+
+    data_ptr alloc_data(data_ptr copy_from) const {
+        data_ptr ret;
+        switch (device_.type) {
+        case device_type::cpu:
+            switch (dtype_) {
+            case data_type::fp32:
+                ret = mem_pool::alloc<float>(shape_.size);
+                if (copy_from)
+                    memcpy(ret, copy_from, sizeof(float) * shape_.size);
+                break;
+            case data_type::int32:
+                ret = mem_pool::alloc<int32_t>(shape_.size);
+                if (copy_from)
+                    memcpy(ret, copy_from, sizeof(int32_t) * shape_.size);
+                break;
+            }
+            break;
+        case device_type::cuda:
+            switch (dtype_) {
+            case data_type::fp32:
+                ret = cuda_mem_pool::alloc<float>(shape_.size);
+                if (copy_from)
+                    cudaMemcpyAsync(ret, copy_from, sizeof(float) * shape_.size,
+                                    cudaMemcpyDeviceToDevice, cuda_kernel::default_stream());
+                break;
+            case data_type::int32:
+                ret = cuda_mem_pool::alloc<int32_t>(shape_.size);
+                if (copy_from)
+                    cudaMemcpyAsync(ret, copy_from, sizeof(int32_t) * shape_.size,
+                                    cudaMemcpyDeviceToDevice, cuda_kernel::default_stream());
+                break;
+            }
+            break;
+        }
+        return ret;
+    }
+
+    void release_data(data_ptr data) const {
+        switch (device_.type) {
+        case device_type::cpu:
+            mem_pool::recycle(data);
+            break;
+        case device_type::cuda:
+            cuda_mem_pool::recycle(data);
+            break;
+        }
+    }
+};
+
+using tensor_shape = tensor_impl::shape_t;
+
+class tensor_it {
+    // todo optimize
+public:
+    tensor_it(tensor_impl *tensor, size_t offset) :
+        tensor_(tensor), offset_(offset) {}
+
+    template<typename T>
+    tensor_it &operator=(T x) {
+        switch (tensor_->dtype_) {
+        case data_type::fp32:
+            static_cast<float *>(tensor_->data_)[offset_] = static_cast<float>(x);
+            break;
+        case data_type::int32:
+            static_cast<int32_t *>(tensor_->data_)[offset_] = static_cast<int32_t>(x);
+            break;
+        default:
+            throw nn_except("unknown data type", __FILE__, __LINE__);
+        }
+        tensor_->version_++;
+        return *this;
+    }
+
+    template<typename T>
+    operator T() {
+        switch (tensor_->dtype_) {
+        case data_type::fp32:
+            return static_cast<T>(static_cast<float *>(tensor_->data_)[offset_]);
+        case data_type::int32:
+            return static_cast<T>(static_cast<int32_t *>(tensor_->data_)[offset_]);
+        default:
+            throw nn_except("unknown data type", __FILE__, __LINE__);
+        }
+    }
+
+private:
+    tensor_impl *tensor_;
+    size_t offset_;
+};
+
+class tensor {
+
+    // grad nodes
+    friend class grad_node;
+    friend class grad_engine;
+    // friend class grad_node_add_fp32; // example
+#include "autograd_decl.generated.h"
+
+public:
+    // creating new object
+    // tensor() {
+    //     object_ = new tensor_impl();
+    //     object_->ref_count_++;
+    // }
+
+    explicit tensor(device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
+        object_(new tensor_impl(device, dtype)) {
+        object_->ref_count_++;
+    }
+
+    // template<typename... Dims>
+    //     requires (sizeof...(Dims) > 0) && (std::convertible_to<Dims, size_t> && ...)
+    // explicit tensor_handle(Dims... dims, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
+    //     object_(new tensor_impl(dims, device, dtype)) {
+    //     object_->ref_count_++;
+    // }
+
+    explicit tensor(const tensor_impl::shape_t &shape, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
+        object_(new tensor_impl(shape, device, dtype)) {
+        object_->ref_count_++;
+    }
+
+    explicit tensor(tensor_impl::shape_t &&shape, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
+        object_(new tensor_impl(std::move(shape), device, dtype)) {
+        object_->ref_count_++;
+    }
+
+    explicit tensor(std::initializer_list<size_t> shape, device_desc device = {device_type::cpu}, data_type dtype = data_type::fp32) :
+        object_(new tensor_impl(tensor_shape(shape), device, dtype)) {
+        object_->ref_count_++;
+    }
+
+    // reference copy
+    tensor(const tensor &other) {
+        object_ = other.object_;
+        if (object_)
+            object_->ref_count_++;
     }
 
     tensor &operator=(const tensor &other) {
-        if (this != &other && data_ != other.data_) {
-            if (other.owns_data_) { // deep copy
-                if (owns_data_ && layout() == other.layout()) { // reuse data space
-                    construct_data(false, other.data_);
-                }
-                else {
-                    if (owns_data_)
-                        release_data();
-                    copy_layout(other);
-                    construct_data(true, other.data_);
-                }
-                owns_data_ = true;
-            }
-            else { // other.owns_data_ == false; shallow copy
-                if (owns_data_)
-                    release_data();
-                copy_layout(other);
-                data_ = other.data_;
-                owns_data_ = false;
-            }
+        if (object_ == other.object_ || /* actually implies the former */ this == &other)
+            return *this;
+        if (object_) {
+            object_->ref_count_--;
+            if (object_->ref_count_ == 0)
+                delete object_;
         }
+        object_ = other.object_;
+        if (object_)
+            object_->ref_count_++;
         return *this;
+    }
+
+    tensor(tensor &&other) noexcept {
+        object_ = other.object_;
+        other.object_ = nullptr;
     }
 
     tensor &operator=(tensor &&other) noexcept {
-        if (this != &other && data_ != other.data_) {
-            if (owns_data_)
-                release_data();
-            copy_layout(other);
-
-            owns_data_ = other.owns_data_;
-            data_ = other.data_;
-            other.owns_data_ = false;
+        if (object_ == other.object_ || /* actually implies the former */ this == &other)
+            return *this;
+        if (object_) {
+            object_->ref_count_--;
+            if (object_->ref_count_ == 0)
+                delete object_;
         }
-
+        object_ = other.object_;
+        other.object_ = nullptr;
         return *this;
     }
 
-    tensor(const tensor &other) :
-        samples_(other.samples_), channels_(other.channels_),
-        height_(other.height_), width_(other.width_),
-        device_type_(other.device_type_), data_type_(other.data_type_) {
-
-        if (other.owns_data_) { // deep copy
-            construct_data(true, other.data_);
-            owns_data_ = true;
-        }
-        else {
-            data_ = other.data_;
-            owns_data_ = false;
+    ~tensor() {
+        if (object_) {
+            object_->ref_count_--;
+            if (object_->ref_count_ == 0)
+                delete object_;
         }
     }
 
-    tensor(tensor &&other) noexcept :
-        samples_(other.samples_), channels_(other.channels_),
-        height_(other.height_), width_(other.width_),
-        device_type_(other.device_type_), data_type_(other.data_type_) {
+    // tensor operator+(const tensor &b) const; // example
+#include "interface_decl.generated.h"
+    friend tensor flatten(const tensor &src);
+    friend size_t correct_count(const tensor &logits, const tensor &label);
 
-        owns_data_ = other.owns_data_;
-        data_ = other.data_;
-        other.owns_data_ = false;
+    tensor_impl *operator->() const {
+        return object_;
     }
 
-    template<typename T = float>
-    T &at(size_t sample, size_t channel, size_t row_index, size_t col_index) {
-        return *access_data<T>(((sample * channels_ + channel) * height_ + row_index) * width_ + col_index);
-    }
+    void to_device(device_desc device) {
+        // creates a new impl on device, copy data, and switch object pointer to the new impl
+        // requires_grad attr of leaf nodes will be copied
+        if (device == object_->device_)
+            return;
 
-    template<typename T = float>
-    const T &at(size_t sample, size_t channel, size_t row_index, size_t col_index) const {
-        return *access_data<T>(((sample * channels_ + channel) * height_ + row_index) * width_ + col_index);
-    }
-
-    template<typename T = float>
-    T &at(size_t row_index, size_t col_index) {
-        return *access_data<T>(row_index * width_ + col_index);
-    }
-
-    template<typename T = float>
-    const T &at(size_t row_index, size_t col_index) const {
-        return *access_data<T>(row_index * width_ + col_index);
-    }
-
-    template<typename T = float>
-    T &at(size_t index) {
-        return *access_data<T>(index);
-    }
-
-    template<typename T = float>
-    const T &at(size_t index) const {
-        return *access_data<T>(index);
-    }
-
-    [[nodiscard]] size_t size() const {
-        return samples_ * channels_ * height_ * width_;
-    }
-
-    void to_device(device_type_arg device) {
-
-        // Warning: this cannot handle reference tensors (!owns_data_)
-
-        // TODO refactor resource management of tensors
-
-        if (!owns_data_) {
-            throw nn_except("tensor does not own data", __FILE__, __LINE__);
+        tensor_impl *new_object = new tensor_impl(object_->shape_, device, object_->dtype_);
+        cudaMemcpyKind kind = device.type == device_type::cuda ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost;
+        size_t size = 0;
+        switch (object_->dtype_) {
+        case data_type::fp32:
+            size = sizeof(float) * object_->shape_.size;
+        case data_type::int32:
+            size = sizeof(int32_t) * object_->shape_.size;
         }
-        if (device_type_ == device_type::cpu && device == device_type::cuda) {
-            switch (data_type_) {
-            case data_type::fp32: {
-                char *next = reinterpret_cast<char *>(cuda_mem_pool::alloc<float>(size()));
-                cudaMemcpyAsync(next, data_, size() * sizeof(float), cudaMemcpyHostToDevice, cuda_kernel::default_stream());
-                mem_pool::recycle(data_);
-                data_ = next;
-            }
-            break;
-            default:
-                break;
-            }
-            device_type_ = device_type::cuda;
+
+        cudaMemcpyAsync(new_object->data_, object_->data_, size, kind, cuda_kernel::default_stream());
+        if (object_->requires_grad_ && !object_->grad_node_) { // leaf
+            new_object->requires_grad(true);
+            // todo save a zero_grad() here
+            cudaMemcpyAsync(new_object->grad_data_, object_->grad_data_, size, kind, cuda_kernel::default_stream());
         }
-        if (device_type_ == device_type::cuda && device == device_type::cpu) {
-            switch (data_type_) {
-            case data_type::fp32: {
-                char *next = reinterpret_cast<char *>(mem_pool::alloc<float>(size()));
-                cudaMemcpyAsync(next, data_, size() * sizeof(float), cudaMemcpyDeviceToHost, cuda_kernel::default_stream());
-                cudaStreamSynchronize(cuda_kernel::default_stream());
-                cuda_mem_pool::recycle(data_);
-                data_ = next;
-            }
-            break;
-            default:
-                break;
-            }
-            device_type_ = device_type::cpu;
-        }
+        cudaStreamSynchronize(cuda_kernel::default_stream());
+
+        object_->ref_count_--;
+        if (object_->ref_count_ == 0)
+            delete object_;
+        object_ = new_object;
+        object_->ref_count_++;
     }
 
-    size_t samples() const { return samples_; }
-    size_t channels() const { return channels_; }
-    size_t height() const { return height_; }
-    size_t width() const { return width_; }
+    template<typename... Dims>
+        requires (sizeof...(Dims) > 1) && (std::convertible_to<Dims, size_t> && ...)
+    tensor_it at(Dims... dims) {
+        constexpr size_t ndim = sizeof...(dims);
 
-    // ====== OPERATORS ======
-
-    template<bool, bool>
-    friend tensor matmul(const tensor &, const tensor &);
-
-    friend tensor conv(const tensor &input, const tensor &kernel, const tensor &bias,
-                       size_t height_padding, size_t width_padding);
-    friend tensor conv_input_grad(const tensor &output_grad, const tensor &kernel,
-                                  size_t forward_height_padding, size_t forward_width_padding);
-    friend tensor conv_kernel_grad(const tensor &input, const tensor &output_grad,
-                                   size_t height_padding, size_t width_padding);
-
-    friend tensor operator+(const tensor &, const tensor &);
-    tensor &operator+=(const tensor &);
-    friend tensor operator-(const tensor &, const tensor &);
-    tensor &operator-=(const tensor &);
-    friend tensor mul_ewise(const tensor &, const tensor &);
-    tensor &mul_ewise(const tensor &);
-    friend tensor div_ewise(const tensor &, const tensor &);
-    tensor &div_ewise(const tensor &);
-
-    friend tensor square(const tensor &);
-    tensor &square();
-    friend tensor sqrt(const tensor &);
-    tensor &sqrt();
-    friend tensor relu(const tensor &);
-    tensor &relu();
-    friend tensor relu_backward(const tensor &t, const tensor &input);
-    tensor &relu_backward(const tensor &input);
-
-    friend tensor add_broadcast(const tensor &, const tensor &);
-    friend tensor sum(const tensor &, std::vector<size_t>);
-
-    friend tensor add_tile(const tensor &t, const tensor &tile); // abandoned
-    tensor &add_tile(const tensor &tile); // abandoned
-    friend tensor sub_tile(const tensor &t, const tensor &tile); // abandoned
-    tensor &sub_tile(const tensor &tile); // abandoned
-    friend tensor sum_rows(const tensor &); // abandoned
-    friend tensor sum_cols(const tensor &); // abandoned
-    friend tensor sum_by_channel(const tensor &); // abandoned
-
-    friend tensor softmax(const tensor &);
-    tensor &softmax();
-
-    friend size_t correct_count(const tensor &out, const tensor &ans);
-
-    friend class tensor_mask;
-    friend tensor maxpool(const tensor &t, tensor_mask &mask, size_t h_stride, size_t w_stride);
-    friend tensor maxpool_backward(const tensor &t, const tensor_mask &mask,
-                                   size_t original_height, size_t original_width,
-                                   size_t h_stride, size_t w_stride);
-
-    // fp32
-    friend tensor operator+(const tensor &, float);
-    tensor &operator+=(float);
-    friend tensor operator-(const tensor &, float);
-    tensor &operator-=(float);
-    friend tensor operator*(const tensor &, float);
-    tensor &operator*=(float);
-    friend tensor operator/(const tensor &, float);
-    tensor &operator/=(float);
-
-    friend void broadcast(tensor &, float);
-    friend tensor pow(const tensor &, float);
-    tensor &pow(float);
-
-    // =======================
-
-    friend const kernel &dispatch_kernel(const tensor &t);
-
-    friend class flatten_layer;
-
-protected:
-    size_t samples_, channels_, height_, width_;
-
-    // todo int device_id_;
-    device_type device_type_;
-    data_type data_type_;
-
-    any_ptr data_;
-    bool owns_data_;
-
-    friend void assert_data_type(const tensor &, data_type, const char *, int);
-    friend void assert_type_consistency(const tensor &, const tensor &, const char *, int);
-    friend void assert_shape_consistency(const tensor &, const tensor &, const char *, int);
-    friend void assert_layout_consistency(const tensor &, const tensor &, const char *, int);
-    friend void assert_mask_consistency(const tensor &, const tensor_mask &, const char *, int);
-
-    void construct_data(bool alloc = true, const char *copy_src = nullptr) {
-        switch (device_type_) {
-        case device_type::cpu:
-            switch (data_type_) {
-            case data_type::fp32:
-                if (alloc)
-                    data_ = mem_pool::alloc<float>(size());
-                if (copy_src)
-                    memcpy(data_, copy_src, sizeof(float) * size());
-                break;
-            }
-            break;
-        case device_type::cuda:
-            switch (data_type_) {
-            case data_type::fp32:
-                if (alloc)
-                    data_ = cuda_mem_pool::alloc<float>(size());
-                if (copy_src)
-                    cudaMemcpyAsync(data_, copy_src, sizeof(float) * size(), cudaMemcpyDeviceToDevice, cuda_kernel::default_stream());
-                break;
-            }
-            break;
-        default:
-            throw nn_except("unknown device", __FILE__, __LINE__);
-            break;
+        size_t lengths[ndim];
+        size_t j = ndim;
+        ((lengths[--j] = dims), ...);
+        size_t offset = 0, stride = 1;
+        if (ndim > object_->shape_.ndim)
+            throw nn_except("visited dimension out of bounds", __FILE__, __LINE__);
+        for (size_t i = 0; i < ndim; i++) {
+            offset += lengths[i] * stride;
+            if (lengths[i] > object_->shape_.lengths[i])
+                throw nn_except("visited index out of bounds", __FILE__, __LINE__);
+            stride *= object_->shape_.lengths[i];
         }
+        return {object_, offset};
     }
 
-    void release_data() {
-        switch (device_type_) {
-        case device_type::cpu:
-            mem_pool::recycle(data_);
-            break;
-        case device_type::cuda:
-            cuda_mem_pool::recycle(data_);
-            break;
-        default:
-            break;
-        }
-        data_ = nullptr;
+    tensor_it at(size_t index) {
+        if (index >= object_->shape_.size)
+            throw nn_except("visited index out of bounds", __FILE__, __LINE__);
+        return {object_, index};
     }
 
-    template<typename T = float>
-    T *access_data(size_t offset) const {
-        if (device_type_ != device_type::cpu)
-            throw nn_except("cannot access data in VRAM", __FILE__, __LINE__);
-        if constexpr (std::is_same_v<T, float>) {
-            if (data_type_ == data_type::fp32)
-                return static_cast<T *>(data_) + offset;
-            throw nn_except("accessed data type does not match", __FILE__, __LINE__);
-        }
-        else {
-            throw nn_except("unsupported data type", __FILE__, __LINE__);
-        }
-    }
+    void backward();
 
-    void copy_layout(const tensor &other) {
-        samples_ = other.samples_;
-        channels_ = other.channels_;
-        height_ = other.height_;
-        width_ = other.width_;
-        device_type_ = other.device_type_;
-        data_type_ = other.data_type_;
-    }
+    template<typename T>
+    void fill(T x);
+
+private:
+    tensor_impl *object_;
+
 };
+
+inline grad_node::grad_node(const tensor &result) :
+    tensor_(result.object_) {}

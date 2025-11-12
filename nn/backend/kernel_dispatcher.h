@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base_kernel.h"
-#include "tensor.h"
 #include "cpu/operators/common.h"
 #include "cpu/operators/conv.h"
 #include "cpu/operators/gemm.h"
@@ -17,9 +16,13 @@ public:
     kernel_init_factory() = delete;
 
     static kernel init_cpu_kernel() {
-        kernel k;
+        kernel k; // NOLINT(*-pro-type-member-init)
 
-        k.add_ewise_fp32 = cpu_kernel::add_ewise_fp32;
+        k.copy_fp32 = cpu_kernel::copy_raw<float>;
+        k.copy_int32 = cpu_kernel::copy_raw<int32_t>;
+
+        k.add_ewise_fp32 = cpu_kernel::add_ewise<float>;
+        k.add_ewise_int32 = cpu_kernel::add_ewise<int32_t>;
         k.sub_ewise_fp32 = cpu_kernel::sub_ewise_fp32;
         k.mul_ewise_fp32 = cpu_kernel::mul_ewise_fp32;
         k.div_ewise_fp32 = cpu_kernel::div_ewise_fp32;
@@ -29,6 +32,7 @@ public:
         k.pow_fp32 = cpu_kernel::pow_fp32;
 
         k.broadcast_fp32 = cpu_kernel::broadcast_fp32;
+        k.broadcast_int32 = cpu_kernel::broadcast_int32;
 
         k.square_fp32 = cpu_kernel::square_fp32;
         k.sqrt_fp32 = cpu_kernel::sqrt_fp32;
@@ -47,6 +51,7 @@ public:
         k.sum_fp32 = cpu_kernel::sum_fp32;
 
         k.softmax_fp32 = cpu_kernel::softmax_fp32;
+        k.log_softmax_fp32 = cpu_kernel::log_softmax_fp32;
 
         k.correct_count_fp32 = cpu_kernel::correct_count_fp32;
 
@@ -66,9 +71,13 @@ public:
     }
 
     static kernel init_cuda_kernel() {
-        kernel k;
+        kernel k; // NOLINT(*-pro-type-member-init)
 
-        k.add_ewise_fp32 = cuda_kernel::add_ewise_fp32;
+        k.copy_fp32 = cuda_kernel::copy_raw<float>;
+        k.copy_int32 = cuda_kernel::copy_raw<int32_t>;
+
+        k.add_ewise_fp32 = cuda_kernel::add_ewise<float>;
+        k.add_ewise_int32 = cuda_kernel::add_ewise<int32_t>;
         k.sub_ewise_fp32 = cuda_kernel::sub_ewise_fp32;
         k.mul_ewise_fp32 = cuda_kernel::mul_ewise_fp32;
         k.div_ewise_fp32 = cuda_kernel::div_ewise_fp32;
@@ -78,6 +87,7 @@ public:
         k.pow_fp32 = cuda_kernel::pow_fp32;
 
         k.broadcast_fp32 = cuda_kernel::broadcast_fp32;
+        k.broadcast_int32 = cuda_kernel::broadcast_int32;
 
         k.square_fp32 = cuda_kernel::square_fp32;
         k.sqrt_fp32 = cuda_kernel::sqrt_fp32;
@@ -96,6 +106,7 @@ public:
         k.sum_fp32 = cuda_kernel::sum_fp32;
 
         k.softmax_fp32 = cuda_kernel::softmax_fp32;
+        k.log_softmax_fp32 = cuda_kernel::log_softmax_fp32;
 
         k.correct_count_fp32 = cuda_kernel::correct_count_fp32;
 
@@ -120,6 +131,10 @@ inline const kernel kernel_dispatch_table[] = {
     kernel_init_factory::init_cuda_kernel() // device_type::cuda == 1
 };
 
-inline const kernel &dispatch_kernel(const tensor &t) {
-    return kernel_dispatch_table[static_cast<size_t>(t.device_type_)];
+// inline const kernel &dispatch_kernel(const tensor_v2 &t) { // legacy, todo remove
+//     return kernel_dispatch_table[static_cast<size_t>(t.device_type_)];
+// }
+
+inline const kernel &dispatch_kernel(device_desc device) {
+    return kernel_dispatch_table[static_cast<size_t>(device.type)];
 }

@@ -2,3 +2,4 @@ cmake-build-*/
 archive/
 archive.zip
 **/.idea/
+**/__pycache__/

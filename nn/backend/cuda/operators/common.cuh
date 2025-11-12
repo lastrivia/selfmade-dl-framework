@@ -3,8 +3,17 @@
 #include <cmath>
 
 #include "../arch.cuh"
+#include "../../mem_pool.h"
+
+// ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
 
 namespace cuda_kernel {
+
+    template<typename T>
+        requires std::is_trivially_copyable_v<T>
+    void copy_raw(size_t n, T *dst, const T *src) {
+        cudaMemcpyAsync(dst, src, n * sizeof(T), cudaMemcpyDeviceToDevice, default_stream());
+    }
 
     template<typename Fn, typename... Args>
     void launch_common_kernel(Fn fn, size_t n, Args... args) {
@@ -22,14 +31,16 @@ namespace cuda_kernel {
         return a > b ? a : b;
     }
 
-    __global__ void add_ewise_fp32_worker(size_t n, float *dst, const float *src_a, const float *src_b) {
+    template<typename T>
+    __global__ void add_ewise_worker(size_t n, T *dst, const T *src_a, const T *src_b) {
         size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
         if (idx < n)
             dst[idx] = src_a[idx] + src_b[idx];
     }
 
-    inline void add_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
-        launch_common_kernel(add_ewise_fp32_worker, n, dst, src_a, src_b);
+    template<typename T>
+    void add_ewise(size_t n, T *dst, const T *src_a, const T *src_b) {
+        launch_common_kernel(add_ewise_worker<T>, n, dst, src_a, src_b);
     }
 
     __global__ void sub_ewise_fp32_worker(size_t n, float *dst, const float *src_a, const float *src_b) {
@@ -100,6 +111,16 @@ namespace cuda_kernel {
 
     inline void broadcast_fp32(size_t n, float *dst, float val) {
         launch_common_kernel(broadcast_fp32_worker, n, dst, val);
+    }
+
+    __global__ void broadcast_int32_worker(size_t n, int32_t *dst, int32_t val) {
+        size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < n)
+            dst[idx] = val;
+    }
+
+    inline void broadcast_int32(size_t n, int32_t *dst, int32_t val) {
+        launch_common_kernel(broadcast_int32_worker, n, dst, val);
     }
 
     __global__ void square_fp32_worker(size_t n, float *dst, const float *src) {
@@ -239,7 +260,7 @@ namespace cuda_kernel {
                                    float *dst, const float *src_a, const float *src_b) {
         size_t ndim_host_buf[2][NDIM_STACK_BUF_SIZE];
 
-        workspace ndim_host_workspace;
+        workspace ndim_host_workspace(device_type::cpu);
         size_t *strides_a, *strides_b;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_host_workspace.init(sizeof(size_t) * ndim * 2);
@@ -253,7 +274,7 @@ namespace cuda_kernel {
         calc_strides(strides_a, ndim, lengths, mask_a);
         calc_strides(strides_b, ndim, lengths, mask_b);
 
-        cuda_workspace ndim_cuda_workspace;
+        workspace ndim_cuda_workspace(device_type::cuda);
         size_t *lengths_cuda, *strides_a_cuda, *strides_b_cuda;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_cuda_workspace.init(sizeof(size_t) * ndim * 3);
@@ -354,7 +375,7 @@ namespace cuda_kernel {
     inline void sum_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask, float *dst, const float *src) {
         size_t ndim_host_buf[1][NDIM_STACK_BUF_SIZE];
 
-        workspace ndim_host_workspace;
+        workspace ndim_host_workspace(device_type::cpu);
         size_t *strides;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_host_workspace.init(sizeof(size_t) * ndim);
@@ -373,7 +394,7 @@ namespace cuda_kernel {
                 src_per_dst *= lengths[i];
         }
 
-        cuda_workspace ndim_cuda_workspace;
+        workspace ndim_cuda_workspace(device_type::cuda);
         size_t *lengths_cuda, *strides_cuda, *coord_shared_buf;
         bool *mask_cuda;
         if (ndim > NDIM_STACK_BUF_SIZE) {
@@ -436,6 +457,31 @@ namespace cuda_kernel {
         launch_common_kernel(softmax_fp32_worker, group_n, group_size, dst, src);
     }
 
+    __global__ void log_softmax_fp32_worker(size_t group_n, size_t group_size, float *dst, const float *src) {
+        size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < group_n) {
+            float *dst_local = dst + idx * group_size;
+            const float *src_local = src + idx * group_size;
+
+            float max_val = src_local[0];
+            for (size_t j = 0; j < group_size; j++)
+                max_val = cu_max(max_val, src_local[j]);
+
+            float sum = 0.0f;
+            for (size_t j = 0; j < group_size; j++) {
+                sum += expf(src_local[j] - max_val);
+            }
+
+            float offset = max_val + logf(sum);
+            for (size_t j = 0; j < group_size; j++)
+                dst_local[j] = src_local[j] - offset;
+        }
+    }
+
+    inline void log_softmax_fp32(size_t group_n, size_t group_size, float *dst, const float *src) {
+        launch_common_kernel(log_softmax_fp32_worker, group_n, group_size, dst, src);
+    }
+
     __global__ void correct_count_fp32_worker(size_t blk_n, size_t blk_len,
                                               bool *flag, const float *out, const float *ans) {
         size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -451,8 +497,9 @@ namespace cuda_kernel {
 
     inline void correct_count_fp32(size_t blk_n, size_t blk_len,
                                    size_t *ret /* host */, const float *out, const float *ans) {
-        bool *flags = mem_pool::alloc<bool>(blk_n);
-        bool *flags_cuda = cuda_mem_pool::alloc<bool>(blk_n);
+        workspace flags_workspace(blk_n * sizeof(bool), device_type::cpu);
+        workspace flags_cuda_workspace(blk_n * sizeof(bool), device_type::cuda);
+        bool *flags = flags_workspace, *flags_cuda = flags_cuda_workspace;
         launch_common_kernel(correct_count_fp32_worker, blk_n, blk_len, flags_cuda, out, ans);
         cudaMemcpyAsync(flags, flags_cuda, blk_n * sizeof(bool), cudaMemcpyDeviceToHost, default_stream());
         cudaStreamSynchronize(default_stream());

@@ -7,10 +7,8 @@
 class fc_layer : public nn_layer {
 public:
     fc_layer(const size_t input_size, const size_t output_size) :
-        weight_(input_size, output_size),
-        weight_grad_(input_size, output_size),
-        bias_(1, output_size),
-        bias_grad_(1, output_size) {
+        weight_({input_size, output_size}),
+        bias_({output_size}) {
 
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -18,30 +16,27 @@ public:
         for (size_t i = 0; i < input_size; ++i)
             for (size_t j = 0; j < output_size; ++j)
                 weight_.at(i, j) = static_cast<float>(dis(gen));
-        broadcast(bias_, 0.0f);
+        bias_.fill(0.0f);
+
+        weight_->requires_grad(true);
+        bias_->requires_grad(true);
     }
 
     ~fc_layer() override = default;
 
-    tensor forward_propagation(tensor &input) override {
-        input_ = input;
-        // return add_tile(matmul(input, weight_), bias_);
-        return add_broadcast(matmul(input, weight_), bias_);
+    tensor operator()(const tensor &x) override {
+        return add_broadcast(matmul(x, weight_), bias_);
     }
 
-    tensor back_propagation(tensor &output_grad) override {
-        weight_grad_ = matmul<true, false>(input_, output_grad);
-        // bias_grad_ = sum_rows(output_grad);
-        bias_grad_ = sum(output_grad, {1});
-        return matmul<false, true>(output_grad, weight_);
+    std::vector<tensor> enum_params() override {
+        return {weight_, bias_};
     }
 
-    std::vector<param> enum_params() override {
-        return {{weight_, weight_grad_}, {bias_, bias_grad_}};
+    void to_device(device_desc device) override {
+        weight_.to_device(device);
+        bias_.to_device(device);
     }
 
 private:
-    tensor weight_, weight_grad_;
-    tensor bias_, bias_grad_;
-    tensor input_;
+    tensor weight_, bias_;
 };

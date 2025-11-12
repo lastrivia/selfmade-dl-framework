@@ -1,0 +1,20 @@
+friend tensor copy(const tensor &src);
+tensor operator+(const tensor &b) const;
+tensor operator-(const tensor &b) const;
+tensor operator*(const tensor &b) const;
+tensor operator/(const tensor &b) const;
+friend tensor square(const tensor &t);
+friend tensor sqrt(const tensor &t);
+friend tensor relu(const tensor &t);
+tensor operator+(float scalar) const;
+tensor operator-(float scalar) const;
+tensor operator*(float scalar) const;
+tensor operator/(float scalar) const;
+friend tensor pow(const tensor &t, float scalar);
+friend tensor add_broadcast(const tensor &a, const tensor &b);
+friend tensor sum(const tensor &t, std::vector<size_t> dims);
+friend tensor cross_entropy(const tensor &logits, const tensor &label);
+friend tensor maxpool(const tensor &t, size_t h_stride, size_t w_stride);
+template<bool transpose_a, bool transpose_b>
+friend tensor matmul(const tensor &a, const tensor &b);
+friend tensor conv(const tensor &input, const tensor &kernel, const tensor &bias, size_t h_padding, size_t w_padding);

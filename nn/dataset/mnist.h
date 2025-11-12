@@ -10,11 +10,11 @@
 class mnist_sample {
 public:
     mnist_sample(size_t batch_size, const unsigned char *image_buf, const unsigned char *label_buf) :
-        data_(batch_size, 1, 28, 28),
-        label_(batch_size, 10),
+        data_({batch_size, 1, 28, 28}),
+        label_({batch_size, 10}),
         batch_size_(batch_size) {
 
-        broadcast(label_, 0.0f);
+        label_.fill(0.0f);
         for (size_t i = 0; i < batch_size_; ++i) {
             for (size_t j = 0; j < 28; ++j)
                 for (size_t k = 0; k < 28; ++k)
@@ -32,7 +32,7 @@ public:
 
     size_t batch_size() const { return batch_size_; }
 
-    void to_device(device_type_arg device) {
+    void to_device(device_desc device) {
         data_.to_device(device);
         label_.to_device(device);
     }

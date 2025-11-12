@@ -1,0 +1,1310 @@
+[
+  {
+    "internal_name": "copy",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "src"
+    ],
+    "init_args": "const tensor &result, const tensor &src",
+    "init_proc": "grad_node(result), src_(src), src_ver_(src->version_)",
+    "members": [
+      "tensor src_",
+      "size_t src_ver_"
+    ],
+    "procedure": {
+      "src": [
+        {
+          "statement": "apply",
+          "grad": "tensor_->grad_data_",
+          "indent": 0,
+          "raw": "apply grad"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "copy",
+    "dtype": "int32",
+    "shape": "identity",
+    "tensors": [
+      "src"
+    ],
+    "init_args": "const tensor &result, const tensor &src",
+    "init_proc": "grad_node(result), src_(src), src_ver_(src->version_)",
+    "members": [
+      "tensor src_",
+      "size_t src_ver_"
+    ],
+    "procedure": {
+      "src": [
+        {
+          "statement": "apply",
+          "grad": "tensor_->grad_data_",
+          "indent": 0,
+          "raw": "apply grad"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "add",
+    "dtype": "fp32",
+    "shape": "ewise",
+    "ewise_args": [
+      "a",
+      "b"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "init_args": "const tensor &result, const tensor &a, const tensor &b",
+    "init_proc": "grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
+    "members": [
+      "tensor a_, b_",
+      "size_t a_ver_, b_ver_"
+    ],
+    "procedure": {
+      "a": [
+        {
+          "statement": "apply",
+          "grad": "tensor_->grad_data_",
+          "indent": 0,
+          "raw": "apply grad"
+        }
+      ],
+      "b": [
+        {
+          "statement": "apply",
+          "grad": "tensor_->grad_data_",
+          "indent": 0,
+          "raw": "apply grad"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "sub",
+    "dtype": "fp32",
+    "shape": "ewise",
+    "ewise_args": [
+      "a",
+      "b"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "init_args": "const tensor &result, const tensor &a, const tensor &b",
+    "init_proc": "grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
+    "members": [
+      "tensor a_, b_",
+      "size_t a_ver_, b_ver_"
+    ],
+    "procedure": {
+      "a": [
+        {
+          "statement": "apply",
+          "grad": "tensor_->grad_data_",
+          "indent": 0,
+          "raw": "apply grad"
+        }
+      ],
+      "b": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "b_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp b.size"
+        },
+        {
+          "kernel": "mul_scalar",
+          "args": [
+            "b_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            {
+              "fp32": "-1.0f"
+            }
+          ],
+          "indent": 0,
+          "raw": "mul_scalar(b.size, tmp, grad, auto(-1))"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "mul",
+    "dtype": "fp32",
+    "shape": "ewise",
+    "ewise_args": [
+      "a",
+      "b"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "init_args": "const tensor &result, const tensor &a, const tensor &b",
+    "init_proc": "grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
+    "members": [
+      "tensor a_, b_",
+      "size_t a_ver_, b_ver_"
+    ],
+    "procedure": {
+      "a": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "a_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp a.size"
+        },
+        {
+          "kernel": "mul_ewise",
+          "args": [
+            "a_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            "b_->data_"
+          ],
+          "indent": 0,
+          "raw": "mul_ewise(a.size, tmp, grad, b)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ],
+      "b": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "b_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp b.size"
+        },
+        {
+          "kernel": "mul_ewise",
+          "args": [
+            "b_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            "a_->data_"
+          ],
+          "indent": 0,
+          "raw": "mul_ewise(b.size, tmp, grad, a)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "div",
+    "dtype": "fp32",
+    "shape": "ewise",
+    "ewise_args": [
+      "a",
+      "b"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "init_args": "const tensor &result, const tensor &a, const tensor &b",
+    "init_proc": "grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
+    "members": [
+      "tensor a_, b_",
+      "size_t a_ver_, b_ver_"
+    ],
+    "procedure": {
+      "a": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "a_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp a.size"
+        },
+        {
+          "kernel": "div_ewise",
+          "args": [
+            "a_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            "b_->data_"
+          ],
+          "indent": 0,
+          "raw": "div_ewise(a.size, tmp, grad, b)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ],
+      "b": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "b_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp b.size"
+        },
+        {
+          "kernel": "mul_scalar",
+          "args": [
+            "b_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            {
+              "fp32": "-1.0f"
+            }
+          ],
+          "indent": 0,
+          "raw": "mul_scalar(b.size, tmp, grad, auto(-1))"
+        },
+        {
+          "kernel": "mul_ewise",
+          "args": [
+            "b_->shape_.size",
+            "tmp",
+            "tmp",
+            "a_->data_"
+          ],
+          "indent": 0,
+          "raw": "mul_ewise(b.size, tmp, tmp, a)"
+        },
+        {
+          "kernel": "div_ewise",
+          "args": [
+            "b_->shape_.size",
+            "tmp",
+            "tmp",
+            "b_->data_"
+          ],
+          "indent": 0,
+          "raw": "div_ewise(b.size, tmp, tmp, b)"
+        },
+        {
+          "kernel": "div_ewise",
+          "args": [
+            "b_->shape_.size",
+            "tmp",
+            "tmp",
+            "b_->data_"
+          ],
+          "indent": 0,
+          "raw": "div_ewise(b.size, tmp, tmp, b)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "square",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const tensor &result, const tensor &t",
+    "init_proc": "grad_node(result), t_(t), t_ver_(t->version_)",
+    "members": [
+      "tensor t_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "t_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp t.size"
+        },
+        {
+          "kernel": "mul_ewise",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            "t_->data_"
+          ],
+          "indent": 0,
+          "raw": "mul_ewise(t.size, tmp, grad, t)"
+        },
+        {
+          "kernel": "mul_scalar",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tmp",
+            {
+              "fp32": "2.0f"
+            }
+          ],
+          "indent": 0,
+          "raw": "mul_scalar(t.size, tmp, tmp, auto(2))"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "sqrt",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const tensor &result, const tensor &t",
+    "init_proc": "grad_node(result), t_(t), t_ver_(t->version_)",
+    "members": [
+      "tensor t_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "t_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp t.size"
+        },
+        {
+          "kernel": "sqrt",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "t_->data_"
+          ],
+          "indent": 0,
+          "raw": "sqrt(t.size, tmp, t)"
+        },
+        {
+          "kernel": "mul_scalar",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tmp",
+            {
+              "fp32": "2.0f"
+            }
+          ],
+          "indent": 0,
+          "raw": "mul_scalar(t.size, tmp, tmp, auto(2))"
+        },
+        {
+          "kernel": "div_ewise",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            "tmp"
+          ],
+          "indent": 0,
+          "raw": "div_ewise(t.size, tmp, grad, tmp)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "relu",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const tensor &result, const tensor &t",
+    "init_proc": "grad_node(result), t_(t), t_ver_(t->version_)",
+    "members": [
+      "tensor t_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "t_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp t.size"
+        },
+        {
+          "kernel": "relu_backward",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            "t_->data_"
+          ],
+          "indent": 0,
+          "raw": "relu_backward(t.size, tmp, grad, t)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "add_scalar",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const tensor &result, const tensor &t, float scalar",
+    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "members": [
+      "tensor t_",
+      "float scalar_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "apply",
+          "grad": "tensor_->grad_data_",
+          "indent": 0,
+          "raw": "apply grad"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "sub_scalar",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const tensor &result, const tensor &t, float scalar",
+    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "members": [
+      "tensor t_",
+      "float scalar_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "apply",
+          "grad": "tensor_->grad_data_",
+          "indent": 0,
+          "raw": "apply grad"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "mul_scalar",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const tensor &result, const tensor &t, float scalar",
+    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "members": [
+      "tensor t_",
+      "float scalar_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "t_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp t.size"
+        },
+        {
+          "kernel": "mul_scalar",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            "scalar_"
+          ],
+          "indent": 0,
+          "raw": "mul_scalar(t.size, tmp, grad, scalar)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "div_scalar",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const tensor &result, const tensor &t, float scalar",
+    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "members": [
+      "tensor t_",
+      "float scalar_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "t_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp t.size"
+        },
+        {
+          "kernel": "mul_scalar",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            {
+              "fp32": "1.0f / scalar_"
+            }
+          ],
+          "indent": 0,
+          "raw": "mul_scalar(t.size, tmp, grad, auto(1) / scalar)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "pow",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const tensor &result, const tensor &t, float scalar",
+    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "members": [
+      "tensor t_",
+      "float scalar_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "t_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp t.size"
+        },
+        {
+          "kernel": "pow",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "t_->data_",
+            {
+              "fp32": "scalar_ - 1.0f"
+            }
+          ],
+          "indent": 0,
+          "raw": "pow(t.size, tmp, t, scalar - auto(1))"
+        },
+        {
+          "kernel": "mul_scalar",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tmp",
+            "scalar_"
+          ],
+          "indent": 0,
+          "raw": "mul_scalar(t.size, tmp, tmp, scalar)"
+        },
+        {
+          "kernel": "mul_ewise",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tmp",
+            "tensor_->grad_data_"
+          ],
+          "indent": 0,
+          "raw": "mul_ewise(t.size, tmp, tmp, grad)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "add_broadcast",
+    "dtype": "fp32",
+    "shape": "broadcast",
+    "broadcast_args": [
+      "a",
+      "b"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "init_args": "const tensor &result, const tensor &a, const tensor &b, workspace &&a_mask_workspace, workspace &&b_mask_workspace",
+    "init_proc": "grad_node(result), a_(a), b_(b), a_mask_workspace_(std::move(a_mask_workspace)), b_mask_workspace_(std::move(b_mask_workspace)), a_ver_(a->version_), b_ver_(b->version_)",
+    "members": [
+      "tensor a_, b_",
+      "workspace a_mask_workspace_, b_mask_workspace_",
+      "size_t a_ver_, b_ver_"
+    ],
+    "procedure": {
+      "a": [
+        {
+          "control": "if",
+          "condition": "a_->shape_.size == tensor_->shape_.size",
+          "indent": 0
+        },
+        {
+          "statement": "apply",
+          "grad": "tensor_->grad_data_",
+          "indent": 1,
+          "raw": "apply grad"
+        },
+        {
+          "control": "end",
+          "indent": 0
+        },
+        {
+          "control": "else",
+          "indent": 0
+        },
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "a_->shape_.size * sizeof(float)"
+          },
+          "indent": 1,
+          "raw": "workspace tmp a.size"
+        },
+        {
+          "kernel": "sum",
+          "args": [
+            "tensor_->shape_.size",
+            "tensor_->shape_.ndim",
+            "tensor_->shape_.lengths.data()",
+            "a_mask",
+            "tmp",
+            "tensor_->grad_data_"
+          ],
+          "indent": 1,
+          "raw": "sum(size, ndim, lengths, a.mask, tmp, grad)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 1,
+          "raw": "apply tmp"
+        },
+        {
+          "control": "end",
+          "indent": 0
+        }
+      ],
+      "b": [
+        {
+          "control": "if",
+          "condition": "b_->shape_.size == tensor_->shape_.size",
+          "indent": 0
+        },
+        {
+          "statement": "apply",
+          "grad": "tensor_->grad_data_",
+          "indent": 1,
+          "raw": "apply grad"
+        },
+        {
+          "control": "end",
+          "indent": 0
+        },
+        {
+          "control": "else",
+          "indent": 0
+        },
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "b_->shape_.size * sizeof(float)"
+          },
+          "indent": 1,
+          "raw": "workspace tmp b.size"
+        },
+        {
+          "kernel": "sum",
+          "args": [
+            "tensor_->shape_.size",
+            "tensor_->shape_.ndim",
+            "tensor_->shape_.lengths.data()",
+            "b_mask",
+            "tmp",
+            "tensor_->grad_data_"
+          ],
+          "indent": 1,
+          "raw": "sum(size, ndim, lengths, b.mask, tmp, grad)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 1,
+          "raw": "apply tmp"
+        },
+        {
+          "control": "end",
+          "indent": 0
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "cross_entropy",
+    "dtype": "fp32",
+    "shape": "ewise",
+    "ewise_args": [
+      "logits",
+      "label"
+    ],
+    "tensors": [
+      "logits",
+      "label"
+    ],
+    "init_args": "const tensor &result, const tensor &logits, const tensor &label",
+    "init_proc": "grad_node(result), logits_(logits), label_(label), logits_ver_(logits->version_), label_ver_(label->version_)",
+    "members": [
+      "tensor logits_, label_",
+      "size_t logits_ver_, label_ver_"
+    ],
+    "procedure": {
+      "logits": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "logits_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp logits.size"
+        },
+        {
+          "kernel": "softmax",
+          "args": [
+            "logits_->shape_.size / logits_->shape_.lengths[0]",
+            "logits_->shape_.lengths[0]",
+            "tmp",
+            "logits_->data_"
+          ],
+          "indent": 0,
+          "raw": "softmax(logits.size / logits.lengths[0], logits.lengths[0], tmp, logits)"
+        },
+        {
+          "kernel": "sub_ewise",
+          "args": [
+            "logits_->shape_.size",
+            "tmp",
+            "tmp",
+            "label_->data_"
+          ],
+          "indent": 0,
+          "raw": "sub_ewise(logits.size, tmp, tmp, label)"
+        },
+        {
+          "kernel": "mul_ewise",
+          "args": [
+            "logits_->shape_.size",
+            "tmp",
+            "tmp",
+            "tensor_->grad_data_"
+          ],
+          "indent": 0,
+          "raw": "mul_ewise(logits.size, tmp, tmp, grad)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ],
+      "label": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "label_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp label.size"
+        },
+        {
+          "kernel": "log_softmax",
+          "args": [
+            "label_->shape_.size / label_->shape_.lengths[0]",
+            "label_->shape_.lengths[0]",
+            "tmp",
+            "logits_->data_"
+          ],
+          "indent": 0,
+          "raw": "log_softmax(label.size / label.lengths[0], label.lengths[0], tmp, logits)"
+        },
+        {
+          "kernel": "mul_scalar",
+          "args": [
+            "label_->shape_.size",
+            "tmp",
+            "tmp",
+            {
+              "fp32": "-1.0f"
+            }
+          ],
+          "indent": 0,
+          "raw": "mul_scalar(label.size, tmp, tmp, auto(-1))"
+        },
+        {
+          "kernel": "mul_ewise",
+          "args": [
+            "label_->shape_.size",
+            "tmp",
+            "tmp",
+            "tensor_->grad_data_"
+          ],
+          "indent": 0,
+          "raw": "mul_ewise(label.size, tmp, tmp, grad)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "maxpool",
+    "dtype": "fp32",
+    "shape": "pooling",
+    "pooling_source": "t",
+    "pooling_strides": {
+      "1": "h_stride",
+      "0": "w_stride"
+    },
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const tensor &result, const tensor &t, size_t h_stride, size_t w_stride, workspace &&mask_workspace",
+    "init_proc": "grad_node(result), t_(t), h_stride_(h_stride), w_stride_(w_stride), mask_workspace_(std::move(mask_workspace)), t_ver_(t->version_)",
+    "members": [
+      "tensor t_",
+      "size_t h_stride_, w_stride_",
+      "workspace mask_workspace_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "t_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp t.size"
+        },
+        {
+          "kernel": "maxpool_backward",
+          "args": [
+            "t_->shape_.size / t_->shape_.lengths[1] / t_->shape_.lengths[0]",
+            "t_->shape_.lengths[1]",
+            "t_->shape_.lengths[0]",
+            "h_stride_",
+            "w_stride_",
+            "tmp",
+            "mask",
+            "tensor_->grad_data_"
+          ],
+          "indent": 0,
+          "raw": "maxpool_backward(t.size / t.lengths[1] / t.lengths[0], t.lengths[1], t.lengths[0], h_stride, w_stride, tmp, $mask, grad)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "matmul",
+    "dtype": "fp32",
+    "shape": "matmul",
+    "matmul_first": "a",
+    "matmul_second": "b",
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "init_args": "const tensor &result, const tensor &a, const tensor &b, bool transpose_a, bool transpose_b, size_t matmul_m, size_t matmul_n, size_t matmul_k",
+    "init_proc": "grad_node(result), a_(a), b_(b), transpose_a_(transpose_a), transpose_b_(transpose_b), matmul_m_(matmul_m), matmul_n_(matmul_n), matmul_k_(matmul_k), a_ver_(a->version_), b_ver_(b->version_)",
+    "members": [
+      "tensor a_, b_",
+      "bool transpose_a_, transpose_b_",
+      "size_t matmul_m_, matmul_n_, matmul_k_",
+      "size_t a_ver_, b_ver_"
+    ],
+    "procedure": {
+      "a": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "a_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp a.size"
+        },
+        {
+          "control": "if",
+          "condition": "transpose_a_",
+          "indent": 0
+        },
+        {
+          "kernel": "gemm",
+          "args": [
+            "matmul_k_",
+            "matmul_n_",
+            "matmul_m_",
+            "tmp",
+            "b_->data_",
+            "tensor_->grad_data_"
+          ],
+          "template_args": [
+            "transpose_b_",
+            "true"
+          ],
+          "indent": 1,
+          "raw": "gemm<b.transpose, true>($k, $n, $m, tmp, b, grad)"
+        },
+        {
+          "control": "end",
+          "indent": 0
+        },
+        {
+          "control": "else",
+          "indent": 0
+        },
+        {
+          "kernel": "gemm",
+          "args": [
+            "matmul_m_",
+            "matmul_n_",
+            "matmul_k_",
+            "tmp",
+            "tensor_->grad_data_",
+            "b_->data_"
+          ],
+          "template_args": [
+            "false",
+            "(!transpose_b_)"
+          ],
+          "indent": 1,
+          "raw": "gemm<false, !b.transpose>($m, $n, $k, tmp, grad, b)"
+        },
+        {
+          "control": "end",
+          "indent": 0
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ],
+      "b": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "b_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp b.size"
+        },
+        {
+          "control": "if",
+          "condition": "transpose_b_",
+          "indent": 0
+        },
+        {
+          "kernel": "gemm",
+          "args": [
+            "matmul_n_",
+            "matmul_m_",
+            "matmul_k_",
+            "tmp",
+            "tensor_->grad_data_",
+            "a_->data_"
+          ],
+          "template_args": [
+            "true",
+            "transpose_a_"
+          ],
+          "indent": 1,
+          "raw": "gemm<true, a.transpose>($n, $m, $k, tmp, grad, a)"
+        },
+        {
+          "control": "end",
+          "indent": 0
+        },
+        {
+          "control": "else",
+          "indent": 0
+        },
+        {
+          "kernel": "gemm",
+          "args": [
+            "matmul_k_",
+            "matmul_m_",
+            "matmul_n_",
+            "tmp",
+            "a_->data_",
+            "tensor_->grad_data_"
+          ],
+          "template_args": [
+            "(!transpose_a_)",
+            "false"
+          ],
+          "indent": 1,
+          "raw": "gemm<!a.transpose, false>($k, $m, $n, tmp, a, grad)"
+        },
+        {
+          "control": "end",
+          "indent": 0
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
+    "internal_name": "conv",
+    "dtype": "fp32",
+    "shape": "conv",
+    "conv_input": "input",
+    "conv_kernel": "kernel",
+    "conv_bias": "bias",
+    "conv_h_padding": "h_padding",
+    "conv_w_padding": "w_padding",
+    "tensors": [
+      "input",
+      "kernel",
+      "bias"
+    ],
+    "init_args": "const tensor &result, const tensor &input, const tensor &kernel, const tensor &bias, size_t h_padding, size_t w_padding, size_t conv_n, size_t conv_ci, size_t conv_co, size_t conv_h_out, size_t conv_w_out",
+    "init_proc": "grad_node(result), input_(input), kernel_(kernel), bias_(bias), h_padding_(h_padding), w_padding_(w_padding), conv_n_(conv_n), conv_ci_(conv_ci), conv_co_(conv_co), conv_h_out_(conv_h_out), conv_w_out_(conv_w_out), input_ver_(input->version_), kernel_ver_(kernel->version_), bias_ver_(bias->version_)",
+    "members": [
+      "tensor input_, kernel_, bias_",
+      "size_t h_padding_, w_padding_",
+      "size_t conv_n_, conv_ci_, conv_co_, conv_h_out_, conv_w_out_",
+      "size_t input_ver_, kernel_ver_, bias_ver_"
+    ],
+    "procedure": {
+      "input": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "input_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp input.size"
+        },
+        {
+          "kernel": "conv_input_grad",
+          "args": [
+            "conv_n_",
+            "conv_ci_",
+            "conv_co_",
+            "tensor_->grad_data_",
+            "conv_h_out_",
+            "conv_w_out_",
+            "kernel_->data_",
+            "kernel_->shape_.lengths[1]",
+            "kernel_->shape_.lengths[0]",
+            "kernel_->shape_.lengths[1] - h_padding_ - 1",
+            "kernel_->shape_.lengths[0] - w_padding_ - 1",
+            "tmp"
+          ],
+          "indent": 0,
+          "raw": "conv_input_grad($n, $ci, $co, grad, $ho, $wo, kernel, $hk, $wk, $hk - h_padding - 1, $wk - w_padding - 1, tmp)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ],
+      "kernel": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "kernel_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp kernel.size"
+        },
+        {
+          "kernel": "conv_kernel_grad",
+          "args": [
+            "conv_n_",
+            "conv_ci_",
+            "conv_co_",
+            "input_->data_",
+            "input_->shape_.lengths[1]",
+            "input_->shape_.lengths[0]",
+            "tensor_->grad_data_",
+            "conv_h_out_",
+            "conv_w_out_",
+            "h_padding_",
+            "w_padding_",
+            "tmp"
+          ],
+          "indent": 0,
+          "raw": "conv_kernel_grad($n, $ci, $co, input, $hi, $wi, grad, $ho, $wo, h_padding, w_padding, tmp)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ],
+      "bias": [
+        {
+          "statement": "value",
+          "code": "bool sum_mask[4] = {false, false, true, false}",
+          "indent": 0,
+          "raw": "value bool sum_mask[4] = {false, false, true, false}"
+        },
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "bias_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp bias.size"
+        },
+        {
+          "kernel": "sum",
+          "args": [
+            "tensor_->shape_.size",
+            "4",
+            "tensor_->shape_.lengths.data()",
+            "sum_mask",
+            "tmp",
+            "tensor_->grad_data_"
+          ],
+          "indent": 0,
+          "raw": "sum(result.size, 4, result.lengths, sum_mask, tmp, grad)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  }
+]

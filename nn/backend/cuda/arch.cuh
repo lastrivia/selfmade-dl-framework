@@ -56,7 +56,7 @@ namespace cuda_kernel {
     class ndim_device_buf_t {
     public:
         ndim_device_buf_t(size_t elements) {
-            cudaError_t err = cudaMalloc(&buf, elements * NDIM_STACK_BUF_SIZE * sizeof(size_t));
+            cudaError_t err = cudaMallocAsync(&buf, elements * NDIM_STACK_BUF_SIZE * sizeof(size_t), default_stream());
             if (err != cudaSuccess)
                 throw nn_except("cuda memory allocation failed", __FILE__, __LINE__);
         }

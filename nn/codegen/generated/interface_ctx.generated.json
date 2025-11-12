@@ -1,0 +1,660 @@
+[
+  {
+    "name": "copy",
+    "args": "const tensor &src",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32",
+      "int32"
+    ],
+    "dtypes_unsupported": [],
+    "tensors": [
+      "src"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "copy",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "src->data_"
+        ],
+        "indent": 0,
+        "raw": "copy(size, result, src)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "copy",
+    "grad_args": "result, src"
+  },
+  {
+    "name": "operator+",
+    "args": "const tensor &b",
+    "this": "a",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "shape": "ewise",
+    "ewise_args": [
+      "a",
+      "b"
+    ],
+    "procedure": [
+      {
+        "kernel": "add_ewise",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "a->data_",
+          "b->data_"
+        ],
+        "indent": 0,
+        "raw": "add_ewise(size, result, a, b)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "add",
+    "grad_args": "result, a, b"
+  },
+  {
+    "name": "operator-",
+    "args": "const tensor &b",
+    "this": "a",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "shape": "ewise",
+    "ewise_args": [
+      "a",
+      "b"
+    ],
+    "procedure": [
+      {
+        "kernel": "sub_ewise",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "a->data_",
+          "b->data_"
+        ],
+        "indent": 0,
+        "raw": "sub_ewise(size, result, a, b)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "sub",
+    "grad_args": "result, a, b"
+  },
+  {
+    "name": "operator*",
+    "args": "const tensor &b",
+    "this": "a",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "shape": "ewise",
+    "ewise_args": [
+      "a",
+      "b"
+    ],
+    "procedure": [
+      {
+        "kernel": "mul_ewise",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "a->data_",
+          "b->data_"
+        ],
+        "indent": 0,
+        "raw": "mul_ewise(size, result, a, b)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "mul",
+    "grad_args": "result, a, b"
+  },
+  {
+    "name": "operator/",
+    "args": "const tensor &b",
+    "this": "a",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "shape": "ewise",
+    "ewise_args": [
+      "a",
+      "b"
+    ],
+    "procedure": [
+      {
+        "kernel": "div_ewise",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "a->data_",
+          "b->data_"
+        ],
+        "indent": 0,
+        "raw": "div_ewise(size, result, a, b)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "div",
+    "grad_args": "result, a, b"
+  },
+  {
+    "name": "square",
+    "args": "const tensor &t",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "t"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "square",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "t->data_"
+        ],
+        "indent": 0,
+        "raw": "square(size, result, t)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "square",
+    "grad_args": "result, t"
+  },
+  {
+    "name": "sqrt",
+    "args": "const tensor &t",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "t"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "sqrt",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "t->data_"
+        ],
+        "indent": 0,
+        "raw": "sqrt(size, result, t)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "sqrt",
+    "grad_args": "result, t"
+  },
+  {
+    "name": "relu",
+    "args": "const tensor &t",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "t"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "relu",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "t->data_"
+        ],
+        "indent": 0,
+        "raw": "relu(size, result, t)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "relu",
+    "grad_args": "result, t"
+  },
+  {
+    "name": "operator+",
+    "args": "float scalar",
+    "this": "t",
+    "fixed_dtype": "fp32",
+    "tensors": [
+      "t"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "add_scalar",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "t->data_",
+          "scalar"
+        ],
+        "indent": 0,
+        "raw": "add_scalar(size, result, t, scalar)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "add_scalar",
+    "grad_args": "result, t, scalar"
+  },
+  {
+    "name": "operator-",
+    "args": "float scalar",
+    "this": "t",
+    "fixed_dtype": "fp32",
+    "tensors": [
+      "t"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "add_scalar",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "t->data_",
+          "(-scalar)"
+        ],
+        "indent": 0,
+        "raw": "add_scalar(size, result, t, -scalar)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "sub_scalar",
+    "grad_args": "result, t, scalar"
+  },
+  {
+    "name": "operator*",
+    "args": "float scalar",
+    "this": "t",
+    "fixed_dtype": "fp32",
+    "tensors": [
+      "t"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "mul_scalar",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "t->data_",
+          "scalar"
+        ],
+        "indent": 0,
+        "raw": "mul_scalar(size, result, t, scalar)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "mul_scalar",
+    "grad_args": "result, t, scalar"
+  },
+  {
+    "name": "operator/",
+    "args": "float scalar",
+    "this": "t",
+    "fixed_dtype": "fp32",
+    "tensors": [
+      "t"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "mul_scalar",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "t->data_",
+          {
+            "fp32": "1.0f / scalar"
+          }
+        ],
+        "indent": 0,
+        "raw": "mul_scalar(size, result, t, auto(1) / scalar)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "div_scalar",
+    "grad_args": "result, t, scalar"
+  },
+  {
+    "name": "pow",
+    "args": "const tensor &t, float scalar",
+    "fixed_dtype": "fp32",
+    "tensors": [
+      "t"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "pow",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "t->data_",
+          "scalar"
+        ],
+        "indent": 0,
+        "raw": "pow(size, result, t, scalar)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "pow",
+    "grad_args": "result, t, scalar"
+  },
+  {
+    "name": "add_broadcast",
+    "args": "const tensor &a, const tensor &b",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "shape": "broadcast",
+    "broadcast_args": [
+      "a",
+      "b"
+    ],
+    "procedure": [
+      {
+        "kernel": "add_broadcast",
+        "args": [
+          "result->shape_.size",
+          "result->shape_.ndim",
+          "result->shape_.lengths.data()",
+          "a_mask",
+          "b_mask",
+          "result->data_",
+          "a->data_",
+          "b->data_"
+        ],
+        "indent": 0,
+        "raw": "add_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "add_broadcast",
+    "grad_args": "result, a, b, std::move(a_mask_workspace), std::move(b_mask_workspace)"
+  },
+  {
+    "name": "sum",
+    "args": "const tensor &t, std::vector<size_t> dims",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "t"
+    ],
+    "shape": "reduction",
+    "reduction_source": "t",
+    "reduction_dims": "dims",
+    "procedure": [
+      {
+        "kernel": "sum",
+        "args": [
+          "t->shape_.size",
+          "result->shape_.ndim",
+          "t->shape_.lengths.data()",
+          "mask",
+          "result->data_",
+          "t->data_"
+        ],
+        "indent": 0,
+        "raw": "sum(t.size, ndim, t.lengths, $mask, result, t)"
+      }
+    ],
+    "allow_grad": false
+  },
+  {
+    "name": "cross_entropy",
+    "args": "const tensor &logits, const tensor &label",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "logits",
+      "label"
+    ],
+    "shape": "ewise",
+    "ewise_args": [
+      "logits",
+      "label"
+    ],
+    "procedure": [
+      {
+        "kernel": "log_softmax",
+        "args": [
+          "result->shape_.size / result->shape_.lengths[0]",
+          "result->shape_.lengths[0]",
+          "result->data_",
+          "logits->data_"
+        ],
+        "indent": 0,
+        "raw": "log_softmax(size / lengths[0], lengths[0], result, logits)"
+      },
+      {
+        "kernel": "mul_scalar",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "result->data_",
+          {
+            "fp32": "-1.0f"
+          }
+        ],
+        "indent": 0,
+        "raw": "mul_scalar(size, result, result, auto(-1))"
+      },
+      {
+        "kernel": "mul_ewise",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "result->data_",
+          "label->data_"
+        ],
+        "indent": 0,
+        "raw": "mul_ewise(size, result, result, label)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "cross_entropy",
+    "grad_args": "result, logits, label"
+  },
+  {
+    "name": "maxpool",
+    "args": "const tensor &t, size_t h_stride, size_t w_stride",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "t"
+    ],
+    "shape": "pooling",
+    "pooling_source": "t",
+    "pooling_strides": {
+      "1": "h_stride",
+      "0": "w_stride"
+    },
+    "procedure": [
+      {
+        "kernel": "maxpool",
+        "args": [
+          "t->shape_.size / t->shape_.lengths[1] / t->shape_.lengths[0]",
+          "t->shape_.lengths[1]",
+          "t->shape_.lengths[0]",
+          "h_stride",
+          "w_stride",
+          "result->data_",
+          "mask",
+          "t->data_"
+        ],
+        "indent": 0,
+        "raw": "maxpool(t.size / t.lengths[1] / t.lengths[0], t.lengths[1], t.lengths[0], h_stride, w_stride, result, $mask, t)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "maxpool",
+    "grad_args": "result, t, h_stride, w_stride, std::move(mask_workspace)"
+  },
+  {
+    "name": "matmul",
+    "args": "const tensor &a, const tensor &b",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "shape": "matmul",
+    "matmul_first": "a",
+    "matmul_second": "b",
+    "procedure": [
+      {
+        "kernel": "gemm",
+        "args": [
+          "matmul_m",
+          "matmul_k",
+          "matmul_n",
+          "result->data_",
+          "a->data_",
+          "b->data_"
+        ],
+        "template_args": [
+          "transpose_a",
+          "transpose_b"
+        ],
+        "indent": 0,
+        "raw": "gemm<a.transpose, b.transpose>($m, $k, $n, result, a, b)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "matmul",
+    "grad_args": "result, a, b, transpose_a, transpose_b, matmul_m, matmul_n, matmul_k"
+  },
+  {
+    "name": "conv",
+    "args": "const tensor &input, const tensor &kernel, const tensor &bias, size_t h_padding, size_t w_padding",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "input",
+      "kernel",
+      "bias"
+    ],
+    "shape": "conv",
+    "conv_input": "input",
+    "conv_kernel": "kernel",
+    "conv_bias": "bias",
+    "conv_h_padding": "h_padding",
+    "conv_w_padding": "w_padding",
+    "procedure": [
+      {
+        "kernel": "conv",
+        "args": [
+          "conv_n",
+          "conv_ci",
+          "conv_co",
+          "input->data_",
+          "input->shape_.lengths[1]",
+          "input->shape_.lengths[0]",
+          "kernel->data_",
+          "kernel->shape_.lengths[1]",
+          "kernel->shape_.lengths[0]",
+          "h_padding",
+          "w_padding",
+          "bias->data_",
+          "result->data_"
+        ],
+        "indent": 0,
+        "raw": "conv($n, $ci, $co, input, $hi, $wi, kernel, $hk, $wk, h_padding, w_padding, bias, result)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "conv",
+    "grad_args": "result, input, kernel, bias, h_padding, w_padding, conv_n, conv_ci, conv_co, conv_h_out, conv_w_out"
+  }
+]

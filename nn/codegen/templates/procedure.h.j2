@@ -1,0 +1,49 @@
+{%- macro render_expr(expr, dtype) -%}
+    {%- if expr is string -%}
+    {{ expr }}
+    {%- elif expr is mapping -%}
+    {{ expr[dtype] }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{%- macro render_procedure(proc, dtype, indent, ctx={}) %}
+{#- todo dispatch once before procedure -#}
+{%- if proc.control %}
+{%- if proc.control == "if" %}
+{{ indent }}if ({{ render_expr(proc.condition, dtype) }}) {
+{%- elif proc.control == "elif" %}
+{{ indent }}else if ({{ render_expr(proc.condition, dtype) }}) {
+{%- elif proc.control == "else" %}
+{{ indent }}else {
+{%- elif proc.control == "end" %}
+{{ indent }}}
+{%- endif %}
+{%- elif proc.statement %}
+
+{{ indent }}// [codegen] "{{ proc.raw }}"
+{%- if proc.statement == "workspace" %}
+{{ indent }}workspace {{ proc.name }}({{ render_expr(proc.size, dtype) }}, device);
+{%- elif proc.statement == "apply" %}
+{{ indent }}dispatch_kernel(device).add_ewise_{{ dtype }}(
+    {{- ctx.grad_target }}_->shape_.size, {{ ctx.grad_target }}_->grad_data_, {{ ctx.grad_target }}_->grad_data_, {{ proc.grad -}}
+);
+{%- elif proc.statement == "value" %}
+{{ indent }}{{ proc.code }};
+{%- endif %}
+{%- elif proc.kernel %}
+
+{{ indent }}// [codegen] "{{ proc.raw }}"
+{{ indent }}dispatch_kernel(device).{{ proc.kernel }}_{{ dtype }}
+{%- if proc.template_args -%}
+    {%- for arg in proc.template_args -%}
+        [{{ render_expr(arg, dtype) }}]
+    {%- endfor -%}
+{%- endif -%}
+(
+{%- for arg in proc.args -%}
+    {{ render_expr(arg, dtype) }}
+    {%- if not loop.last %}, {% endif -%}
+{%- endfor -%}
+);
+{%- endif %}
+{%- endmacro -%}

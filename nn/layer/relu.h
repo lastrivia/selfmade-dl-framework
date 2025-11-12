@@ -4,34 +4,17 @@
 
 class relu_layer : public nn_layer {
 public:
-    explicit relu_layer(bool in_place = false) : in_place_(in_place) {}
+    relu_layer() = default;
 
     ~relu_layer() override = default;
 
-    tensor forward_propagation(tensor &input) override {
-        input_ = input;
-        if (in_place_) {
-            input.relu();
-            return input;
-        }
-        else
-            return relu(input);
+    tensor operator()(const tensor &x) override {
+        return relu(x);
     }
 
-    tensor back_propagation(tensor &output_grad) override {
-        if (in_place_) {
-            output_grad.relu_backward(input_);
-            return output_grad;
-        }
-        else
-            return relu_backward(output_grad, input_);
-    }
-
-    std::vector<param> enum_params() override {
+    std::vector<tensor> enum_params() override {
         return {};
     }
 
-private:
-    bool in_place_;
-    tensor input_;
+    void to_device(device_desc device) override {}
 };

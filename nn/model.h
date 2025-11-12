@@ -14,21 +14,23 @@ public:
         (add_layer(std::forward<Layers>(layers)), ...);
     }
 
-    tensor forward_propagation(tensor activation) {
+    tensor operator()(const tensor &x) {
+        tensor activation = x;
+        int layer_n = 0;
         for (auto &layer : layers_) {
-            activation = layer->forward_propagation(activation);
+            activation = (*layer)(activation);
+            // cudaError_t err = cudaDeviceSynchronize();
+            // if (err != cudaSuccess) {
+            //     throw nn_except(std::string() + cudaGetErrorString(err) + " at layer " + std::to_string(layer_n), __FILE__, __LINE__);
+            // }
+            // else
+            //     std::cout << "layer " << layer_n << " executed;" << std::endl;
+            ++layer_n;
         }
         return activation;
     }
 
-    tensor back_propagation(tensor gradient) {
-        for (auto &layer : std::ranges::reverse_view(layers_)) {
-            gradient = layer->back_propagation(gradient);
-        }
-        return gradient;
-    }
-
-    void to_device(device_type_arg device) {
+    void to_device(device_desc device) {
         for (auto &layer : layers_)
             layer->to_device(device);
     }

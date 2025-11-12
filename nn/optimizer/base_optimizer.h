@@ -18,6 +18,8 @@ public:
 
     virtual void step() = 0;
 
+    virtual void zero_grad() = 0;
+
     friend class nn_scheduler;
 
 protected:

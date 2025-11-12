@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cmath>
-
 #include "../../mem_pool.h"
 #include "../arch.h"
 
@@ -11,7 +9,14 @@
 
 namespace cpu_kernel {
 
-    inline void add_ewise_fp32(size_t n, float *dst, const float *src_a, const float *src_b) {
+    template<typename T>
+        requires std::is_trivially_copyable_v<T>
+    void copy_raw(size_t n, T *dst, const T *src) {
+        memcpy(dst, src, n * sizeof(T));
+    }
+
+    template<typename T>
+    void add_ewise(size_t n, T *dst, const T *src_a, const T *src_b) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = src_a[i] + src_b[i];
         }
@@ -54,6 +59,12 @@ namespace cpu_kernel {
     }
 
     inline void broadcast_fp32(size_t n, float *dst, float val) {
+        for (size_t i = 0; i < n; i++) {
+            dst[i] = val;
+        }
+    }
+
+    inline void broadcast_int32(size_t n, int32_t *dst, int32_t val) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = val;
         }
@@ -141,7 +152,7 @@ namespace cpu_kernel {
                                    float *dst, const float *src_a, const float *src_b) {
         size_t ndim_buf[3][NDIM_STACK_BUF_SIZE];
 
-        workspace ndim_workspace;
+        workspace ndim_workspace(device_type::cpu);
         size_t *strides_a, *strides_b, *coord;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_workspace.init(sizeof(size_t) * ndim * 3);
@@ -180,7 +191,7 @@ namespace cpu_kernel {
     inline void sum_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask, float *dst, const float *src) {
         size_t ndim_buf[2][NDIM_STACK_BUF_SIZE];
 
-        workspace ndim_workspace;
+        workspace ndim_workspace(device_type::cpu);
         size_t *strides_dst, *coord;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_workspace.init(sizeof(size_t) * ndim * 2);
@@ -214,22 +225,41 @@ namespace cpu_kernel {
 
     inline void softmax_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) {
         for (size_t i = 0; i < blk_n; i++) {
-            float *row_dst = dst + i * blk_len;
-            const float *row_src = src + i * blk_len;
+            float *dst_local = dst + i * blk_len;
+            const float *src_local = src + i * blk_len;
 
-            float max_val = row_src[0];
+            float max_val = src_local[0];
             for (size_t j = 0; j < blk_len; j++)
-                max_val = std::max(max_val, row_src[j]);
+                max_val = std::max(max_val, src_local[j]);
 
             float sum = 0.0f;
             for (size_t j = 0; j < blk_len; j++) {
-                row_dst[j] = expf(row_src[j] - max_val);
-                sum += row_dst[j];
+                dst_local[j] = expf(src_local[j] - max_val);
+                sum += dst_local[j];
             }
 
             float inv_sum = 1.0f / sum;
             for (size_t j = 0; j < blk_len; j++)
-                row_dst[j] *= inv_sum;
+                dst_local[j] *= inv_sum;
+        }
+    }
+
+    inline void log_softmax_fp32(size_t blk_n, size_t blk_len, float *dst, const float *src) {
+        for (size_t i = 0; i < blk_n; i++) {
+            float *dst_local = dst + i * blk_len;
+            const float *src_local = src + i * blk_len;
+
+            float max_val = src_local[0];
+            for (size_t j = 0; j < blk_len; j++)
+                max_val = std::max(max_val, src_local[j]);
+
+            float sum = 0.0f;
+            for (size_t j = 0; j < blk_len; j++)
+                sum += expf(src_local[j] - max_val);
+
+            float offset = max_val + logf(sum);
+            for (size_t j = 0; j < blk_len; j++)
+                dst_local[j] = src_local[j] - offset;
         }
     }
 

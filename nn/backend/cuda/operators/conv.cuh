@@ -235,7 +235,7 @@ namespace cuda_kernel {
             with_check(cudnnGetConvolutionForwardWorkspaceSize(
                 default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
             ));
-            cuda_workspace workspace(workspace_size);
+            workspace workspace(workspace_size, device_type::cuda);
 
             float alpha1 = 1.0f, alpha2 = 0.0f;
             cudnn_activation_desc identity(CUDNN_ACTIVATION_IDENTITY);
@@ -291,7 +291,7 @@ namespace cuda_kernel {
             with_check(cudnnGetConvolutionBackwardDataWorkspaceSize(
                 default_cudnn_handle(), ker_desc, in_desc, conv_desc, dst_desc, algo, &workspace_size
             ));
-            cuda_workspace workspace(workspace_size);
+            workspace workspace(workspace_size, device_type::cuda);
 
             float alpha = 1.0f, beta = 0.0f;
             with_check(cudnnConvolutionBackwardData(
@@ -343,7 +343,7 @@ namespace cuda_kernel {
             with_check(cudnnGetConvolutionBackwardFilterWorkspaceSize(
                 default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
             ));
-            cuda_workspace workspace(workspace_size);
+            workspace workspace(workspace_size, device_type::cuda);
 
             float alpha = 1.0f, beta = 0.0f;
             with_check(cudnnConvolutionBackwardFilter(

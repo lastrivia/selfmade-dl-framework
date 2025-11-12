@@ -1,0 +1,8 @@
+{%- if shape == "matmul" -%}
+template<bool transpose_{{ matmul_first }}, bool transpose_{{ matmul_second }}>
+{% endif -%}
+{%- if this -%}
+tensor {{ name }}({{ args }}) const;
+{%- else -%}
+friend tensor {{ name }}({{ args }});
+{%- endif %}

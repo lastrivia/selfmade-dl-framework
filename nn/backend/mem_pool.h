@@ -5,6 +5,9 @@
 
 #include "base_kernel.h"
 #include "../except.h"
+#include "cuda/arch.cuh"
+
+inline bool mem_pool_log = false;
 
 template<device_type device>
 class base_mem_pool {
@@ -15,16 +18,33 @@ public:
     }
 
     template<typename T>
-    static void recycle(T *p) {
+    static void recycle(T *p) noexcept {
         instance().recycle_p(reinterpret_cast<char *>(p));
     }
 
-    static void recycle(void *p) {
+    static void recycle(void *p) noexcept {
         instance().recycle_p(static_cast<char *>(p));
     }
 
+    static void query(const void *p) {
+        auto it = instance().allocated_pool_.find(const_cast<char *>(static_cast<const char *>(p)));
+        if (it == instance().allocated_pool_.end()) {
+            std::cout << p << " not found" << std::endl;
+        }
+        else
+            std::cout << p << " found, size: " << it->second << std::endl;
+    }
+
+    static void query_allocated() {
+        size_t sum = 0;
+        for (auto &it : instance().allocated_pool_) {
+            sum += it.second;
+        }
+        std::cout << "Allocated sum: " << sum << std::endl;
+    }
+
 private:
-    static base_mem_pool &instance() {
+    static base_mem_pool &instance() noexcept {
         thread_local base_mem_pool instance;
         return instance;
     }
@@ -43,7 +63,7 @@ private:
             }
         }
         else if constexpr (device == device_type::cuda) {
-            cudaError_t err = cudaMalloc(reinterpret_cast<void **>(&ret), size_bytes);
+            cudaError_t err = cudaMallocAsync(reinterpret_cast<void **>(&ret), size_bytes, cuda_kernel::default_stream());
             if (err != cudaSuccess) {
                 throw nn_except("cuda memory allocation failed", __FILE__, __LINE__);
             }
@@ -55,7 +75,10 @@ private:
         if constexpr (device == device_type::cpu)
             delete[] p;
         else if constexpr (device == device_type::cuda)
-            cudaFree(p);
+            cudaFreeAsync(p, cuda_kernel::default_stream());
+        if (mem_pool_log)
+            std::cout << "FREE ON " << (device == device_type::cpu ? "HOST" : "DEVICE")
+                    << ": " << static_cast<void *>(p) << std::endl;
     }
 
     char *alloc_p(size_t size_bytes) {
@@ -71,16 +94,22 @@ private:
             it->second.pop_back();
         }
         allocated_pool_[ret] = size_bytes;
+        if (mem_pool_log)
+            std::cout << "MALLOC ON " << (device == device_type::cpu ? "HOST" : "DEVICE")
+                    << ": " << static_cast<void *>(ret) << ", size: " << size_bytes << std::endl;
         return ret;
     }
 
-    void recycle_p(char *p) {
+    void recycle_p(char *p) noexcept {
         if (p == nullptr)
             return;
         auto it = allocated_pool_.find(p);
         if (it == allocated_pool_.end()) // unexpected
             device_delete(p);
         else {
+            if (mem_pool_log)
+                std::cout << "RECYCLE ON " << (device == device_type::cpu ? "HOST" : "DEVICE")
+                        << ": " << static_cast<void *>(p) << ", size: " << it->second << std::endl;
             recycle_pool_[it->second].push_back(p);
             allocated_pool_.erase(it);
         }
@@ -98,44 +127,77 @@ private:
 using mem_pool = base_mem_pool<device_type::cpu>;
 using cuda_mem_pool = base_mem_pool<device_type::cuda>;
 
-template<device_type device>
-class base_workspace {
+class workspace {
 public:
-    base_workspace() {
-        workspace_ = nullptr;
-    }
+    explicit workspace(device_desc device) :
+        workspace_(nullptr), device_(device) {}
 
     void init(size_t bytes) {
         if (workspace_)
-            base_mem_pool<device>::recycle(workspace_);
-        workspace_ = base_mem_pool<device>::template alloc<char>(bytes);
+            recycle(workspace_);
+        workspace_ = alloc(bytes);
     }
 
-    explicit base_workspace(size_t bytes) {
-        workspace_ = base_mem_pool<device>::template alloc<char>(bytes);
+    explicit workspace(size_t bytes, device_desc device) :
+        device_(device) {
+        workspace_ = alloc(bytes);
     }
 
-    ~base_workspace() {
-        base_mem_pool<device>::recycle(workspace_);
+    ~workspace() {
+        recycle(workspace_);
     }
 
-    base_workspace(const base_workspace &) = delete;
-    base_workspace &operator=(const base_workspace &) = delete;
-    base_workspace(base_workspace &&other) = delete;
-    base_workspace &operator=(base_workspace &&other) = delete;
+    workspace(const workspace &) = delete;
+    workspace &operator=(const workspace &) = delete;
 
-    operator void *() const {
+    workspace(workspace &&other) noexcept {
+        workspace_ = other.workspace_;
+        other.workspace_ = nullptr;
+        device_ = other.device_;
+    }
+
+    workspace &operator=(workspace &&other) noexcept {
+        if (workspace_ == other.workspace_)
+            return *this;
+        if (workspace_)
+            recycle(workspace_);
+        workspace_ = other.workspace_;
+        other.workspace_ = nullptr;
+        device_ = other.device_;
+        return *this;
+    }
+
+    operator void *() const { // NOLINT(*-explicit-constructor)
         return workspace_;
     }
 
     template<typename T>
-    operator T *() const {
+    operator T *() const { // NOLINT(*-explicit-constructor)
         return static_cast<T *>(workspace_);
     }
 
 private:
     void *workspace_;
-};
+    device_desc device_;
 
-using workspace = base_workspace<device_type::cpu>;
-using cuda_workspace = base_workspace<device_type::cuda>;
+    void *alloc(size_t bytes) const {
+        switch (device_.type) {
+        case device_type::cpu:
+            return mem_pool::alloc<char>(bytes);
+        case device_type::cuda:
+            return cuda_mem_pool::alloc<char>(bytes);
+        }
+        return nullptr;
+    }
+
+    void recycle(void *ptr) const {
+        switch (device_.type) {
+        case device_type::cpu:
+            mem_pool::recycle(ptr);
+            return;
+        case device_type::cuda:
+            cuda_mem_pool::recycle(ptr);
+            return;
+        }
+    }
+};

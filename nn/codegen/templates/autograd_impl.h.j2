@@ -1,0 +1,56 @@
+{%- from "procedure.h.j2" import render_procedure -%}
+class grad_node_{{ internal_name }}_{{ dtype }} : public grad_node {
+public:
+    grad_node_{{ internal_name }}_{{ dtype }}({{ init_args }}) :
+        {{ init_proc }} {}
+
+    ~grad_node_{{ internal_name }}_{{ dtype }}() override = default;
+
+    std::vector<tensor_impl *> inputs() override {
+        std::vector<tensor_impl *> ret;
+        ret.reserve({{ tensors|length }});
+{%- for i in tensors %}
+        if ({{ i }}_->requires_grad_)
+            ret.push_back({{ i }}_.object_);
+{%- endfor %}
+        return ret;
+    }
+
+    void backward() override {
+        if (
+        {%- for i in tensors -%}
+            {{ i }}_ver_ != {{ i }}_->version_
+            {%- if not loop.last %} || {% endif -%}
+        {%- endfor -%}
+        )
+            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
+
+{%- if shape == "broadcast" %}
+        bool {% for arg in broadcast_args -%}
+            *{{ arg }}_mask = {{ arg }}_mask_workspace_
+            {%- if not loop.last %}, {% endif -%}
+        {%- endfor -%}
+        ;
+{% elif shape == "reduction" %}
+        bool *mask = mask_workspace_;
+{% elif shape == "pooling" %}
+        bool *mask = mask_workspace_;
+{% endif %}
+        device_desc device = tensor_->device();
+{%- for i in tensors %}
+
+        // [codegen] backward: {{ i }}
+        if ({{ i }}_->requires_grad_) {
+{%- for j in procedure[i] %}
+{%- set indent = "    " * (j.indent + 3) %}
+{{- render_procedure(j, dtype, indent, {"grad_target": i}) }}
+{%- endfor %}
+        }
+{%- endfor %}
+    }
+
+private:
+{%- for i in members %}
+    {{ i }};
+{%- endfor %}
+};

@@ -11,6 +11,20 @@
   },
   "operators": [
     {
+      "name": "copy",
+      "interface": {
+        "function": "copy"
+      },
+      "shape": {
+        "identity": "src"
+      },
+      "dtypes": ["fp32", "int32"],
+      "forward": ["copy(size, result, src)"],
+      "backward": {
+        "src": ["apply grad"]
+      }
+    },
+    {
       "name": "add",
       "interface": {
         "operator": "+",
@@ -260,7 +274,7 @@
       "backward": {
         "a": [
           {
-            "if": "a.shape_identity",
+            "if": "a.size == size",
             "then": ["apply grad"],
             "else": [
               "workspace tmp a.size",
@@ -271,7 +285,7 @@
         ],
         "b": [
           {
-            "if": "b.shape_identity",
+            "if": "b.size == size",
             "then": ["apply grad"],
             "else": [
               "workspace tmp b.size",
@@ -298,6 +312,37 @@
       "backward": "reject"
     },
     {
+      "name": "cross_entropy",
+      "interface": {
+        "function": "cross_entropy"
+      },
+      "shape": {
+        "ewise": ["logits", "label"]
+      },
+      "dtypes": ["fp32"],
+      "forward": [
+        "log_softmax(size / lengths[0], lengths[0], result, logits)",
+        "mul_scalar(size, result, result, auto(-1))",
+        "mul_ewise(size, result, result, label)"
+      ],
+      "backward": {
+        "logits": [
+          "workspace tmp logits.size",
+          "softmax(logits.size / logits.lengths[0], logits.lengths[0], tmp, logits)",
+          "sub_ewise(logits.size, tmp, tmp, label)",
+          "mul_ewise(logits.size, tmp, tmp, grad)",
+          "apply tmp"
+        ],
+        "label": [
+          "workspace tmp label.size",
+          "log_softmax(label.size / label.lengths[0], label.lengths[0], tmp, logits)",
+          "mul_scalar(label.size, tmp, tmp, auto(-1))",
+          "mul_ewise(label.size, tmp, tmp, grad)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
       "name": "maxpool",
       "interface": {
         "function": "maxpool"
@@ -318,7 +363,7 @@
       "backward": {
         "t": [
           "workspace tmp t.size",
-          "maxpool_backward(t.size / t.lengths[1] / t.lengths[0], t.lengths[1], t.lengths[0], h_stride, w_stride, tmp, $mask, t)",
+          "maxpool_backward(t.size / t.lengths[1] / t.lengths[0], t.lengths[1], t.lengths[0], h_stride, w_stride, tmp, $mask, grad)",
           "apply tmp"
         ]
       }
