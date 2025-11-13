@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cpu_kernel {
+namespace cpu_backend {
 
     static constexpr size_t NDIM_STACK_BUF_SIZE = 8;
 

@@ -22,7 +22,6 @@ set_target_properties(dl_framework_demo PROPERTIES
 target_include_directories(dl_framework_demo
         PUBLIC
         ${CMAKE_SOURCE_DIR}/nn/
-        ${CMAKE_SOURCE_DIR}/nn/backend/
         ${CMAKE_SOURCE_DIR}/nn/codegen/generated
 )
 

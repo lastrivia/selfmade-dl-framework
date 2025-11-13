@@ -22,7 +22,7 @@ public:
 
             switch (p->dtype_) {
             case data_type::fp32: {
-                const kernel &k = dispatch_kernel(p->device_);
+                const backend &k = dispatch_kernel(p->device_);
                 size_t size = p->shape_.size;
                 workspace tmp(size * sizeof(float), p->device_);
 

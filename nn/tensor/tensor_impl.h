@@ -1,13 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <sstream>
-#include <utility>
 
+#include "backend.h"
 #include "autograd_base.h"
-#include "base_kernel.h"
-#include "mem_pool.h"
-#include "cuda/arch.cuh"
 
 inline bool tensor_log = false;
 
@@ -186,10 +182,10 @@ public:
         case device_type::cuda:
             switch (dtype_) {
             case data_type::fp32:
-                cudaMemsetAsync(grad_data_, 0, sizeof(float) * shape_.size, cuda_kernel::default_stream());
+                cudaMemsetAsync(grad_data_, 0, sizeof(float) * shape_.size, cuda_backend::default_stream());
                 break;
             case data_type::int32:
-                cudaMemsetAsync(grad_data_, 0, sizeof(int32_t) * shape_.size, cuda_kernel::default_stream());
+                cudaMemsetAsync(grad_data_, 0, sizeof(int32_t) * shape_.size, cuda_backend::default_stream());
                 break;
             }
             break;
@@ -248,13 +244,13 @@ private:
                 ret = cuda_mem_pool::alloc<float>(shape_.size);
                 if (copy_from)
                     cudaMemcpyAsync(ret, copy_from, sizeof(float) * shape_.size,
-                                    cudaMemcpyDeviceToDevice, cuda_kernel::default_stream());
+                                    cudaMemcpyDeviceToDevice, cuda_backend::default_stream());
                 break;
             case data_type::int32:
                 ret = cuda_mem_pool::alloc<int32_t>(shape_.size);
                 if (copy_from)
                     cudaMemcpyAsync(ret, copy_from, sizeof(int32_t) * shape_.size,
-                                    cudaMemcpyDeviceToDevice, cuda_kernel::default_stream());
+                                    cudaMemcpyDeviceToDevice, cuda_backend::default_stream());
                 break;
             }
             break;
@@ -417,13 +413,13 @@ public:
             size = sizeof(int32_t) * object_->shape_.size;
         }
 
-        cudaMemcpyAsync(new_object->data_, object_->data_, size, kind, cuda_kernel::default_stream());
+        cudaMemcpyAsync(new_object->data_, object_->data_, size, kind, cuda_backend::default_stream());
         if (object_->requires_grad_ && !object_->grad_node_) { // leaf
             new_object->requires_grad(true);
             // todo save a zero_grad() here
-            cudaMemcpyAsync(new_object->grad_data_, object_->grad_data_, size, kind, cuda_kernel::default_stream());
+            cudaMemcpyAsync(new_object->grad_data_, object_->grad_data_, size, kind, cuda_backend::default_stream());
         }
-        cudaStreamSynchronize(cuda_kernel::default_stream());
+        cudaStreamSynchronize(cuda_backend::default_stream());
 
         object_->ref_count_--;
         if (object_->ref_count_ == 0)

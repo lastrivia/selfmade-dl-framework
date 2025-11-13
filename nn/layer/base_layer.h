@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../backend.h"
+#include "tensor.h"
 
 class nn_layer {
 public:

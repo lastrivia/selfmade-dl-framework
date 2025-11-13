@@ -11,7 +11,7 @@
 using ssize_t = ptrdiff_t;
 #endif
 
-namespace cpu_kernel {
+namespace cpu_backend {
 
     namespace conv_utils_fp32 {
 

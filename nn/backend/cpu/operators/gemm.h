@@ -3,12 +3,12 @@
 #include <immintrin.h>
 #include <cstring>
 
+#include "backend/mem_pool.h"
 #include "../arch.h"
 #include "../thread_pool.h"
-#include "../../mem_pool.h"
 
 
-namespace cpu_kernel {
+namespace cpu_backend {
 
     namespace gemm_utils_fp32 {
 

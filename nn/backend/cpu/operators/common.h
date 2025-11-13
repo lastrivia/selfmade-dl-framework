@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../../mem_pool.h"
+#include "backend/mem_pool.h"
 #include "../arch.h"
 
 // auto simd by compiler optimization
 
 // todo simd intrinsics, cache optimization, multithreading
 
-namespace cpu_kernel {
+namespace cpu_backend {
 
     template<typename T>
         requires std::is_trivially_copyable_v<T>

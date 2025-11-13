@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "../except.h"
+#include "except.h"
 
 enum class device_type: char {
     cpu  = 0,
@@ -34,27 +34,6 @@ public:
     bool operator==(const device_desc &other) const = default;
     bool operator!=(const device_desc &other) const = default;
 };
-
-// class device_type_arg { // todo merge into device_desc
-// public:
-//     device_type_arg(device_type device) : device_(device) {} // NOLINT(*-explicit-constructor)
-//
-//     operator device_type() const { return device_; } // NOLINT(*-explicit-constructor)
-//
-//     device_type_arg(const char *device_name) { // NOLINT(*-explicit-constructor)
-//         if (device_name == nullptr)
-//             throw nn_except("device name not provided", __FILE__, __LINE__);
-//         if (strcmp("cpu", device_name) == 0)
-//             device_ = device_type::cpu;
-//         else if (strcmp("cuda", device_name) == 0)
-//             device_ = device_type::cuda;
-//         else
-//             throw nn_except("unknown device name", __FILE__, __LINE__);
-//     }
-//
-// private:
-//     device_type device_;
-// };
 
 enum class data_type: char {
     fp32  = 0,
@@ -117,7 +96,7 @@ namespace kernel_func {
     }
 }
 
-class kernel {
+class backend {
 public:
     // fp32
     kernel_func::fp32::unary copy_fp32;
@@ -154,8 +133,8 @@ public:
     kernel_func::int32::binary add_ewise_int32;
 
 private:
-    kernel() = default;
-    friend class kernel_init_factory;
+    backend() = default;
+    friend class backend_init_factory;
 };
 
 class data_ptr {

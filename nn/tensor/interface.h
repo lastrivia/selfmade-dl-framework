@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tensor.h"
+#include "tensor_impl.h"
 #include "autograd.h"
 
 #include "interface_impl.generated.h"

@@ -6,7 +6,7 @@
 
 #include "ndim.h"
 
-namespace cpu_kernel {
+namespace cpu_backend {
     static constexpr size_t CACHE_THRESHOLD = 1048576LL, THREAD_WORKLOAD_THRESHOLD = 1048576LL;
 
     static const size_t MAX_THREADS = std::thread::hardware_concurrency();

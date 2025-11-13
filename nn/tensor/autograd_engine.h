@@ -5,8 +5,8 @@
 #include <deque>
 #include <unordered_map>
 
-#include "tensor.h"
-#include "kernel_dispatcher.h"
+#include "tensor_impl.h"
+#include "backend.h"
 
 class grad_engine {
 public:

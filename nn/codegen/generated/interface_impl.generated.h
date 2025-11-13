@@ -1,8 +1,8 @@
 #pragma once
         
-#include "kernel_dispatcher.h"
-#include "tensor.h"
-#include "autograd.h"
+#include "backend.h"
+#include "tensor/tensor_impl.h"
+#include "tensor/autograd.h"
 
 inline tensor copy(const tensor &src) {
     // [codegen] shape: identity

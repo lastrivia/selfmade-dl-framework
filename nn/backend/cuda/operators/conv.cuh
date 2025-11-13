@@ -4,11 +4,11 @@
 
 #include <cudnn.h>
 
-#include "../../../except.h"
-#include "../../mem_pool.h"
+#include "except.h"
+#include "backend/mem_pool.h"
 #include "../arch.cuh"
 
-namespace cuda_kernel {
+namespace cuda_backend {
 
     inline void cudnn_check(const cudnnStatus_t status, const char *file, int line) {
         if (status != CUDNN_STATUS_SUCCESS)

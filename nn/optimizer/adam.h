@@ -45,7 +45,7 @@ public:
 
             switch (p.target->dtype_) {
             case data_type::fp32: {
-                const kernel &k = dispatch_kernel(p.target->device_);
+                const backend &k = dispatch_kernel(p.target->device_);
                 size_t size = p.target->shape_.size;
                 workspace tmp(size * sizeof(float), p.target->device_);
                 data_ptr data = p.target->data_, grad = p.target->grad_data_;

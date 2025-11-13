@@ -579,9 +579,9 @@ if __name__ == "__main__":
     interface_impl = [
         r'''#pragma once
         
-#include "kernel_dispatcher.h"
-#include "tensor.h"
-#include "autograd.h"'''
+#include "backend.h"
+#include "tensor/tensor_impl.h"
+#include "tensor/autograd.h"'''
     ]
 
     for ctx in interface_ctx:
@@ -602,9 +602,9 @@ if __name__ == "__main__":
     autograd_impl = [
         r'''#pragma once
         
-#include "tensor.h"
-#include "kernel_dispatcher.h"
-#include "autograd_base.h"'''
+#include "backend.h"
+#include "tensor/tensor_impl.h"
+#include "tensor/autograd_base.h"'''
     ]
 
     for ctx in autograd_ctx:

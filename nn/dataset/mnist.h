@@ -4,8 +4,8 @@
 #include <fstream>
 #include <vector>
 
-#include "../except.h"
-#include "../backend.h"
+#include "except.h"
+#include "tensor.h"
 
 class mnist_sample {
 public:

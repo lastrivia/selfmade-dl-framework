@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "base_kernel.h"
+#include "base_backend.h"
 #include "../except.h"
 #include "cuda/arch.cuh"
 
@@ -63,7 +63,7 @@ private:
             }
         }
         else if constexpr (device == device_type::cuda) {
-            cudaError_t err = cudaMallocAsync(reinterpret_cast<void **>(&ret), size_bytes, cuda_kernel::default_stream());
+            cudaError_t err = cudaMallocAsync(reinterpret_cast<void **>(&ret), size_bytes, cuda_backend::default_stream());
             if (err != cudaSuccess) {
                 throw nn_except("cuda memory allocation failed", __FILE__, __LINE__);
             }
@@ -75,7 +75,7 @@ private:
         if constexpr (device == device_type::cpu)
             delete[] p;
         else if constexpr (device == device_type::cuda)
-            cudaFreeAsync(p, cuda_kernel::default_stream());
+            cudaFreeAsync(p, cuda_backend::default_stream());
         if (mem_pool_log)
             std::cout << "FREE ON " << (device == device_type::cpu ? "HOST" : "DEVICE")
                     << ": " << static_cast<void *>(p) << std::endl;

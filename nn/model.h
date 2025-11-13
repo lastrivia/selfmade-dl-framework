@@ -4,7 +4,7 @@
 #include <ranges>
 #include <vector>
 
-#include "backend.h"
+#include "tensor.h"
 #include "layer/base_layer.h"
 
 class nn_model {

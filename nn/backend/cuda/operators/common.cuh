@@ -2,12 +2,12 @@
 
 #include <cmath>
 
+#include "backend/mem_pool.h"
 #include "../arch.cuh"
-#include "../../mem_pool.h"
 
 // ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
 
-namespace cuda_kernel {
+namespace cuda_backend {
 
     template<typename T>
         requires std::is_trivially_copyable_v<T>

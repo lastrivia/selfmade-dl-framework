@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../except.h"
-#include "../cpu/ndim.h"
+#include "except.h"
+#include "backend/cpu/ndim.h"
 
-namespace cuda_kernel {
+namespace cuda_backend {
 
     static constexpr size_t THREADS_PER_BLOCK = 256;
 
@@ -49,9 +49,9 @@ namespace cuda_kernel {
         return stream.get();
     }
 
-    static constexpr size_t NDIM_STACK_BUF_SIZE = cpu_kernel::NDIM_STACK_BUF_SIZE,
+    static constexpr size_t NDIM_STACK_BUF_SIZE = cpu_backend::NDIM_STACK_BUF_SIZE,
                             NDIM_STACK_BUF_ELEMENTS = 10;
-    using cpu_kernel::calc_strides;
+    using cpu_backend::calc_strides;
 
     class ndim_device_buf_t {
     public:

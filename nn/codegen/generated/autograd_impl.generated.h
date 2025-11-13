@@ -1,8 +1,8 @@
 #pragma once
         
-#include "tensor.h"
-#include "kernel_dispatcher.h"
-#include "autograd_base.h"
+#include "backend.h"
+#include "tensor/tensor_impl.h"
+#include "tensor/autograd_base.h"
 
 class grad_node_copy_fp32 : public grad_node {
 public:

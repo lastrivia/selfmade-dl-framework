@@ -2,10 +2,10 @@
 
 #include <cublas_v2.h>
 
-#include "../../../except.h"
+#include "except.h"
 #include "../arch.cuh"
 
-namespace cuda_kernel {
+namespace cuda_backend {
 
     class cublas_handle {
     public:
