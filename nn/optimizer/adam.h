@@ -2,30 +2,30 @@
 
 #include "base_optimizer.h"
 
-class adam_optimizer : public nn_optimizer {
+class AdamOptimizer : public Optimizer {
     struct adam_param {
-        tensor target;
-        data_ptr first_moment, second_moment;
+        Tensor target;
+        Data first_moment, second_moment;
     };
 
 public:
-    explicit adam_optimizer(float init_learning_rate,
+    explicit AdamOptimizer(float init_learning_rate,
                             float first_moment_attenuation = 0.9,
                             float second_moment_attenuation = 0.999) :
-        nn_optimizer(init_learning_rate),
+        Optimizer(init_learning_rate),
         first_moment_attenuation_(first_moment_attenuation),
         second_moment_attenuation_(second_moment_attenuation),
         step_times_(0) {}
 
-    ~adam_optimizer() override {
+    ~AdamOptimizer() override {
         for (auto &p: params_) {
             p.target->release_data(p.first_moment);
             p.target->release_data(p.second_moment);
         }
     }
 
-    void register_layer(nn_layer &layer) override {
-        std::vector<tensor> layer_params = layer.enum_params();
+    void register_layer(Layer &layer) override {
+        std::vector<Tensor> layer_params = layer.enum_params();
         for (auto &t: layer_params) {
             params_.emplace_back(
                 t,
@@ -44,11 +44,11 @@ public:
                 continue;
 
             switch (p.target->dtype_) {
-            case data_type::fp32: {
-                const backend &k = dispatch_kernel(p.target->device_);
+            case ScalarType::fp32: {
+                const Backend &k = dispatch_kernel(p.target->device_);
                 size_t size = p.target->shape_.size;
-                workspace tmp(size * sizeof(float), p.target->device_);
-                data_ptr data = p.target->data_, grad = p.target->grad_data_;
+                Workspace tmp(size * sizeof(float), p.target->device_);
+                Data data = p.target->data_, grad = p.target->grad_data_;
 
                 if (step_times_ == 1) {
                     k.mul_scalar_fp32(size, p.first_moment, grad, 1.0f - first_moment_attenuation_);
@@ -81,8 +81,8 @@ public:
                 k.sub_ewise_fp32(size, data, data, tmp);
                 break;
             }
-            case data_type::int32: {
-                throw nn_except("tensor: adam does not support data type int32", __FILE__, __LINE__);
+            case ScalarType::int32: {
+                throw FatalExcept("tensor: adam does not support data type int32", __FILE__, __LINE__);
                 break;
             }
             }

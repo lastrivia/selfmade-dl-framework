@@ -2,14 +2,14 @@
 
 #include "base_optimizer.h"
 
-class sgd_optimizer : public nn_optimizer {
+class SgdOptimizer : public Optimizer {
 public:
-    explicit sgd_optimizer(float init_learning_rate) : nn_optimizer(init_learning_rate) {}
+    explicit SgdOptimizer(float init_learning_rate) : Optimizer(init_learning_rate) {}
 
-    ~sgd_optimizer() override = default;
+    ~SgdOptimizer() override = default;
 
-    void register_layer(nn_layer &layer) override {
-        std::vector<tensor> layer_params = layer.enum_params();
+    void register_layer(Layer &layer) override {
+        std::vector<Tensor> layer_params = layer.enum_params();
         for (auto &p: layer_params) {
             params_.push_back(p);
         }
@@ -21,17 +21,17 @@ public:
                 continue;
 
             switch (p->dtype_) {
-            case data_type::fp32: {
-                const backend &k = dispatch_kernel(p->device_);
+            case ScalarType::fp32: {
+                const Backend &k = dispatch_kernel(p->device_);
                 size_t size = p->shape_.size;
-                workspace tmp(size * sizeof(float), p->device_);
+                Workspace tmp(size * sizeof(float), p->device_);
 
                 k.mul_scalar_fp32(size, tmp, p->grad_data_, learning_rate_);
                 k.sub_ewise_fp32(size, p->data_, p->data_, tmp);
                 break;
             }
-            case data_type::int32: {
-                throw nn_except("tensor: adam does not support data type int32", __FILE__, __LINE__);
+            case ScalarType::int32: {
+                throw FatalExcept("tensor: adam does not support data type int32", __FILE__, __LINE__);
                 break;
             }
             }
@@ -47,5 +47,5 @@ public:
     }
 
 private:
-    std::vector<tensor> params_;
+    std::vector<Tensor> params_;
 };

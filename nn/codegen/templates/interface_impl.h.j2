@@ -1,15 +1,16 @@
 {%- from "procedure.h.j2" import render_procedure -%}
+{%- from "style.j2" import camel -%}
 {%- macro core_logic(dtype) -%}
 {%- if shape == "ewise" or shape == "identity" %}
-        tensor result({{ tensors[0] }}->shape_, {{ tensors[0] }}->device_, {{ tensors[0] }}->dtype_);
+        Tensor result({{ tensors[0] }}->shape_, {{ tensors[0] }}->device_, {{ tensors[0] }}->dtype_);
 {%- elif shape == "broadcast" or shape == "reduction" or shape == "pooling" %}
-        tensor result({ndim, ret_dims}, {{ tensors[0] }}->device_, {{ tensors[0] }}->dtype_);
+        Tensor result({ndim, ret_dims}, {{ tensors[0] }}->device_, {{ tensors[0] }}->dtype_);
 {%- elif shape == "matmul" %}
-        tensor result({matmul_m, matmul_n}, {{ tensors[0] }}->device_, {{ tensors[0] }}->dtype_);
+        Tensor result({matmul_m, matmul_n}, {{ tensors[0] }}->device_, {{ tensors[0] }}->dtype_);
 {%- elif shape == "conv" %}
-        tensor result({conv_n, conv_co, conv_h_out, conv_w_out}, {{ tensors[0] }}->device_, {{ tensors[0] }}->dtype_);
+        Tensor result({conv_n, conv_co, conv_h_out, conv_w_out}, {{ tensors[0] }}->device_, {{ tensors[0] }}->dtype_);
 {%- endif %}
-        device_desc device = result->device_;
+        DeviceDesc device = result->device_;
 
 {%- for i in procedure %}
 {%- set indent = "    " * (i.indent + 2) %}
@@ -24,9 +25,9 @@
         ) && !global_no_grad) {
 {%- if allow_grad %}
             result->requires_grad_ = true;
-            result->grad_node_ = new grad_node_{{ internal_name }}_{{ dtype }}({{ grad_args }});
+            result->grad_node_ = new GradNode{{ camel(internal_name) }}{{ camel(dtype) }}({{ grad_args }});
 {%- else %}
-            throw nn_except("tensor: {{ name }} does not have a corresponding autograd node", __FILE__, __LINE__);
+            throw FatalExcept("tensor: {{ name }} does not have a corresponding autograd node", __FILE__, __LINE__);
 {%- endif %}
         }
 
@@ -40,13 +41,13 @@ template<bool transpose_{{ matmul_first }}, bool transpose_{{ matmul_second }}>
 {% else -%}
 inline {% endif -%}
 {%- if this -%}
-tensor tensor::{{ name }}({{ args }}) const {
+Tensor Tensor::{{ name }}({{ args }}) const {
 {%- else -%}
-tensor {{ name }}({{ args }}) {
+Tensor {{ name }}({{ args }}) {
 {%- endif -%}
 
 {%- if this %}
-    const tensor &{{ this }} = *this;
+    const Tensor &{{ this }} = *this;
 {% endif %}
 
 {%- if tensors|length > 1 %}
@@ -56,21 +57,21 @@ tensor {{ name }}({{ args }}) {
         {%- if not loop.last %} || {% endif -%}
     {%- endfor -%}
     )
-        throw nn_except("tensor: operands for {{ name }} are on different devices", __FILE__, __LINE__);
+        throw FatalExcept("tensor: operands for {{ name }} are on different devices", __FILE__, __LINE__);
     if (
     {%- for i in tensors[1:] -%}
         {{ tensors[0] }}->dtype_ != {{ i }}->dtype_
         {%- if not loop.last %} || {% endif -%}
     {%- endfor -%}
     )
-        throw nn_except("tensor: operands for {{ name }} have different data types", __FILE__, __LINE__);
+        throw FatalExcept("tensor: operands for {{ name }} have different data types", __FILE__, __LINE__);
 {% endif %}
 
 {%- if shape == "ewise" %}
     // [codegen] shape: ewise
 {%- for arg in ewise_args[1:] %}
     if ({{ ewise_args[0] }}->shape_ != {{ arg }}->shape_)
-        throw nn_except(std::string() + "tensor: {{ name }} cannot handle tensors "
+        throw FatalExcept(std::string() + "tensor: {{ name }} cannot handle tensors "
             {%- for argi in ewise_args %}{% if loop.last %} + " and "{% elif not loop.first %} + ", "{% endif %} + std::string({{ argi }}->shape_){% endfor -%}
         , __FILE__ , __LINE__);
 {%- endfor %}
@@ -84,11 +85,11 @@ tensor {{ name }}({{ args }}) {
         {%- if not loop.last %}, {% endif -%}
     {%- endfor -%}
     });
-    workspace {% for arg in broadcast_args -%}
-        {{ arg }}_mask_workspace(ndim * sizeof(bool), device_type::cpu)
+    Workspace {% for arg in broadcast_args -%}
+        {{ arg }}_mask_workspace(ndim * sizeof(bool), DeviceType::cpu)
         {%- if not loop.last %}, {% endif -%}
     {%- endfor -%}
-    , ret_dims_workspace(ndim * sizeof(size_t), device_type::cpu);
+    , ret_dims_workspace(ndim * sizeof(size_t), DeviceType::cpu);
     bool {% for arg in broadcast_args -%}
         *{{ arg }}_mask = {{ arg }}_mask_workspace
         {%- if not loop.last %}, {% endif -%}
@@ -114,7 +115,7 @@ tensor {{ name }}({{ args }}) {
             else if (ret_dims[i] == {{ arg }}_dims[i])
                 {{ arg }}_mask[i] = true;
             else
-                throw nn_except(std::string() + "tensor: {{ name }} cannot handle tensors "
+                throw FatalExcept(std::string() + "tensor: {{ name }} cannot handle tensors "
                     {%- for argi in broadcast_args %}{% if loop.last %} + " and "{% elif not loop.first %} + ", "{% endif %} + std::string({{ argi }}->shape_){% endfor -%}
                 , __FILE__ , __LINE__);
 {%- endif %}
@@ -126,8 +127,8 @@ tensor {{ name }}({{ args }}) {
 {% elif shape == "reduction" %}
     // [codegen] shape: reduction
     size_t ndim = {{ reduction_source }}->shape_.ndim;
-    workspace mask_workspace(ndim * sizeof(bool), device_type::cpu),
-              ret_dims_workspace(ndim * sizeof(size_t), device_type::cpu);
+    Workspace mask_workspace(ndim * sizeof(bool), DeviceType::cpu),
+              ret_dims_workspace(ndim * sizeof(size_t), DeviceType::cpu);
     bool *mask = mask_workspace;
     size_t *ret_dims = ret_dims_workspace;
     for (size_t i = 0; i < ndim; i++)
@@ -141,8 +142,8 @@ tensor {{ name }}({{ args }}) {
 {% elif shape == "pooling" %}
     // [codegen] shape: pooling
     size_t ndim = {{ pooling_source }}->shape_.ndim;
-    workspace mask_workspace({{ pooling_source }}->shape_.size * sizeof(bool), {{ tensors[0] }}->device_),
-              ret_dims_workspace(ndim * sizeof(size_t), device_type::cpu);
+    Workspace mask_workspace({{ pooling_source }}->shape_.size * sizeof(bool), {{ tensors[0] }}->device_),
+              ret_dims_workspace(ndim * sizeof(size_t), DeviceType::cpu);
     bool *mask = mask_workspace;
     size_t *ret_dims = ret_dims_workspace, *src_dims = {{ pooling_source }}->shape_.lengths.data();
     for (size_t i = 0; i < ndim; i++)
@@ -153,62 +154,62 @@ tensor {{ name }}({{ args }}) {
 {% elif shape == "matmul" %}
     // [codegen] shape: matmul
     if ({{ matmul_first }}->shape_.ndim != 2)
-        throw nn_except(std::string() + "tensor: {{ name }} cannot handle tensor {{ matmul_first }} " + std::string({{ matmul_first }}->shape_)
+        throw FatalExcept(std::string() + "tensor: {{ name }} cannot handle tensor {{ matmul_first }} " + std::string({{ matmul_first }}->shape_)
                         + " with " + std::to_string({{ matmul_first }}->shape_.ndim) + " dimensions (2 expected)", __FILE__, __LINE__);
     if ({{ matmul_second }}->shape_.ndim != 2)
-        throw nn_except(std::string() + "tensor: {{ name }} cannot handle tensor {{ matmul_second }} " + std::string({{ matmul_second }}->shape_)
+        throw FatalExcept(std::string() + "tensor: {{ name }} cannot handle tensor {{ matmul_second }} " + std::string({{ matmul_second }}->shape_)
                         + " with " + std::to_string({{ matmul_second }}->shape_.ndim) + " dimensions (2 expected)", __FILE__, __LINE__);
     size_t matmul_m = transpose_{{ matmul_first }} ? {{ matmul_first }}->shape_.lengths[0] : {{ matmul_first }}->shape_.lengths[1];
     size_t matmul_k = transpose_{{ matmul_first }} ? {{ matmul_first }}->shape_.lengths[1] : {{ matmul_first }}->shape_.lengths[0];
     if (matmul_k != (transpose_{{ matmul_second }} ? {{ matmul_second }}->shape_.lengths[0] : {{ matmul_second }}->shape_.lengths[1]))
-        throw nn_except(std::string() + "tensor: incompatible shapes " + std::string({{ matmul_first }}->shape_) + (transpose_{{ matmul_first }} ? "^T" : "")
+        throw FatalExcept(std::string() + "tensor: incompatible shapes " + std::string({{ matmul_first }}->shape_) + (transpose_{{ matmul_first }} ? "^T" : "")
                         + " and " + std::string({{ matmul_second }}->shape_) + (transpose_{{ matmul_second }} ? "^T" : "") + " for matrix multiplication", __FILE__, __LINE__);
     size_t matmul_n = transpose_{{ matmul_second }} ? {{ matmul_second }}->shape_.lengths[1] : {{ matmul_second }}->shape_.lengths[0];
 {% elif shape == "conv" %}
     // [codegen] shape: conv
     if ({{ conv_input }}->shape_.ndim != 4)
-        throw nn_except(std::string() + "tensor: {{ name }} cannot handle tensor {{ conv_input }} " + std::string({{ conv_input }}->shape_)
+        throw FatalExcept(std::string() + "tensor: {{ name }} cannot handle tensor {{ conv_input }} " + std::string({{ conv_input }}->shape_)
                         + " with " + std::to_string({{ conv_input }}->shape_.ndim) + " dimensions (4 expected)", __FILE__, __LINE__);
     if ({{ conv_kernel }}->shape_.ndim != 4)
-        throw nn_except(std::string() + "tensor: {{ name }} cannot handle tensor {{ conv_kernel }} " + std::string({{ conv_kernel }}->shape_)
+        throw FatalExcept(std::string() + "tensor: {{ name }} cannot handle tensor {{ conv_kernel }} " + std::string({{ conv_kernel }}->shape_)
                         + " with " + std::to_string({{ conv_kernel }}->shape_.ndim) + " dimensions (4 expected)", __FILE__, __LINE__);
     size_t conv_n = {{ conv_input }}->shape_.lengths[3],
            conv_ci = {{ conv_input }}->shape_.lengths[2],
            conv_co = {{ conv_kernel }}->shape_.lengths[3];
     if ({{ conv_kernel }}->shape_.lengths[2] != conv_ci)
-        throw nn_except(std::string() + "tensor: convolution channel mismatch between input " + std::string({{ conv_input }}->shape_)
+        throw FatalExcept(std::string() + "tensor: convolution channel mismatch between input " + std::string({{ conv_input }}->shape_)
                         + " and kernel " + std::string({{ conv_kernel }}->shape_), __FILE__, __LINE__);
     if ({{ conv_bias }}->shape_.ndim != 4)
-        throw nn_except(std::string() + "tensor: {{ name }} cannot handle tensor {{ conv_bias }} " + std::string({{ conv_bias }}->shape_)
+        throw FatalExcept(std::string() + "tensor: {{ name }} cannot handle tensor {{ conv_bias }} " + std::string({{ conv_bias }}->shape_)
                         + " with " + std::to_string({{ conv_bias }}->shape_.ndim) + " dimensions (4 expected)", __FILE__, __LINE__);
     if ({{ conv_bias }}->shape_.lengths[2] != conv_co || {{ conv_bias }}->shape_.size != {{ conv_bias }}->shape_.lengths[2])
-        throw nn_except(std::string() + "tensor: incompatible bias shape " + std::string({{ conv_bias }}->shape_) + " with output channels "
+        throw FatalExcept(std::string() + "tensor: incompatible bias shape " + std::string({{ conv_bias }}->shape_) + " with output channels "
                         + std::to_string(conv_co) + ", expected [1, " + std::to_string(conv_co) + ", 1, 1]", __FILE__, __LINE__);
     if ({{ conv_h_padding }} >= {{ conv_kernel }}->shape_.lengths[1] || {{ conv_w_padding }} >= {{ conv_kernel }}->shape_.lengths[0])
-        throw nn_except("tensor: padding cannot be larger than convolution kernel", __FILE__, __LINE__);
+        throw FatalExcept("tensor: padding cannot be larger than convolution kernel", __FILE__, __LINE__);
     size_t conv_h_out = {{ conv_input }}->shape_.lengths[1] - {{ conv_kernel }}->shape_.lengths[1] + 1 + {{ conv_h_padding }} * 2,
            conv_w_out = {{ conv_input }}->shape_.lengths[0] - {{ conv_kernel }}->shape_.lengths[0] + 1 + {{ conv_w_padding }} * 2;
 {% endif %}
 {%- if fixed_dtype %}
-    if ({{ tensors[0] }}->dtype_ != data_type::{{ fixed_dtype }})
-        throw nn_except("tensor: operands for {{ name }} have different data types", __FILE__, __LINE__);
+    if ({{ tensors[0] }}->dtype_ != ScalarType::{{ fixed_dtype }})
+        throw FatalExcept("tensor: operands for {{ name }} have different data types", __FILE__, __LINE__);
     else {
         {{- core_logic(fixed_dtype) }}
     }
 {%- else %}
     switch ({{ tensors[0] }}->dtype_) {
 {%- for dtype in dtypes %}
-    case data_type::{{ dtype }}: {
+    case ScalarType::{{ dtype }}: {
         {{- core_logic(dtype) }}
     }
 {%- endfor %}
 {%- for dtype in dtypes_unsupported %}
-    case data_type::{{ dtype }}:
-        throw nn_except("tensor: {{ name }} does not support data type {{ dtype }}", __FILE__, __LINE__);
+    case ScalarType::{{ dtype }}:
+        throw FatalExcept("tensor: {{ name }} does not support data type {{ dtype }}", __FILE__, __LINE__);
         break;
 {%- endfor %}
     default:
-        throw nn_except("tensor: unknown data type", __FILE__, __LINE__);
+        throw FatalExcept("tensor: unknown data type", __FILE__, __LINE__);
         break;
     }
 {%- endif %}

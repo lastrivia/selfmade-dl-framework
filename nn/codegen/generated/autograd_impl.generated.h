@@ -4,15 +4,15 @@
 #include "tensor/tensor_impl.h"
 #include "tensor/autograd_base.h"
 
-class grad_node_copy_fp32 : public grad_node {
+class GradNodeCopyFp32 : public GradNode {
 public:
-    grad_node_copy_fp32(const tensor &result, const tensor &src) :
-        grad_node(result), src_(src), src_ver_(src->version_) {}
+    GradNodeCopyFp32(const Tensor &result, const Tensor &src) :
+        GradNode(result), src_(src), src_ver_(src->version_) {}
 
-    ~grad_node_copy_fp32() override = default;
+    ~GradNodeCopyFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (src_->requires_grad_)
             ret.push_back(src_.object_);
@@ -21,8 +21,8 @@ public:
 
     void backward() override {
         if (src_ver_ != src_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: src
         if (src_->requires_grad_) {
@@ -33,19 +33,19 @@ public:
     }
 
 private:
-    tensor src_;
+    Tensor src_;
     size_t src_ver_;
 };
 
-class grad_node_copy_int32 : public grad_node {
+class GradNodeCopyInt32 : public GradNode {
 public:
-    grad_node_copy_int32(const tensor &result, const tensor &src) :
-        grad_node(result), src_(src), src_ver_(src->version_) {}
+    GradNodeCopyInt32(const Tensor &result, const Tensor &src) :
+        GradNode(result), src_(src), src_ver_(src->version_) {}
 
-    ~grad_node_copy_int32() override = default;
+    ~GradNodeCopyInt32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (src_->requires_grad_)
             ret.push_back(src_.object_);
@@ -54,8 +54,8 @@ public:
 
     void backward() override {
         if (src_ver_ != src_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: src
         if (src_->requires_grad_) {
@@ -66,19 +66,19 @@ public:
     }
 
 private:
-    tensor src_;
+    Tensor src_;
     size_t src_ver_;
 };
 
-class grad_node_add_fp32 : public grad_node {
+class GradNodeAddFp32 : public GradNode {
 public:
-    grad_node_add_fp32(const tensor &result, const tensor &a, const tensor &b) :
-        grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_) {}
+    GradNodeAddFp32(const Tensor &result, const Tensor &a, const Tensor &b) :
+        GradNode(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_) {}
 
-    ~grad_node_add_fp32() override = default;
+    ~GradNodeAddFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(2);
         if (a_->requires_grad_)
             ret.push_back(a_.object_);
@@ -89,8 +89,8 @@ public:
 
     void backward() override {
         if (a_ver_ != a_->version_ || b_ver_ != b_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: a
         if (a_->requires_grad_) {
@@ -108,19 +108,19 @@ public:
     }
 
 private:
-    tensor a_, b_;
+    Tensor a_, b_;
     size_t a_ver_, b_ver_;
 };
 
-class grad_node_sub_fp32 : public grad_node {
+class GradNodeSubFp32 : public GradNode {
 public:
-    grad_node_sub_fp32(const tensor &result, const tensor &a, const tensor &b) :
-        grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_) {}
+    GradNodeSubFp32(const Tensor &result, const Tensor &a, const Tensor &b) :
+        GradNode(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_) {}
 
-    ~grad_node_sub_fp32() override = default;
+    ~GradNodeSubFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(2);
         if (a_->requires_grad_)
             ret.push_back(a_.object_);
@@ -131,8 +131,8 @@ public:
 
     void backward() override {
         if (a_ver_ != a_->version_ || b_ver_ != b_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: a
         if (a_->requires_grad_) {
@@ -145,7 +145,7 @@ public:
         if (b_->requires_grad_) {
 
             // [codegen] "workspace tmp b.size"
-            workspace tmp(b_->shape_.size * sizeof(float), device);
+            Workspace tmp(b_->shape_.size * sizeof(float), device);
 
             // [codegen] "mul_scalar(b.size, tmp, grad, auto(-1))"
             dispatch_kernel(device).mul_scalar_fp32(b_->shape_.size, tmp, tensor_->grad_data_, -1.0f);
@@ -156,19 +156,19 @@ public:
     }
 
 private:
-    tensor a_, b_;
+    Tensor a_, b_;
     size_t a_ver_, b_ver_;
 };
 
-class grad_node_mul_fp32 : public grad_node {
+class GradNodeMulFp32 : public GradNode {
 public:
-    grad_node_mul_fp32(const tensor &result, const tensor &a, const tensor &b) :
-        grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_) {}
+    GradNodeMulFp32(const Tensor &result, const Tensor &a, const Tensor &b) :
+        GradNode(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_) {}
 
-    ~grad_node_mul_fp32() override = default;
+    ~GradNodeMulFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(2);
         if (a_->requires_grad_)
             ret.push_back(a_.object_);
@@ -179,14 +179,14 @@ public:
 
     void backward() override {
         if (a_ver_ != a_->version_ || b_ver_ != b_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: a
         if (a_->requires_grad_) {
 
             // [codegen] "workspace tmp a.size"
-            workspace tmp(a_->shape_.size * sizeof(float), device);
+            Workspace tmp(a_->shape_.size * sizeof(float), device);
 
             // [codegen] "mul_ewise(a.size, tmp, grad, b)"
             dispatch_kernel(device).mul_ewise_fp32(a_->shape_.size, tmp, tensor_->grad_data_, b_->data_);
@@ -199,7 +199,7 @@ public:
         if (b_->requires_grad_) {
 
             // [codegen] "workspace tmp b.size"
-            workspace tmp(b_->shape_.size * sizeof(float), device);
+            Workspace tmp(b_->shape_.size * sizeof(float), device);
 
             // [codegen] "mul_ewise(b.size, tmp, grad, a)"
             dispatch_kernel(device).mul_ewise_fp32(b_->shape_.size, tmp, tensor_->grad_data_, a_->data_);
@@ -210,19 +210,19 @@ public:
     }
 
 private:
-    tensor a_, b_;
+    Tensor a_, b_;
     size_t a_ver_, b_ver_;
 };
 
-class grad_node_div_fp32 : public grad_node {
+class GradNodeDivFp32 : public GradNode {
 public:
-    grad_node_div_fp32(const tensor &result, const tensor &a, const tensor &b) :
-        grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_) {}
+    GradNodeDivFp32(const Tensor &result, const Tensor &a, const Tensor &b) :
+        GradNode(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_) {}
 
-    ~grad_node_div_fp32() override = default;
+    ~GradNodeDivFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(2);
         if (a_->requires_grad_)
             ret.push_back(a_.object_);
@@ -233,14 +233,14 @@ public:
 
     void backward() override {
         if (a_ver_ != a_->version_ || b_ver_ != b_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: a
         if (a_->requires_grad_) {
 
             // [codegen] "workspace tmp a.size"
-            workspace tmp(a_->shape_.size * sizeof(float), device);
+            Workspace tmp(a_->shape_.size * sizeof(float), device);
 
             // [codegen] "div_ewise(a.size, tmp, grad, b)"
             dispatch_kernel(device).div_ewise_fp32(a_->shape_.size, tmp, tensor_->grad_data_, b_->data_);
@@ -253,7 +253,7 @@ public:
         if (b_->requires_grad_) {
 
             // [codegen] "workspace tmp b.size"
-            workspace tmp(b_->shape_.size * sizeof(float), device);
+            Workspace tmp(b_->shape_.size * sizeof(float), device);
 
             // [codegen] "mul_scalar(b.size, tmp, grad, auto(-1))"
             dispatch_kernel(device).mul_scalar_fp32(b_->shape_.size, tmp, tensor_->grad_data_, -1.0f);
@@ -273,19 +273,19 @@ public:
     }
 
 private:
-    tensor a_, b_;
+    Tensor a_, b_;
     size_t a_ver_, b_ver_;
 };
 
-class grad_node_square_fp32 : public grad_node {
+class GradNodeSquareFp32 : public GradNode {
 public:
-    grad_node_square_fp32(const tensor &result, const tensor &t) :
-        grad_node(result), t_(t), t_ver_(t->version_) {}
+    GradNodeSquareFp32(const Tensor &result, const Tensor &t) :
+        GradNode(result), t_(t), t_ver_(t->version_) {}
 
-    ~grad_node_square_fp32() override = default;
+    ~GradNodeSquareFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (t_->requires_grad_)
             ret.push_back(t_.object_);
@@ -294,14 +294,14 @@ public:
 
     void backward() override {
         if (t_ver_ != t_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: t
         if (t_->requires_grad_) {
 
             // [codegen] "workspace tmp t.size"
-            workspace tmp(t_->shape_.size * sizeof(float), device);
+            Workspace tmp(t_->shape_.size * sizeof(float), device);
 
             // [codegen] "mul_ewise(t.size, tmp, grad, t)"
             dispatch_kernel(device).mul_ewise_fp32(t_->shape_.size, tmp, tensor_->grad_data_, t_->data_);
@@ -315,19 +315,19 @@ public:
     }
 
 private:
-    tensor t_;
+    Tensor t_;
     size_t t_ver_;
 };
 
-class grad_node_sqrt_fp32 : public grad_node {
+class GradNodeSqrtFp32 : public GradNode {
 public:
-    grad_node_sqrt_fp32(const tensor &result, const tensor &t) :
-        grad_node(result), t_(t), t_ver_(t->version_) {}
+    GradNodeSqrtFp32(const Tensor &result, const Tensor &t) :
+        GradNode(result), t_(t), t_ver_(t->version_) {}
 
-    ~grad_node_sqrt_fp32() override = default;
+    ~GradNodeSqrtFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (t_->requires_grad_)
             ret.push_back(t_.object_);
@@ -336,14 +336,14 @@ public:
 
     void backward() override {
         if (t_ver_ != t_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: t
         if (t_->requires_grad_) {
 
             // [codegen] "workspace tmp t.size"
-            workspace tmp(t_->shape_.size * sizeof(float), device);
+            Workspace tmp(t_->shape_.size * sizeof(float), device);
 
             // [codegen] "sqrt(t.size, tmp, t)"
             dispatch_kernel(device).sqrt_fp32(t_->shape_.size, tmp, t_->data_);
@@ -360,19 +360,19 @@ public:
     }
 
 private:
-    tensor t_;
+    Tensor t_;
     size_t t_ver_;
 };
 
-class grad_node_relu_fp32 : public grad_node {
+class GradNodeReluFp32 : public GradNode {
 public:
-    grad_node_relu_fp32(const tensor &result, const tensor &t) :
-        grad_node(result), t_(t), t_ver_(t->version_) {}
+    GradNodeReluFp32(const Tensor &result, const Tensor &t) :
+        GradNode(result), t_(t), t_ver_(t->version_) {}
 
-    ~grad_node_relu_fp32() override = default;
+    ~GradNodeReluFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (t_->requires_grad_)
             ret.push_back(t_.object_);
@@ -381,14 +381,14 @@ public:
 
     void backward() override {
         if (t_ver_ != t_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: t
         if (t_->requires_grad_) {
 
             // [codegen] "workspace tmp t.size"
-            workspace tmp(t_->shape_.size * sizeof(float), device);
+            Workspace tmp(t_->shape_.size * sizeof(float), device);
 
             // [codegen] "relu_backward(t.size, tmp, grad, t)"
             dispatch_kernel(device).relu_backward_fp32(t_->shape_.size, tmp, tensor_->grad_data_, t_->data_);
@@ -399,19 +399,19 @@ public:
     }
 
 private:
-    tensor t_;
+    Tensor t_;
     size_t t_ver_;
 };
 
-class grad_node_add_scalar_fp32 : public grad_node {
+class GradNodeAddScalarFp32 : public GradNode {
 public:
-    grad_node_add_scalar_fp32(const tensor &result, const tensor &t, float scalar) :
-        grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
+    GradNodeAddScalarFp32(const Tensor &result, const Tensor &t, float scalar) :
+        GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
 
-    ~grad_node_add_scalar_fp32() override = default;
+    ~GradNodeAddScalarFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (t_->requires_grad_)
             ret.push_back(t_.object_);
@@ -420,8 +420,8 @@ public:
 
     void backward() override {
         if (t_ver_ != t_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: t
         if (t_->requires_grad_) {
@@ -432,20 +432,20 @@ public:
     }
 
 private:
-    tensor t_;
+    Tensor t_;
     float scalar_;
     size_t t_ver_;
 };
 
-class grad_node_sub_scalar_fp32 : public grad_node {
+class GradNodeSubScalarFp32 : public GradNode {
 public:
-    grad_node_sub_scalar_fp32(const tensor &result, const tensor &t, float scalar) :
-        grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
+    GradNodeSubScalarFp32(const Tensor &result, const Tensor &t, float scalar) :
+        GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
 
-    ~grad_node_sub_scalar_fp32() override = default;
+    ~GradNodeSubScalarFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (t_->requires_grad_)
             ret.push_back(t_.object_);
@@ -454,8 +454,8 @@ public:
 
     void backward() override {
         if (t_ver_ != t_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: t
         if (t_->requires_grad_) {
@@ -466,20 +466,20 @@ public:
     }
 
 private:
-    tensor t_;
+    Tensor t_;
     float scalar_;
     size_t t_ver_;
 };
 
-class grad_node_mul_scalar_fp32 : public grad_node {
+class GradNodeMulScalarFp32 : public GradNode {
 public:
-    grad_node_mul_scalar_fp32(const tensor &result, const tensor &t, float scalar) :
-        grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
+    GradNodeMulScalarFp32(const Tensor &result, const Tensor &t, float scalar) :
+        GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
 
-    ~grad_node_mul_scalar_fp32() override = default;
+    ~GradNodeMulScalarFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (t_->requires_grad_)
             ret.push_back(t_.object_);
@@ -488,14 +488,14 @@ public:
 
     void backward() override {
         if (t_ver_ != t_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: t
         if (t_->requires_grad_) {
 
             // [codegen] "workspace tmp t.size"
-            workspace tmp(t_->shape_.size * sizeof(float), device);
+            Workspace tmp(t_->shape_.size * sizeof(float), device);
 
             // [codegen] "mul_scalar(t.size, tmp, grad, scalar)"
             dispatch_kernel(device).mul_scalar_fp32(t_->shape_.size, tmp, tensor_->grad_data_, scalar_);
@@ -506,20 +506,20 @@ public:
     }
 
 private:
-    tensor t_;
+    Tensor t_;
     float scalar_;
     size_t t_ver_;
 };
 
-class grad_node_div_scalar_fp32 : public grad_node {
+class GradNodeDivScalarFp32 : public GradNode {
 public:
-    grad_node_div_scalar_fp32(const tensor &result, const tensor &t, float scalar) :
-        grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
+    GradNodeDivScalarFp32(const Tensor &result, const Tensor &t, float scalar) :
+        GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
 
-    ~grad_node_div_scalar_fp32() override = default;
+    ~GradNodeDivScalarFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (t_->requires_grad_)
             ret.push_back(t_.object_);
@@ -528,14 +528,14 @@ public:
 
     void backward() override {
         if (t_ver_ != t_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: t
         if (t_->requires_grad_) {
 
             // [codegen] "workspace tmp t.size"
-            workspace tmp(t_->shape_.size * sizeof(float), device);
+            Workspace tmp(t_->shape_.size * sizeof(float), device);
 
             // [codegen] "mul_scalar(t.size, tmp, grad, auto(1) / scalar)"
             dispatch_kernel(device).mul_scalar_fp32(t_->shape_.size, tmp, tensor_->grad_data_, 1.0f / scalar_);
@@ -546,20 +546,20 @@ public:
     }
 
 private:
-    tensor t_;
+    Tensor t_;
     float scalar_;
     size_t t_ver_;
 };
 
-class grad_node_pow_fp32 : public grad_node {
+class GradNodePowFp32 : public GradNode {
 public:
-    grad_node_pow_fp32(const tensor &result, const tensor &t, float scalar) :
-        grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
+    GradNodePowFp32(const Tensor &result, const Tensor &t, float scalar) :
+        GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_) {}
 
-    ~grad_node_pow_fp32() override = default;
+    ~GradNodePowFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (t_->requires_grad_)
             ret.push_back(t_.object_);
@@ -568,14 +568,14 @@ public:
 
     void backward() override {
         if (t_ver_ != t_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: t
         if (t_->requires_grad_) {
 
             // [codegen] "workspace tmp t.size"
-            workspace tmp(t_->shape_.size * sizeof(float), device);
+            Workspace tmp(t_->shape_.size * sizeof(float), device);
 
             // [codegen] "pow(t.size, tmp, t, scalar - auto(1))"
             dispatch_kernel(device).pow_fp32(t_->shape_.size, tmp, t_->data_, scalar_ - 1.0f);
@@ -592,20 +592,20 @@ public:
     }
 
 private:
-    tensor t_;
+    Tensor t_;
     float scalar_;
     size_t t_ver_;
 };
 
-class grad_node_add_broadcast_fp32 : public grad_node {
+class GradNodeAddBroadcastFp32 : public GradNode {
 public:
-    grad_node_add_broadcast_fp32(const tensor &result, const tensor &a, const tensor &b, workspace &&a_mask_workspace, workspace &&b_mask_workspace) :
-        grad_node(result), a_(a), b_(b), a_mask_workspace_(std::move(a_mask_workspace)), b_mask_workspace_(std::move(b_mask_workspace)), a_ver_(a->version_), b_ver_(b->version_) {}
+    GradNodeAddBroadcastFp32(const Tensor &result, const Tensor &a, const Tensor &b, Workspace &&a_mask_workspace, Workspace &&b_mask_workspace) :
+        GradNode(result), a_(a), b_(b), a_mask_workspace_(std::move(a_mask_workspace)), b_mask_workspace_(std::move(b_mask_workspace)), a_ver_(a->version_), b_ver_(b->version_) {}
 
-    ~grad_node_add_broadcast_fp32() override = default;
+    ~GradNodeAddBroadcastFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(2);
         if (a_->requires_grad_)
             ret.push_back(a_.object_);
@@ -616,10 +616,10 @@ public:
 
     void backward() override {
         if (a_ver_ != a_->version_ || b_ver_ != b_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
         bool *a_mask = a_mask_workspace_, *b_mask = b_mask_workspace_;
 
-        device_desc device = tensor_->device();
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: a
         if (a_->requires_grad_) {
@@ -631,7 +631,7 @@ public:
             else {
 
                 // [codegen] "workspace tmp a.size"
-                workspace tmp(a_->shape_.size * sizeof(float), device);
+                Workspace tmp(a_->shape_.size * sizeof(float), device);
 
                 // [codegen] "sum(size, ndim, lengths, a.mask, tmp, grad)"
                 dispatch_kernel(device).sum_fp32(tensor_->shape_.size, tensor_->shape_.ndim, tensor_->shape_.lengths.data(), a_mask, tmp, tensor_->grad_data_);
@@ -651,7 +651,7 @@ public:
             else {
 
                 // [codegen] "workspace tmp b.size"
-                workspace tmp(b_->shape_.size * sizeof(float), device);
+                Workspace tmp(b_->shape_.size * sizeof(float), device);
 
                 // [codegen] "sum(size, ndim, lengths, b.mask, tmp, grad)"
                 dispatch_kernel(device).sum_fp32(tensor_->shape_.size, tensor_->shape_.ndim, tensor_->shape_.lengths.data(), b_mask, tmp, tensor_->grad_data_);
@@ -663,20 +663,20 @@ public:
     }
 
 private:
-    tensor a_, b_;
-    workspace a_mask_workspace_, b_mask_workspace_;
+    Tensor a_, b_;
+    Workspace a_mask_workspace_, b_mask_workspace_;
     size_t a_ver_, b_ver_;
 };
 
-class grad_node_cross_entropy_fp32 : public grad_node {
+class GradNodeCrossEntropyFp32 : public GradNode {
 public:
-    grad_node_cross_entropy_fp32(const tensor &result, const tensor &logits, const tensor &label) :
-        grad_node(result), logits_(logits), label_(label), logits_ver_(logits->version_), label_ver_(label->version_) {}
+    GradNodeCrossEntropyFp32(const Tensor &result, const Tensor &logits, const Tensor &label) :
+        GradNode(result), logits_(logits), label_(label), logits_ver_(logits->version_), label_ver_(label->version_) {}
 
-    ~grad_node_cross_entropy_fp32() override = default;
+    ~GradNodeCrossEntropyFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(2);
         if (logits_->requires_grad_)
             ret.push_back(logits_.object_);
@@ -687,14 +687,14 @@ public:
 
     void backward() override {
         if (logits_ver_ != logits_->version_ || label_ver_ != label_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: logits
         if (logits_->requires_grad_) {
 
             // [codegen] "workspace tmp logits.size"
-            workspace tmp(logits_->shape_.size * sizeof(float), device);
+            Workspace tmp(logits_->shape_.size * sizeof(float), device);
 
             // [codegen] "softmax(logits.size / logits.lengths[0], logits.lengths[0], tmp, logits)"
             dispatch_kernel(device).softmax_fp32(logits_->shape_.size / logits_->shape_.lengths[0], logits_->shape_.lengths[0], tmp, logits_->data_);
@@ -713,7 +713,7 @@ public:
         if (label_->requires_grad_) {
 
             // [codegen] "workspace tmp label.size"
-            workspace tmp(label_->shape_.size * sizeof(float), device);
+            Workspace tmp(label_->shape_.size * sizeof(float), device);
 
             // [codegen] "log_softmax(label.size / label.lengths[0], label.lengths[0], tmp, logits)"
             dispatch_kernel(device).log_softmax_fp32(label_->shape_.size / label_->shape_.lengths[0], label_->shape_.lengths[0], tmp, logits_->data_);
@@ -730,19 +730,19 @@ public:
     }
 
 private:
-    tensor logits_, label_;
+    Tensor logits_, label_;
     size_t logits_ver_, label_ver_;
 };
 
-class grad_node_maxpool_fp32 : public grad_node {
+class GradNodeMaxpoolFp32 : public GradNode {
 public:
-    grad_node_maxpool_fp32(const tensor &result, const tensor &t, size_t h_stride, size_t w_stride, workspace &&mask_workspace) :
-        grad_node(result), t_(t), h_stride_(h_stride), w_stride_(w_stride), mask_workspace_(std::move(mask_workspace)), t_ver_(t->version_) {}
+    GradNodeMaxpoolFp32(const Tensor &result, const Tensor &t, size_t h_stride, size_t w_stride, Workspace &&mask_workspace) :
+        GradNode(result), t_(t), h_stride_(h_stride), w_stride_(w_stride), mask_workspace_(std::move(mask_workspace)), t_ver_(t->version_) {}
 
-    ~grad_node_maxpool_fp32() override = default;
+    ~GradNodeMaxpoolFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(1);
         if (t_->requires_grad_)
             ret.push_back(t_.object_);
@@ -751,16 +751,16 @@ public:
 
     void backward() override {
         if (t_ver_ != t_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
         bool *mask = mask_workspace_;
 
-        device_desc device = tensor_->device();
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: t
         if (t_->requires_grad_) {
 
             // [codegen] "workspace tmp t.size"
-            workspace tmp(t_->shape_.size * sizeof(float), device);
+            Workspace tmp(t_->shape_.size * sizeof(float), device);
 
             // [codegen] "maxpool_backward(t.size / t.lengths[1] / t.lengths[0], t.lengths[1], t.lengths[0], h_stride, w_stride, tmp, $mask, grad)"
             dispatch_kernel(device).maxpool_backward_fp32(t_->shape_.size / t_->shape_.lengths[1] / t_->shape_.lengths[0], t_->shape_.lengths[1], t_->shape_.lengths[0], h_stride_, w_stride_, tmp, mask, tensor_->grad_data_);
@@ -771,21 +771,21 @@ public:
     }
 
 private:
-    tensor t_;
+    Tensor t_;
     size_t h_stride_, w_stride_;
-    workspace mask_workspace_;
+    Workspace mask_workspace_;
     size_t t_ver_;
 };
 
-class grad_node_matmul_fp32 : public grad_node {
+class GradNodeMatmulFp32 : public GradNode {
 public:
-    grad_node_matmul_fp32(const tensor &result, const tensor &a, const tensor &b, bool transpose_a, bool transpose_b, size_t matmul_m, size_t matmul_n, size_t matmul_k) :
-        grad_node(result), a_(a), b_(b), transpose_a_(transpose_a), transpose_b_(transpose_b), matmul_m_(matmul_m), matmul_n_(matmul_n), matmul_k_(matmul_k), a_ver_(a->version_), b_ver_(b->version_) {}
+    GradNodeMatmulFp32(const Tensor &result, const Tensor &a, const Tensor &b, bool transpose_a, bool transpose_b, size_t matmul_m, size_t matmul_n, size_t matmul_k) :
+        GradNode(result), a_(a), b_(b), transpose_a_(transpose_a), transpose_b_(transpose_b), matmul_m_(matmul_m), matmul_n_(matmul_n), matmul_k_(matmul_k), a_ver_(a->version_), b_ver_(b->version_) {}
 
-    ~grad_node_matmul_fp32() override = default;
+    ~GradNodeMatmulFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(2);
         if (a_->requires_grad_)
             ret.push_back(a_.object_);
@@ -796,14 +796,14 @@ public:
 
     void backward() override {
         if (a_ver_ != a_->version_ || b_ver_ != b_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: a
         if (a_->requires_grad_) {
 
             // [codegen] "workspace tmp a.size"
-            workspace tmp(a_->shape_.size * sizeof(float), device);
+            Workspace tmp(a_->shape_.size * sizeof(float), device);
             if (transpose_a_) {
 
                 // [codegen] "gemm<b.transpose, true>($k, $n, $m, tmp, b, grad)"
@@ -823,7 +823,7 @@ public:
         if (b_->requires_grad_) {
 
             // [codegen] "workspace tmp b.size"
-            workspace tmp(b_->shape_.size * sizeof(float), device);
+            Workspace tmp(b_->shape_.size * sizeof(float), device);
             if (transpose_b_) {
 
                 // [codegen] "gemm<true, a.transpose>($n, $m, $k, tmp, grad, a)"
@@ -841,21 +841,21 @@ public:
     }
 
 private:
-    tensor a_, b_;
+    Tensor a_, b_;
     bool transpose_a_, transpose_b_;
     size_t matmul_m_, matmul_n_, matmul_k_;
     size_t a_ver_, b_ver_;
 };
 
-class grad_node_conv_fp32 : public grad_node {
+class GradNodeConvFp32 : public GradNode {
 public:
-    grad_node_conv_fp32(const tensor &result, const tensor &input, const tensor &kernel, const tensor &bias, size_t h_padding, size_t w_padding, size_t conv_n, size_t conv_ci, size_t conv_co, size_t conv_h_out, size_t conv_w_out) :
-        grad_node(result), input_(input), kernel_(kernel), bias_(bias), h_padding_(h_padding), w_padding_(w_padding), conv_n_(conv_n), conv_ci_(conv_ci), conv_co_(conv_co), conv_h_out_(conv_h_out), conv_w_out_(conv_w_out), input_ver_(input->version_), kernel_ver_(kernel->version_), bias_ver_(bias->version_) {}
+    GradNodeConvFp32(const Tensor &result, const Tensor &input, const Tensor &kernel, const Tensor &bias, size_t h_padding, size_t w_padding, size_t conv_n, size_t conv_ci, size_t conv_co, size_t conv_h_out, size_t conv_w_out) :
+        GradNode(result), input_(input), kernel_(kernel), bias_(bias), h_padding_(h_padding), w_padding_(w_padding), conv_n_(conv_n), conv_ci_(conv_ci), conv_co_(conv_co), conv_h_out_(conv_h_out), conv_w_out_(conv_w_out), input_ver_(input->version_), kernel_ver_(kernel->version_), bias_ver_(bias->version_) {}
 
-    ~grad_node_conv_fp32() override = default;
+    ~GradNodeConvFp32() override = default;
 
-    std::vector<tensor_impl *> inputs() override {
-        std::vector<tensor_impl *> ret;
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
         ret.reserve(3);
         if (input_->requires_grad_)
             ret.push_back(input_.object_);
@@ -868,14 +868,14 @@ public:
 
     void backward() override {
         if (input_ver_ != input_->version_ || kernel_ver_ != kernel_->version_ || bias_ver_ != bias_->version_)
-            throw nn_except("autograd: operands modified before backward", __FILE__, __LINE__);
-        device_desc device = tensor_->device();
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
 
         // [codegen] backward: input
         if (input_->requires_grad_) {
 
             // [codegen] "workspace tmp input.size"
-            workspace tmp(input_->shape_.size * sizeof(float), device);
+            Workspace tmp(input_->shape_.size * sizeof(float), device);
 
             // [codegen] "conv_input_grad($n, $ci, $co, grad, $ho, $wo, kernel, $hk, $wk, $hk - h_padding - 1, $wk - w_padding - 1, tmp)"
             dispatch_kernel(device).conv_input_grad_fp32(conv_n_, conv_ci_, conv_co_, tensor_->grad_data_, conv_h_out_, conv_w_out_, kernel_->data_, kernel_->shape_.lengths[1], kernel_->shape_.lengths[0], kernel_->shape_.lengths[1] - h_padding_ - 1, kernel_->shape_.lengths[0] - w_padding_ - 1, tmp);
@@ -888,7 +888,7 @@ public:
         if (kernel_->requires_grad_) {
 
             // [codegen] "workspace tmp kernel.size"
-            workspace tmp(kernel_->shape_.size * sizeof(float), device);
+            Workspace tmp(kernel_->shape_.size * sizeof(float), device);
 
             // [codegen] "conv_kernel_grad($n, $ci, $co, input, $hi, $wi, grad, $ho, $wo, h_padding, w_padding, tmp)"
             dispatch_kernel(device).conv_kernel_grad_fp32(conv_n_, conv_ci_, conv_co_, input_->data_, input_->shape_.lengths[1], input_->shape_.lengths[0], tensor_->grad_data_, conv_h_out_, conv_w_out_, h_padding_, w_padding_, tmp);
@@ -904,7 +904,7 @@ public:
             bool sum_mask[4] = {false, false, true, false};
 
             // [codegen] "workspace tmp bias.size"
-            workspace tmp(bias_->shape_.size * sizeof(float), device);
+            Workspace tmp(bias_->shape_.size * sizeof(float), device);
 
             // [codegen] "sum(result.size, 4, result.lengths, sum_mask, tmp, grad)"
             dispatch_kernel(device).sum_fp32(tensor_->shape_.size, 4, tensor_->shape_.lengths.data(), sum_mask, tmp, tensor_->grad_data_);
@@ -915,7 +915,7 @@ public:
     }
 
 private:
-    tensor input_, kernel_, bias_;
+    Tensor input_, kernel_, bias_;
     size_t h_padding_, w_padding_;
     size_t conv_n_, conv_ci_, conv_co_, conv_h_out_, conv_w_out_;
     size_t input_ver_, kernel_ver_, bias_ver_;

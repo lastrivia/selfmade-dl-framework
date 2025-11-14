@@ -1,0 +1,3 @@
+{%- macro camel(s) -%}
+{{ s.split('_') | map('capitalize') | join('') }}
+{%- endmacro -%}

@@ -7,12 +7,12 @@
 #include "except.h"
 #include "tensor.h"
 
-class mnist_sample {
+class MnistSample {
 public:
-    mnist_sample() :
+    MnistSample() :
         batch_size_(0) {}
 
-    mnist_sample(size_t batch_size, const unsigned char *image_buf, const unsigned char *label_buf) :
+    MnistSample(size_t batch_size, const unsigned char *image_buf, const unsigned char *label_buf) :
         data_({batch_size, 1, 28, 28}),
         label_({batch_size, 10}),
         batch_size_(batch_size) {
@@ -24,29 +24,29 @@ public:
                     data_.at(i, 0, j, k) = static_cast<float>(image_buf[i * 784 + j * 28 + k]) / 255.0f;
             size_t tag = label_buf[i];
             if (tag > 9)
-                throw nn_except("invalid label from dataset file", __FILE__, __LINE__);
+                throw FatalExcept("invalid label from dataset file", __FILE__, __LINE__);
             label_.at(i, tag) = 1.0f;
         }
     }
 
-    const tensor &data() const { return data_; }
+    const Tensor &data() const { return data_; }
 
-    const tensor &label() const { return label_; }
+    const Tensor &label() const { return label_; }
 
     size_t batch_size() const { return batch_size_; }
 
-    void to_device(device_desc device) {
+    void to_device(DeviceDesc device) {
         data_.to_device(device);
         label_.to_device(device);
     }
 
 private:
-    tensor data_;
-    tensor label_;
+    Tensor data_;
+    Tensor label_;
     size_t batch_size_;
 };
 
-class mnist_loader {
+class MnistLoader {
     static uint32_t read_big_endian(std::istream &is) {
         unsigned char buf[4];
         is.read(reinterpret_cast<char *>(&buf), 4);
@@ -58,9 +58,9 @@ class mnist_loader {
     }
 
 public:
-    static std::vector<mnist_sample> load(const std::string &image_file, const std::string &label_file,
+    static std::vector<MnistSample> load(const std::string &image_file, const std::string &label_file,
                                           size_t batch_size) {
-        std::vector<mnist_sample> result;
+        std::vector<MnistSample> result;
         std::ifstream image_is(image_file, std::ios::binary);
         std::ifstream label_is(label_file, std::ios::binary);
         uint32_t image_magic = read_big_endian(image_is),
@@ -71,7 +71,7 @@ public:
                  label_count = read_big_endian(label_is);
         if (image_magic != 2051 || label_magic != 2049 || image_count != label_count ||
             image_rows != 28 || image_cols != 28)
-            throw nn_except("invalid mnist dataset", __FILE__, __LINE__);
+            throw FatalExcept("invalid mnist dataset", __FILE__, __LINE__);
 
         auto *image_buf = new unsigned char[784 * batch_size];
         auto *label_buf = new unsigned char[batch_size];

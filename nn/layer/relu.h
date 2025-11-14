@@ -2,19 +2,19 @@
 
 #include "base_layer.h"
 
-class relu_layer : public nn_layer {
+class ReluLayer : public Layer {
 public:
-    relu_layer() = default;
+    ReluLayer() = default;
 
-    ~relu_layer() override = default;
+    ~ReluLayer() override = default;
 
-    tensor operator()(const tensor &x) override {
+    Tensor operator()(const Tensor &x) override {
         return relu(x);
     }
 
-    std::vector<tensor> enum_params() override {
+    std::vector<Tensor> enum_params() override {
         return {};
     }
 
-    void to_device(device_desc device) override {}
+    void to_device(DeviceDesc device) override {}
 };

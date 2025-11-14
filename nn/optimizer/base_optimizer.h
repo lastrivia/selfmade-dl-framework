@@ -3,15 +3,15 @@
 #include "layer/base_layer.h"
 #include "model.h"
 
-class nn_optimizer {
+class Optimizer {
 public:
-    explicit nn_optimizer(float init_learning_rate) : learning_rate_(init_learning_rate) {}
+    explicit Optimizer(float init_learning_rate) : learning_rate_(init_learning_rate) {}
 
-    virtual ~nn_optimizer() = default;
+    virtual ~Optimizer() = default;
 
-    virtual void register_layer(nn_layer &layer) = 0;
+    virtual void register_layer(Layer &layer) = 0;
 
-    virtual void register_model(nn_model &model) {
+    virtual void register_model(Model &model) {
         for (auto &layer : model.layers_)
             register_layer(*layer);
     }
@@ -20,7 +20,7 @@ public:
 
     virtual void zero_grad() = 0;
 
-    friend class nn_scheduler;
+    friend class Scheduler;
 
 protected:
     float learning_rate_;

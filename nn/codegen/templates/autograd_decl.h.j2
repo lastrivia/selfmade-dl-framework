@@ -1,1 +1,2 @@
-friend class grad_node_{{ internal_name }}_{{ dtype }};
+{%- from "style.j2" import camel -%}
+friend class GradNode{{ camel(internal_name) }}{{ camel(dtype) }};

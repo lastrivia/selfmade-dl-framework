@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <string>
 
-[[nodiscard]] inline std::runtime_error nn_except(const std::string &desc, std::string file, int line) {
+[[nodiscard]] inline std::runtime_error FatalExcept(const std::string &desc, std::string file, int line) {
     for (char &c: file)
         if (c == '\\')
             c = '/';

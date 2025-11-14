@@ -6,10 +6,10 @@
     "tensors": [
       "src"
     ],
-    "init_args": "const tensor &result, const tensor &src",
-    "init_proc": "grad_node(result), src_(src), src_ver_(src->version_)",
+    "init_args": "const Tensor &result, const Tensor &src",
+    "init_proc": "GradNode(result), src_(src), src_ver_(src->version_)",
     "members": [
-      "tensor src_",
+      "Tensor src_",
       "size_t src_ver_"
     ],
     "procedure": {
@@ -30,10 +30,10 @@
     "tensors": [
       "src"
     ],
-    "init_args": "const tensor &result, const tensor &src",
-    "init_proc": "grad_node(result), src_(src), src_ver_(src->version_)",
+    "init_args": "const Tensor &result, const Tensor &src",
+    "init_proc": "GradNode(result), src_(src), src_ver_(src->version_)",
     "members": [
-      "tensor src_",
+      "Tensor src_",
       "size_t src_ver_"
     ],
     "procedure": {
@@ -59,10 +59,10 @@
       "a",
       "b"
     ],
-    "init_args": "const tensor &result, const tensor &a, const tensor &b",
-    "init_proc": "grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
+    "init_args": "const Tensor &result, const Tensor &a, const Tensor &b",
+    "init_proc": "GradNode(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
     "members": [
-      "tensor a_, b_",
+      "Tensor a_, b_",
       "size_t a_ver_, b_ver_"
     ],
     "procedure": {
@@ -96,10 +96,10 @@
       "a",
       "b"
     ],
-    "init_args": "const tensor &result, const tensor &a, const tensor &b",
-    "init_proc": "grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
+    "init_args": "const Tensor &result, const Tensor &a, const Tensor &b",
+    "init_proc": "GradNode(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
     "members": [
-      "tensor a_, b_",
+      "Tensor a_, b_",
       "size_t a_ver_, b_ver_"
     ],
     "procedure": {
@@ -155,10 +155,10 @@
       "a",
       "b"
     ],
-    "init_args": "const tensor &result, const tensor &a, const tensor &b",
-    "init_proc": "grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
+    "init_args": "const Tensor &result, const Tensor &a, const Tensor &b",
+    "init_proc": "GradNode(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
     "members": [
-      "tensor a_, b_",
+      "Tensor a_, b_",
       "size_t a_ver_, b_ver_"
     ],
     "procedure": {
@@ -232,10 +232,10 @@
       "a",
       "b"
     ],
-    "init_args": "const tensor &result, const tensor &a, const tensor &b",
-    "init_proc": "grad_node(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
+    "init_args": "const Tensor &result, const Tensor &a, const Tensor &b",
+    "init_proc": "GradNode(result), a_(a), b_(b), a_ver_(a->version_), b_ver_(b->version_)",
     "members": [
-      "tensor a_, b_",
+      "Tensor a_, b_",
       "size_t a_ver_, b_ver_"
     ],
     "procedure": {
@@ -339,10 +339,10 @@
     "tensors": [
       "t"
     ],
-    "init_args": "const tensor &result, const tensor &t",
-    "init_proc": "grad_node(result), t_(t), t_ver_(t->version_)",
+    "init_args": "const Tensor &result, const Tensor &t",
+    "init_proc": "GradNode(result), t_(t), t_ver_(t->version_)",
     "members": [
-      "tensor t_",
+      "Tensor t_",
       "size_t t_ver_"
     ],
     "procedure": {
@@ -396,10 +396,10 @@
     "tensors": [
       "t"
     ],
-    "init_args": "const tensor &result, const tensor &t",
-    "init_proc": "grad_node(result), t_(t), t_ver_(t->version_)",
+    "init_args": "const Tensor &result, const Tensor &t",
+    "init_proc": "GradNode(result), t_(t), t_ver_(t->version_)",
     "members": [
-      "tensor t_",
+      "Tensor t_",
       "size_t t_ver_"
     ],
     "procedure": {
@@ -463,10 +463,10 @@
     "tensors": [
       "t"
     ],
-    "init_args": "const tensor &result, const tensor &t",
-    "init_proc": "grad_node(result), t_(t), t_ver_(t->version_)",
+    "init_args": "const Tensor &result, const Tensor &t",
+    "init_proc": "GradNode(result), t_(t), t_ver_(t->version_)",
     "members": [
-      "tensor t_",
+      "Tensor t_",
       "size_t t_ver_"
     ],
     "procedure": {
@@ -507,10 +507,10 @@
     "tensors": [
       "t"
     ],
-    "init_args": "const tensor &result, const tensor &t, float scalar",
-    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "init_args": "const Tensor &result, const Tensor &t, float scalar",
+    "init_proc": "GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
     "members": [
-      "tensor t_",
+      "Tensor t_",
       "float scalar_",
       "size_t t_ver_"
     ],
@@ -532,10 +532,10 @@
     "tensors": [
       "t"
     ],
-    "init_args": "const tensor &result, const tensor &t, float scalar",
-    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "init_args": "const Tensor &result, const Tensor &t, float scalar",
+    "init_proc": "GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
     "members": [
-      "tensor t_",
+      "Tensor t_",
       "float scalar_",
       "size_t t_ver_"
     ],
@@ -557,10 +557,10 @@
     "tensors": [
       "t"
     ],
-    "init_args": "const tensor &result, const tensor &t, float scalar",
-    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "init_args": "const Tensor &result, const Tensor &t, float scalar",
+    "init_proc": "GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
     "members": [
-      "tensor t_",
+      "Tensor t_",
       "float scalar_",
       "size_t t_ver_"
     ],
@@ -602,10 +602,10 @@
     "tensors": [
       "t"
     ],
-    "init_args": "const tensor &result, const tensor &t, float scalar",
-    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "init_args": "const Tensor &result, const Tensor &t, float scalar",
+    "init_proc": "GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
     "members": [
-      "tensor t_",
+      "Tensor t_",
       "float scalar_",
       "size_t t_ver_"
     ],
@@ -649,10 +649,10 @@
     "tensors": [
       "t"
     ],
-    "init_args": "const tensor &result, const tensor &t, float scalar",
-    "init_proc": "grad_node(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
+    "init_args": "const Tensor &result, const Tensor &t, float scalar",
+    "init_proc": "GradNode(result), t_(t), scalar_(scalar), t_ver_(t->version_)",
     "members": [
-      "tensor t_",
+      "Tensor t_",
       "float scalar_",
       "size_t t_ver_"
     ],
@@ -723,11 +723,11 @@
       "a",
       "b"
     ],
-    "init_args": "const tensor &result, const tensor &a, const tensor &b, workspace &&a_mask_workspace, workspace &&b_mask_workspace",
-    "init_proc": "grad_node(result), a_(a), b_(b), a_mask_workspace_(std::move(a_mask_workspace)), b_mask_workspace_(std::move(b_mask_workspace)), a_ver_(a->version_), b_ver_(b->version_)",
+    "init_args": "const Tensor &result, const Tensor &a, const Tensor &b, Workspace &&a_mask_workspace, Workspace &&b_mask_workspace",
+    "init_proc": "GradNode(result), a_(a), b_(b), a_mask_workspace_(std::move(a_mask_workspace)), b_mask_workspace_(std::move(b_mask_workspace)), a_ver_(a->version_), b_ver_(b->version_)",
     "members": [
-      "tensor a_, b_",
-      "workspace a_mask_workspace_, b_mask_workspace_",
+      "Tensor a_, b_",
+      "Workspace a_mask_workspace_, b_mask_workspace_",
       "size_t a_ver_, b_ver_"
     ],
     "procedure": {
@@ -851,10 +851,10 @@
       "logits",
       "label"
     ],
-    "init_args": "const tensor &result, const tensor &logits, const tensor &label",
-    "init_proc": "grad_node(result), logits_(logits), label_(label), logits_ver_(logits->version_), label_ver_(label->version_)",
+    "init_args": "const Tensor &result, const Tensor &logits, const Tensor &label",
+    "init_proc": "GradNode(result), logits_(logits), label_(label), logits_ver_(logits->version_), label_ver_(label->version_)",
     "members": [
-      "tensor logits_, label_",
+      "Tensor logits_, label_",
       "size_t logits_ver_, label_ver_"
     ],
     "procedure": {
@@ -974,12 +974,12 @@
     "tensors": [
       "t"
     ],
-    "init_args": "const tensor &result, const tensor &t, size_t h_stride, size_t w_stride, workspace &&mask_workspace",
-    "init_proc": "grad_node(result), t_(t), h_stride_(h_stride), w_stride_(w_stride), mask_workspace_(std::move(mask_workspace)), t_ver_(t->version_)",
+    "init_args": "const Tensor &result, const Tensor &t, size_t h_stride, size_t w_stride, Workspace &&mask_workspace",
+    "init_proc": "GradNode(result), t_(t), h_stride_(h_stride), w_stride_(w_stride), mask_workspace_(std::move(mask_workspace)), t_ver_(t->version_)",
     "members": [
-      "tensor t_",
+      "Tensor t_",
       "size_t h_stride_, w_stride_",
-      "workspace mask_workspace_",
+      "Workspace mask_workspace_",
       "size_t t_ver_"
     ],
     "procedure": {
@@ -1027,10 +1027,10 @@
       "a",
       "b"
     ],
-    "init_args": "const tensor &result, const tensor &a, const tensor &b, bool transpose_a, bool transpose_b, size_t matmul_m, size_t matmul_n, size_t matmul_k",
-    "init_proc": "grad_node(result), a_(a), b_(b), transpose_a_(transpose_a), transpose_b_(transpose_b), matmul_m_(matmul_m), matmul_n_(matmul_n), matmul_k_(matmul_k), a_ver_(a->version_), b_ver_(b->version_)",
+    "init_args": "const Tensor &result, const Tensor &a, const Tensor &b, bool transpose_a, bool transpose_b, size_t matmul_m, size_t matmul_n, size_t matmul_k",
+    "init_proc": "GradNode(result), a_(a), b_(b), transpose_a_(transpose_a), transpose_b_(transpose_b), matmul_m_(matmul_m), matmul_n_(matmul_n), matmul_k_(matmul_k), a_ver_(a->version_), b_ver_(b->version_)",
     "members": [
-      "tensor a_, b_",
+      "Tensor a_, b_",
       "bool transpose_a_, transpose_b_",
       "size_t matmul_m_, matmul_n_, matmul_k_",
       "size_t a_ver_, b_ver_"
@@ -1188,10 +1188,10 @@
       "kernel",
       "bias"
     ],
-    "init_args": "const tensor &result, const tensor &input, const tensor &kernel, const tensor &bias, size_t h_padding, size_t w_padding, size_t conv_n, size_t conv_ci, size_t conv_co, size_t conv_h_out, size_t conv_w_out",
-    "init_proc": "grad_node(result), input_(input), kernel_(kernel), bias_(bias), h_padding_(h_padding), w_padding_(w_padding), conv_n_(conv_n), conv_ci_(conv_ci), conv_co_(conv_co), conv_h_out_(conv_h_out), conv_w_out_(conv_w_out), input_ver_(input->version_), kernel_ver_(kernel->version_), bias_ver_(bias->version_)",
+    "init_args": "const Tensor &result, const Tensor &input, const Tensor &kernel, const Tensor &bias, size_t h_padding, size_t w_padding, size_t conv_n, size_t conv_ci, size_t conv_co, size_t conv_h_out, size_t conv_w_out",
+    "init_proc": "GradNode(result), input_(input), kernel_(kernel), bias_(bias), h_padding_(h_padding), w_padding_(w_padding), conv_n_(conv_n), conv_ci_(conv_ci), conv_co_(conv_co), conv_h_out_(conv_h_out), conv_w_out_(conv_w_out), input_ver_(input->version_), kernel_ver_(kernel->version_), bias_ver_(bias->version_)",
     "members": [
-      "tensor input_, kernel_, bias_",
+      "Tensor input_, kernel_, bias_",
       "size_t h_padding_, w_padding_",
       "size_t conv_n_, conv_ci_, conv_co_, conv_h_out_, conv_w_out_",
       "size_t input_ver_, kernel_ver_, bias_ver_"

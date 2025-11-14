@@ -86,9 +86,9 @@ namespace cpu_backend {
             else {
                 std::vector<size_t> mt_clips(threads + 1);
                 divide_jobs(n, threads, mt_clips.data());
-                std::vector<thread_pool::task_token> tasks;
+                std::vector<ThreadPool::TaskToken> tasks;
                 for (size_t i = 0; i < threads; ++i)
-                    tasks.push_back(thread_pool::run(
+                    tasks.push_back(ThreadPool::run(
                         [&, i] { worker_call(mt_clips[i], mt_clips[i + 1]); }
                     ));
                 for (auto &task: tasks)
@@ -232,9 +232,9 @@ namespace cpu_backend {
             else {
                 std::vector<size_t> mt_clips(threads + 1);
                 divide_jobs(n, threads, mt_clips.data());
-                std::vector<thread_pool::task_token> tasks;
+                std::vector<ThreadPool::TaskToken> tasks;
                 for (size_t i = 0; i < threads; ++i)
-                    tasks.push_back(thread_pool::run(
+                    tasks.push_back(ThreadPool::run(
                         [&, i] { worker_call(mt_clips[i], mt_clips[i + 1]); }
                     ));
                 for (auto &task: tasks)
@@ -374,9 +374,9 @@ namespace cpu_backend {
             else {
                 std::vector<size_t> mt_clips(threads + 1);
                 divide_jobs(c_o, threads, mt_clips.data());
-                std::vector<thread_pool::task_token> tasks;
+                std::vector<ThreadPool::TaskToken> tasks;
                 for (size_t i = 0; i < threads; ++i)
-                    tasks.push_back(thread_pool::run(
+                    tasks.push_back(ThreadPool::run(
                         [&, i] { worker_call(mt_clips[i], mt_clips[i + 1]); }
                     ));
                 for (auto &task: tasks)

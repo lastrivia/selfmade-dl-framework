@@ -6,9 +6,9 @@
 #include <chrono>
 #include <utility>
 
-class progress_bar {
+class ProgressBar {
 public:
-    progress_bar(uint64_t max_steps, uint64_t max_length, std::string info = "") :
+    ProgressBar(uint64_t max_steps, uint64_t max_length, std::string info = "") :
         max_steps_(max_steps), max_length_(max_length),
         step_(0), length_(0), percentage_(0),
         info_(std::move(info)),
@@ -20,7 +20,7 @@ public:
         last_upd_ = std::chrono::steady_clock::now();
         started_ = true;
         drawcall();
-        timer_thread_ = std::thread(&progress_bar::timer_loop, this);
+        timer_thread_ = std::thread(&ProgressBar::timer_loop, this);
     }
 
     void step() {
@@ -52,7 +52,7 @@ public:
         }
     }
 
-    ~progress_bar() {
+    ~ProgressBar() {
         stop_.store(true);
         cv_.notify_one();
         if (timer_thread_.joinable())

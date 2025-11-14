@@ -2,21 +2,21 @@
 
 #include <vector>
 
-class tensor_impl;
-class tensor;
+class TensorImpl;
+class Tensor;
 
-class grad_node {
+class GradNode {
 public:
-    grad_node(const tensor &result);
+    explicit GradNode(const Tensor &result);
 
-    virtual ~grad_node() {}
+    virtual ~GradNode() = default;
 
-    virtual std::vector<tensor_impl *> inputs() = 0;
+    virtual std::vector<TensorImpl *> inputs() = 0;
 
     virtual void backward() = 0;
 
 protected:
-    tensor_impl *tensor_;
+    TensorImpl *tensor_;
 };
 
 static size_t global_no_grad = 0;

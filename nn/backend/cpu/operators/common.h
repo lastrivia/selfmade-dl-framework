@@ -98,7 +98,7 @@ namespace cpu_backend {
                                    float *dst, const float *src_a, const float *src_b) {
         size_t ndim_buf[3][NDIM_STACK_BUF_SIZE];
 
-        workspace ndim_workspace(device_type::cpu);
+        Workspace ndim_workspace(DeviceType::cpu);
         size_t *strides_a, *strides_b, *coord;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_workspace.init(sizeof(size_t) * ndim * 3);
@@ -137,7 +137,7 @@ namespace cpu_backend {
     inline void sum_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask, float *dst, const float *src) {
         size_t ndim_buf[2][NDIM_STACK_BUF_SIZE];
 
-        workspace ndim_workspace(device_type::cpu);
+        Workspace ndim_workspace(DeviceType::cpu);
         size_t *strides_dst, *coord;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_workspace.init(sizeof(size_t) * ndim * 2);

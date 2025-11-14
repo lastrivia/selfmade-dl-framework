@@ -7,28 +7,28 @@ namespace cuda_backend {
 
     static constexpr size_t THREADS_PER_BLOCK = 256;
 
-    class cuda_stream {
+    class CudaStreamHandle {
     public:
-        cuda_stream() {
+        CudaStreamHandle() {
             cudaError_t err = cudaStreamCreate(&stream_);
             if (err != cudaSuccess) {
-                throw nn_except("cuda stream creation failed", __FILE__, __LINE__);
+                throw FatalExcept("cuda stream creation failed", __FILE__, __LINE__);
             }
         }
 
-        ~cuda_stream() {
+        ~CudaStreamHandle() {
             if (stream_)
                 cudaStreamDestroy(stream_);
         }
 
-        cuda_stream(const cuda_stream &) = delete;
-        cuda_stream &operator=(const cuda_stream &) = delete;
+        CudaStreamHandle(const CudaStreamHandle &) = delete;
+        CudaStreamHandle &operator=(const CudaStreamHandle &) = delete;
 
-        cuda_stream(cuda_stream &&other) noexcept : stream_(other.stream_) {
+        CudaStreamHandle(CudaStreamHandle &&other) noexcept : stream_(other.stream_) {
             other.stream_ = nullptr;
         }
 
-        cuda_stream &operator=(cuda_stream &&other) noexcept {
+        CudaStreamHandle &operator=(CudaStreamHandle &&other) noexcept {
             if (this != &other) {
                 if (stream_)
                     cudaStreamDestroy(stream_);
@@ -45,7 +45,7 @@ namespace cuda_backend {
     };
 
     inline cudaStream_t default_stream() {
-        static cuda_stream stream;
+        static CudaStreamHandle stream;
         return stream.get();
     }
 
@@ -53,15 +53,15 @@ namespace cuda_backend {
                             NDIM_STACK_BUF_ELEMENTS = 10;
     using cpu_backend::calc_strides;
 
-    class ndim_device_buf_t {
+    class NDimDeviceBuf {
     public:
-        ndim_device_buf_t(size_t elements) {
+        NDimDeviceBuf(size_t elements) {
             cudaError_t err = cudaMallocAsync(&buf, elements * NDIM_STACK_BUF_SIZE * sizeof(size_t), default_stream());
             if (err != cudaSuccess)
-                throw nn_except("cuda memory allocation failed", __FILE__, __LINE__);
+                throw FatalExcept("cuda memory allocation failed", __FILE__, __LINE__);
         }
 
-        ~ndim_device_buf_t() {
+        ~NDimDeviceBuf() {
             cudaFree(buf);
         }
 
@@ -74,5 +74,5 @@ namespace cuda_backend {
 
     };
 
-    static ndim_device_buf_t ndim_device_buf(NDIM_STACK_BUF_ELEMENTS);
+    static NDimDeviceBuf ndim_device_buf(NDIM_STACK_BUF_ELEMENTS);
 }

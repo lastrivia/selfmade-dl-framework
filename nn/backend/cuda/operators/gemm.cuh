@@ -7,30 +7,30 @@
 
 namespace cuda_backend {
 
-    class cublas_handle {
+    class CublasHandle {
     public:
-        cublas_handle() {
+        CublasHandle() {
             cublasStatus_t status = cublasCreate_v2(&handle_);
             if (status != CUBLAS_STATUS_SUCCESS)
-                throw nn_except("cublas handle creation failed", __FILE__, __LINE__);
+                throw FatalExcept("cublas handle creation failed", __FILE__, __LINE__);
             status = cublasSetStream_v2(handle_, default_stream());
             if (status != CUBLAS_STATUS_SUCCESS)
-                throw nn_except("cublas handle creation failed", __FILE__, __LINE__);
+                throw FatalExcept("cublas handle creation failed", __FILE__, __LINE__);
         }
 
-        ~cublas_handle() {
+        ~CublasHandle() {
             if (handle_)
                 cublasDestroy_v2(handle_);
         }
 
-        cublas_handle(const cublas_handle &) = delete;
-        cublas_handle &operator=(const cublas_handle &) = delete;
+        CublasHandle(const CublasHandle &) = delete;
+        CublasHandle &operator=(const CublasHandle &) = delete;
 
-        cublas_handle(cublas_handle &&other) noexcept : handle_(other.handle_) {
+        CublasHandle(CublasHandle &&other) noexcept : handle_(other.handle_) {
             other.handle_ = nullptr;
         }
 
-        cublas_handle &operator=(cublas_handle &&other) noexcept {
+        CublasHandle &operator=(CublasHandle &&other) noexcept {
             if (this != &other) {
                 if (handle_)
                     cublasDestroy_v2(handle_);
@@ -47,7 +47,7 @@ namespace cuda_backend {
     };
 
     inline cublasHandle_t default_cublas_handle() {
-        static cublas_handle handle;
+        static CublasHandle handle;
         return handle.get();
     }
 
@@ -71,7 +71,7 @@ namespace cuda_backend {
                                                   &beta,
                                                   dst, n);
         if (status != CUBLAS_STATUS_SUCCESS)
-            throw nn_except("cublas gemm failed", __FILE__, __LINE__);
+            throw FatalExcept("cublas gemm failed", __FILE__, __LINE__);
     }
 
 }

@@ -22,7 +22,7 @@
 
 {{ indent }}// [codegen] "{{ proc.raw }}"
 {%- if proc.statement == "workspace" %}
-{{ indent }}workspace {{ proc.name }}({{ render_expr(proc.size, dtype) }}, device);
+{{ indent }}Workspace {{ proc.name }}({{ render_expr(proc.size, dtype) }}, device);
 {%- elif proc.statement == "apply" %}
 {{ indent }}dispatch_kernel(device).add_ewise_{{ dtype }}(
     {{- ctx.grad_target }}_->shape_.size, {{ ctx.grad_target }}_->grad_data_, {{ ctx.grad_target }}_->grad_data_, {{ proc.grad -}}

@@ -4,9 +4,9 @@
 
 #include "base_layer.h"
 
-class conv_layer : public nn_layer {
+class ConvLayer : public Layer {
 public:
-    conv_layer(
+    ConvLayer(
         const size_t channels_in, const size_t channels_out,
         const size_t kernel_height, const size_t kernel_width,
         const size_t height_padding, const size_t width_padding
@@ -26,22 +26,22 @@ public:
         bias_->requires_grad(true);
     }
 
-    ~conv_layer() override = default;
+    ~ConvLayer() override = default;
 
-    tensor operator()(const tensor &x) override {
+    Tensor operator()(const Tensor &x) override {
         return conv(x, kernel_, bias_, height_padding_, width_padding_);
     }
 
-    std::vector<tensor> enum_params() override {
+    std::vector<Tensor> enum_params() override {
         return {kernel_, bias_};
     }
 
-    void to_device(device_desc device) override {
+    void to_device(DeviceDesc device) override {
         kernel_.to_device(device);
         bias_.to_device(device);
     }
 
 private:
-    tensor kernel_, bias_;
+    Tensor kernel_, bias_;
     size_t height_padding_, width_padding_;
 };

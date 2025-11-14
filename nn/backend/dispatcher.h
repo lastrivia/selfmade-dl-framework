@@ -11,12 +11,12 @@
 #include "cuda/operators/gemm.cuh"
 #endif
 
-class backend_init_factory {
+class BackendInitFactory {
 public:
-    backend_init_factory() = delete;
+    BackendInitFactory() = delete;
 
-    static backend init_cpu_backend() {
-        backend k; // NOLINT(*-pro-type-member-init)
+    static Backend init_cpu_backend() {
+        Backend k; // NOLINT(*-pro-type-member-init)
 
         k.copy_fp32 = cpu_backend::copy_raw<float>;
         k.copy_int32 = cpu_backend::copy_raw<int32_t>;
@@ -63,8 +63,8 @@ public:
         return k;
     }
 
-    static backend init_cuda_backend() {
-        backend k; // NOLINT(*-pro-type-member-init)
+    static Backend init_cuda_backend() {
+        Backend k; // NOLINT(*-pro-type-member-init)
 
         k.copy_fp32 = cuda_backend::copy_raw<float>;
         k.copy_int32 = cuda_backend::copy_raw<int32_t>;
@@ -112,11 +112,11 @@ public:
     }
 };
 
-inline const backend backend_dispatch_table[] = {
-    backend_init_factory::init_cpu_backend(), // device_type::cpu  == 0
-    backend_init_factory::init_cuda_backend() // device_type::cuda == 1
+inline const Backend backend_dispatch_table[] = {
+    BackendInitFactory::init_cpu_backend(), // device_type::cpu  == 0
+    BackendInitFactory::init_cuda_backend() // device_type::cuda == 1
 };
 
-inline const backend &dispatch_kernel(device_desc device) {
+inline const Backend &dispatch_kernel(DeviceDesc device) {
     return backend_dispatch_table[static_cast<size_t>(device.type)];
 }

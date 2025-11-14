@@ -2,20 +2,20 @@
 
 #include "base_layer.h"
 
-class flatten_layer : public nn_layer {
+class FlattenLayer : public Layer {
 public:
-    flatten_layer() = default;
+    FlattenLayer() = default;
 
-    ~flatten_layer() override = default;
+    ~FlattenLayer() override = default;
 
-    tensor operator()(const tensor &x) override {
+    Tensor operator()(const Tensor &x) override {
         // temporary, todo use tensor_view to replace this
         return flatten(x);
     }
 
-    std::vector<tensor> enum_params() override {
+    std::vector<Tensor> enum_params() override {
         return {};
     }
 
-    void to_device(device_desc device) override {}
+    void to_device(DeviceDesc device) override {}
 };

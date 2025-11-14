@@ -315,7 +315,7 @@ if __name__ == "__main__":
                 "broadcast_args": broadcast_args
             }
             saved_resources += [
-                {"type": "workspace", "name": f"{i}_mask_workspace"} for i in broadcast_args
+                {"type": "Workspace", "name": f"{i}_mask_workspace"} for i in broadcast_args
             ]
         elif "reduction" in shape_desc:
             shape = "reduction"
@@ -327,7 +327,7 @@ if __name__ == "__main__":
                 "reduction_dims": reduction_dims
             }
             saved_resources += [
-                {"type": "workspace", "name": "mask_workspace"}
+                {"type": "Workspace", "name": "mask_workspace"}
             ]
             other_interface_args += [
                 {"type": "std::vector<size_t>", "name": "dims"}
@@ -344,7 +344,7 @@ if __name__ == "__main__":
                 "pooling_strides": pooling_strides
             }
             saved_resources += [
-                {"type": "workspace", "name": "mask_workspace"}
+                {"type": "Workspace", "name": "mask_workspace"}
             ]
         elif "matmul" in shape_desc:
             shape = "matmul"
@@ -412,7 +412,7 @@ if __name__ == "__main__":
             # if "transfer_workspaces" in operator:
             #     extern_symbols = operator["transfer_workspaces"]
             #     for i in extern_symbols:
-            #         saved_resources.append({"type": "workspace", "name": i})
+            #         saved_resources.append({"type": "Workspace", "name": i})
             # else:
             #     extern_symbols = []
             backward = {}
@@ -451,7 +451,7 @@ if __name__ == "__main__":
                     ctx = {
                         "name": f"operator{interface}",
                         "args": ", ".join(
-                            [f"const tensor &{i}" for i in tensors[1:]] +
+                            [f"const Tensor &{i}" for i in tensors[1:]] +
                             [f"size_t {i}" for i in sizes] +
                             [f"{i['type']} {i['name']}" for i in other_interface_args]
                         ),
@@ -466,7 +466,7 @@ if __name__ == "__main__":
                     ctx = {
                         "name": interface,
                         "args": ", ".join(
-                            [f"const tensor &{i}" for i in tensors] +
+                            [f"const Tensor &{i}" for i in tensors] +
                             [f"size_t {i}" for i in sizes] +
                             [f"{i['type']} {i['name']}" for i in other_interface_args]
                         ),
@@ -489,7 +489,7 @@ if __name__ == "__main__":
                         ctx = {
                             "name": f"operator{interface}",
                             "args": ", ".join(
-                                [f"const tensor &{i}" for i in tensors[1:]] +
+                                [f"const Tensor &{i}" for i in tensors[1:]] +
                                 [f"{dtype_cpp_key} {i}" for i in scalars] +
                                 [f"size_t {i}" for i in sizes] +
                                 [f"{i['type']} {i['name']}" for i in other_interface_args]
@@ -505,7 +505,7 @@ if __name__ == "__main__":
                         ctx = {
                             "name": interface,
                             "args": ", ".join(
-                                [f"const tensor &{i}" for i in tensors] +
+                                [f"const Tensor &{i}" for i in tensors] +
                                 [f"{dtype_cpp_key} {i}" for i in scalars] +
                                 [f"size_t {i}" for i in sizes] +
                                 [f"{i['type']} {i['name']}" for i in other_interface_args]
@@ -535,22 +535,22 @@ if __name__ == "__main__":
                     **shape_template_args,
                     "tensors": tensors,
                     "init_args": ", ".join(
-                        ["const tensor &result"] +
-                        [f"const tensor &{i}" for i in tensors] +
+                        ["const Tensor &result"] +
+                        [f"const Tensor &{i}" for i in tensors] +
                         [f"{dtype_cpp_key} {i}" for i in scalars] +
                         [f"size_t {i}" for i in sizes] +
                         [f"{i["type"]} {i["name"]}" for i in saved_values] +
                         [f"{i["type"]} &&{i["name"]}" for i in saved_resources]
                     ),
                     "init_proc": ", ".join(
-                        ["grad_node(result)"] +
+                        ["GradNode(result)"] +
                         [f"{i}_({i})" for i in (tensors + scalars + sizes)] +
                         [f"{i["name"]}_({i["name"]})" for i in saved_values] +
                         [f"{i["name"]}_(std::move({i["name"]}))" for i in saved_resources] +
                         [f"{i}_ver_({i}->version_)" for i in tensors]
                     ),
                     "members": [
-                        "tensor " + ", ".join([f"{i}_" for i in tensors]),
+                        "Tensor " + ", ".join([f"{i}_" for i in tensors]),
                         *([f"{dtype_cpp_key} " + ", ".join([f"{i}_" for i in scalars])] if scalars else []),
                         *(["size_t " + ", ".join([f"{i}_" for i in sizes])] if sizes else []),
                         *[

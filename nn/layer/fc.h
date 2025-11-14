@@ -4,9 +4,9 @@
 
 #include "base_layer.h"
 
-class fc_layer : public nn_layer {
+class FCLayer : public Layer {
 public:
-    fc_layer(const size_t input_size, const size_t output_size) :
+    FCLayer(const size_t input_size, const size_t output_size) :
         weight_({input_size, output_size}),
         bias_({output_size}) {
 
@@ -22,21 +22,21 @@ public:
         bias_->requires_grad(true);
     }
 
-    ~fc_layer() override = default;
+    ~FCLayer() override = default;
 
-    tensor operator()(const tensor &x) override {
+    Tensor operator()(const Tensor &x) override {
         return add_broadcast(matmul(x, weight_), bias_);
     }
 
-    std::vector<tensor> enum_params() override {
+    std::vector<Tensor> enum_params() override {
         return {weight_, bias_};
     }
 
-    void to_device(device_desc device) override {
+    void to_device(DeviceDesc device) override {
         weight_.to_device(device);
         bias_.to_device(device);
     }
 
 private:
-    tensor weight_, bias_;
+    Tensor weight_, bias_;
 };

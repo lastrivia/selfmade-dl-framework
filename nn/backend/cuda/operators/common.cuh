@@ -182,7 +182,7 @@ namespace cuda_backend {
                                    float *dst, const float *src_a, const float *src_b) {
         size_t ndim_host_buf[2][NDIM_STACK_BUF_SIZE];
 
-        workspace ndim_host_workspace(device_type::cpu);
+        Workspace ndim_host_workspace(DeviceType::cpu);
         size_t *strides_a, *strides_b;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_host_workspace.init(sizeof(size_t) * ndim * 2);
@@ -196,7 +196,7 @@ namespace cuda_backend {
         calc_strides(strides_a, ndim, lengths, mask_a);
         calc_strides(strides_b, ndim, lengths, mask_b);
 
-        workspace ndim_cuda_workspace(device_type::cuda);
+        Workspace ndim_cuda_workspace(DeviceType::cuda);
         size_t *lengths_cuda, *strides_a_cuda, *strides_b_cuda;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_cuda_workspace.init(sizeof(size_t) * ndim * 3);
@@ -297,7 +297,7 @@ namespace cuda_backend {
     inline void sum_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask, float *dst, const float *src) {
         size_t ndim_host_buf[1][NDIM_STACK_BUF_SIZE];
 
-        workspace ndim_host_workspace(device_type::cpu);
+        Workspace ndim_host_workspace(DeviceType::cpu);
         size_t *strides;
         if (ndim > NDIM_STACK_BUF_SIZE) {
             ndim_host_workspace.init(sizeof(size_t) * ndim);
@@ -316,7 +316,7 @@ namespace cuda_backend {
                 src_per_dst *= lengths[i];
         }
 
-        workspace ndim_cuda_workspace(device_type::cuda);
+        Workspace ndim_cuda_workspace(DeviceType::cuda);
         size_t *lengths_cuda, *strides_cuda, *coord_shared_buf;
         bool *mask_cuda;
         if (ndim > NDIM_STACK_BUF_SIZE) {
@@ -419,8 +419,8 @@ namespace cuda_backend {
 
     inline void correct_count_fp32(size_t blk_n, size_t blk_len,
                                    size_t *ret /* host */, const float *out, const float *ans) {
-        workspace flags_workspace(blk_n * sizeof(bool), device_type::cpu);
-        workspace flags_cuda_workspace(blk_n * sizeof(bool), device_type::cuda);
+        Workspace flags_workspace(blk_n * sizeof(bool), DeviceType::cpu);
+        Workspace flags_cuda_workspace(blk_n * sizeof(bool), DeviceType::cuda);
         bool *flags = flags_workspace, *flags_cuda = flags_cuda_workspace;
         launch_common_kernel(correct_count_fp32_worker, blk_n, blk_len, flags_cuda, out, ans);
         cudaMemcpyAsync(flags, flags_cuda, blk_n * sizeof(bool), cudaMemcpyDeviceToHost, default_stream());

@@ -2,7 +2,7 @@
 template<bool transpose_{{ matmul_first }}, bool transpose_{{ matmul_second }}>
 {% endif -%}
 {%- if this -%}
-tensor {{ name }}({{ args }}) const;
+Tensor {{ name }}({{ args }}) const;
 {%- else -%}
-friend tensor {{ name }}({{ args }});
+friend Tensor {{ name }}({{ args }});
 {%- endif %}

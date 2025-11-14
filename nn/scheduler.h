@@ -2,29 +2,29 @@
 
 #include "optimizer/base_optimizer.h"
 
-class nn_scheduler {
+class Scheduler {
 public:
-    nn_scheduler() : optimizer_(nullptr) {}
+    Scheduler() : optimizer_(nullptr) {}
 
-    virtual ~nn_scheduler() = default;
+    virtual ~Scheduler() = default;
 
-    virtual void bind_optimizer(nn_optimizer *optimizer) = 0;
+    virtual void bind_optimizer(Optimizer *optimizer) = 0;
 
     float &learning_rate() {
         return optimizer_->learning_rate_;
     }
 
 protected:
-    nn_optimizer *optimizer_;
+    Optimizer *optimizer_;
 };
 
-class exponential_scheduler : public nn_scheduler {
+class ExponentialScheduler : public Scheduler {
 public:
-    explicit exponential_scheduler(float scalar) : scalar_(scalar) {}
+    explicit ExponentialScheduler(float scalar) : scalar_(scalar) {}
 
-    ~exponential_scheduler() override = default;
+    ~ExponentialScheduler() override = default;
 
-    void bind_optimizer(nn_optimizer *optimizer) override {
+    void bind_optimizer(Optimizer *optimizer) override {
         optimizer_ = optimizer;
     }
 

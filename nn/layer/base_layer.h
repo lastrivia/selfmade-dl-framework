@@ -2,13 +2,13 @@
 
 #include "tensor.h"
 
-class nn_layer {
+class Layer {
 public:
-    virtual ~nn_layer() = default;
+    virtual ~Layer() = default;
 
-    virtual tensor operator()(const tensor &x) = 0;
+    virtual Tensor operator()(const Tensor &x) = 0;
 
-    virtual std::vector<tensor> enum_params() = 0;
+    virtual std::vector<Tensor> enum_params() = 0;
 
-    virtual void to_device(device_desc device) = 0;
+    virtual void to_device(DeviceDesc device) = 0;
 };

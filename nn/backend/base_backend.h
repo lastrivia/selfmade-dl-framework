@@ -4,47 +4,47 @@
 
 #include "except.h"
 
-enum class device_type: char {
+enum class DeviceType: char {
     cpu  = 0,
     cuda = 1
 };
 
-class device_desc {
+class DeviceDesc {
 public:
-    device_type type;
+    DeviceType type;
     // todo device_id; support multi-cards
 
-    device_desc() : type(device_type::cpu) {}
+    DeviceDesc() : type(DeviceType::cpu) {}
 
-    device_desc(device_type type) : type(type) {} // NOLINT(*-explicit-constructor)
+    DeviceDesc(DeviceType type) : type(type) {} // NOLINT(*-explicit-constructor)
 
-    device_desc(const device_desc &other) = default;
+    DeviceDesc(const DeviceDesc &other) = default;
 
-    device_desc(const char *device_name) { // NOLINT(*-explicit-constructor)
+    DeviceDesc(const char *device_name) { // NOLINT(*-explicit-constructor)
         if (device_name == nullptr)
-            throw nn_except("device name not provided", __FILE__, __LINE__);
+            throw FatalExcept("device name not provided", __FILE__, __LINE__);
         if (strcmp("cpu", device_name) == 0)
-            type = device_type::cpu;
+            type = DeviceType::cpu;
         else if (strcmp("cuda", device_name) == 0)
-            type = device_type::cuda;
+            type = DeviceType::cuda;
         else
-            throw nn_except("unknown device name", __FILE__, __LINE__);
+            throw FatalExcept("unknown device name", __FILE__, __LINE__);
     }
 
-    bool operator==(const device_desc &other) const = default;
-    bool operator!=(const device_desc &other) const = default;
+    bool operator==(const DeviceDesc &other) const = default;
+    bool operator!=(const DeviceDesc &other) const = default;
 };
 
-enum class data_type: char {
+enum class ScalarType: char {
     fp32  = 0,
     int32 = 1 // unused, just for testing unsupported cases in code generation
 };
 
-inline size_t size_of(data_type type) {
+inline size_t size_of(ScalarType type) {
     switch (type) {
-    case data_type::fp32:
+    case ScalarType::fp32:
         return sizeof(float);
-    case data_type::int32:
+    case ScalarType::int32:
         return sizeof(int32_t);
     }
     return 0;
@@ -96,7 +96,7 @@ namespace kernel_func {
     }
 }
 
-class backend {
+class Backend {
 public:
     // fp32
     kernel_func::fp32::unary copy_fp32;
@@ -133,28 +133,28 @@ public:
     kernel_func::int32::binary add_ewise_int32;
 
 private:
-    backend() = default;
-    friend class backend_init_factory;
+    Backend() = default;
+    friend class BackendInitFactory;
 };
 
-class data_ptr {
+class Data {
 public:
-    data_ptr() noexcept : ptr_(nullptr) {}
+    Data() noexcept : ptr_(nullptr) {}
 
-    data_ptr(std::nullptr_t) noexcept : ptr_(nullptr) {} // NOLINT(*-explicit-constructor)
-    data_ptr &operator=(std::nullptr_t) noexcept {
+    Data(std::nullptr_t) noexcept : ptr_(nullptr) {} // NOLINT(*-explicit-constructor)
+    Data &operator=(std::nullptr_t) noexcept {
         ptr_ = nullptr;
         return *this;
     }
 
-    data_ptr(void *p) noexcept : ptr_(p) {} // NOLINT(*-explicit-constructor)
-    data_ptr &operator=(void *p) noexcept {
+    Data(void *p) noexcept : ptr_(p) {} // NOLINT(*-explicit-constructor)
+    Data &operator=(void *p) noexcept {
         ptr_ = p;
         return *this;
     }
 
-    data_ptr(const data_ptr &) noexcept = default;
-    data_ptr &operator=(const data_ptr &) noexcept = default;
+    Data(const Data &) noexcept = default;
+    Data &operator=(const Data &) noexcept = default;
 
     template<typename T>
         requires (std::is_object_v<T> || std::is_void_v<T>)
@@ -166,7 +166,7 @@ public:
         return ptr_ != nullptr;
     }
 
-    bool operator==(const data_ptr &) const = default;
+    bool operator==(const Data &) const = default;
 
 private:
     void *ptr_;

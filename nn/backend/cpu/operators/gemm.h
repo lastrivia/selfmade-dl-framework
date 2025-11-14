@@ -196,11 +196,11 @@ namespace cpu_backend {
 
             float *tmp_a[5], *tmp_b[5], *tmp_m[7];
             for (auto &i: tmp_a)
-                i = mem_pool::alloc<float>(m * p / 4);
+                i = MemPool::alloc<float>(m * p / 4);
             for (auto &i: tmp_b)
-                i = mem_pool::alloc<float>(p * n / 4);
+                i = MemPool::alloc<float>(p * n / 4);
             for (auto &i: tmp_m)
-                i = mem_pool::alloc<float>(m * n / 4);
+                i = MemPool::alloc<float>(m * n / 4);
 
             const size_t tmp_a_stride = tr_a ? m / 2 : p / 2, tmp_b_stride = tr_b ? p / 2 : n / 2;
 
@@ -227,9 +227,9 @@ namespace cpu_backend {
             };
 
             if constexpr (ENABLE_MULTITHREADING) {
-                std::vector<thread_pool::task_token> tasks;
+                std::vector<ThreadPool::TaskToken> tasks;
                 for (auto &call: calls)
-                    tasks.push_back(thread_pool::run(call));
+                    tasks.push_back(ThreadPool::run(call));
                 for (auto &task: tasks)
                     task.join();
             }
@@ -244,11 +244,11 @@ namespace cpu_backend {
             plain_add_add_sub(m / 2, n / 2, blk_dst(1, 1), tmp_m[0], tmp_m[2], tmp_m[5], tmp_m[1], n, n / 2);
 
             for (auto &i: tmp_a)
-                mem_pool::recycle(i);
+                MemPool::recycle(i);
             for (auto &i: tmp_b)
-                mem_pool::recycle(i);
+                MemPool::recycle(i);
             for (auto &i: tmp_m)
-                mem_pool::recycle(i);
+                MemPool::recycle(i);
         }
     }
 
