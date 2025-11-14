@@ -189,6 +189,12 @@ namespace cuda_backend {
             cudnnActivationDescriptor_t desc_;
         };
 
+        template<typename algo_t>
+        struct ConvStrategy {
+            algo_t algo;
+            size_t workspace_size;
+        };
+
         // todo replace with cuDNN 9 backend API
 
         /** === FORWARD ===
@@ -204,17 +210,18 @@ namespace cuda_backend {
             const float *__restrict bias, float *__restrict dst
         ) {
 
-            thread_local std::unordered_map<ConvArgs, cudnnConvolutionFwdAlgo_t, ShapeHash> perf_results;
+            thread_local std::unordered_map<ConvArgs, ConvStrategy<cudnnConvolutionFwdAlgo_t>, ShapeHash> perf_results;
 
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
 
             CudnnTensorDesc in_desc(n, c_i, h_in, w_in),
-                              dst_desc(n, c_o, h_dst, w_dst),
-                              bias_desc(1, c_o, 1, 1);
+                            dst_desc(n, c_o, h_dst, w_dst),
+                            bias_desc(1, c_o, 1, 1);
             CudnnFilterDesc ker_desc(c_o, c_i, h_ker, w_ker);
             CudnnConvDesc conv_desc(h_pad, w_pad);
 
             cudnnConvolutionFwdAlgo_t algo;
+            size_t workspace_size;
             ConvArgs args = {n, c_i, c_o, h_in, w_in, h_ker, w_ker, h_pad, w_pad};
             auto it = perf_results.find(args);
             if (it == perf_results.end()) {
@@ -225,16 +232,16 @@ namespace cuda_backend {
                     CUDNN_CONVOLUTION_FWD_ALGO_COUNT, &returned_algo_count, returned_algo_results
                 ));
                 algo = returned_algo_results[0].algo;
-                perf_results.emplace(args, algo);
+                with_check(cudnnGetConvolutionForwardWorkspaceSize(
+                    default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
+                ));
+                perf_results.emplace(args, ConvStrategy{algo, workspace_size});
             }
             else {
-                algo = it->second;
+                algo = it->second.algo;
+                workspace_size = it->second.workspace_size;
             }
 
-            size_t workspace_size;
-            with_check(cudnnGetConvolutionForwardWorkspaceSize(
-                default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
-            ));
             Workspace workspace(workspace_size, DeviceType::cuda);
 
             float alpha1 = 1.0f, alpha2 = 0.0f;
@@ -260,17 +267,19 @@ namespace cuda_backend {
             float *__restrict dst /* dx */
         ) {
 
-            thread_local std::unordered_map<ConvArgs, cudnnConvolutionBwdDataAlgo_t, ShapeHash> perf_results;
+            thread_local std::unordered_map<ConvArgs, ConvStrategy<cudnnConvolutionBwdDataAlgo_t>, ShapeHash> perf_results;
 
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
             const size_t forward_h_pad = h_ker - 1 - h_pad, forward_w_pad = w_ker - 1 - w_pad;
 
             CudnnTensorDesc in_desc(n, c_o, h_in, w_in),
-                              dst_desc(n, c_i, h_dst, w_dst);
+                            dst_desc(n, c_i, h_dst, w_dst);
             CudnnFilterDesc ker_desc(c_o, c_i, h_ker, w_ker);
             CudnnConvDesc conv_desc(forward_h_pad, forward_w_pad);
 
             cudnnConvolutionBwdDataAlgo_t algo;
+            size_t workspace_size;
+
             ConvArgs args = {n, c_i, c_o, h_in, w_in, h_ker, w_ker, h_pad, w_pad};
             auto it = perf_results.find(args);
             if (it == perf_results.end()) {
@@ -281,16 +290,16 @@ namespace cuda_backend {
                     CUDNN_CONVOLUTION_BWD_DATA_ALGO_COUNT, &returned_algo_count, returned_algo_results
                 ));
                 algo = returned_algo_results[0].algo;
-                perf_results.emplace(args, algo);
+                with_check(cudnnGetConvolutionBackwardDataWorkspaceSize(
+                    default_cudnn_handle(), ker_desc, in_desc, conv_desc, dst_desc, algo, &workspace_size
+                ));
+                perf_results.emplace(args, ConvStrategy{algo, workspace_size});
             }
             else {
-                algo = it->second;
+                algo = it->second.algo;
+                workspace_size = it->second.workspace_size;
             }
 
-            size_t workspace_size;
-            with_check(cudnnGetConvolutionBackwardDataWorkspaceSize(
-                default_cudnn_handle(), ker_desc, in_desc, conv_desc, dst_desc, algo, &workspace_size
-            ));
             Workspace workspace(workspace_size, DeviceType::cuda);
 
             float alpha = 1.0f, beta = 0.0f;
@@ -313,16 +322,18 @@ namespace cuda_backend {
             float *__restrict dst /* dw */
         ) {
 
-            thread_local std::unordered_map<ConvArgs, cudnnConvolutionBwdFilterAlgo_t, ShapeHash> perf_results;
+            thread_local std::unordered_map<ConvArgs, ConvStrategy<cudnnConvolutionBwdFilterAlgo_t>, ShapeHash> perf_results;
 
             const size_t h_dst = h_in + h_pad * 2 - h_ker + 1, w_dst = w_in + w_pad * 2 - w_ker + 1;
 
             CudnnTensorDesc in_desc(n, c_i, h_in, w_in),
-                              ker_desc(n, c_o, h_ker, w_ker);
+                            ker_desc(n, c_o, h_ker, w_ker);
             CudnnFilterDesc dst_desc(c_o, c_i, h_dst, w_dst);
             CudnnConvDesc conv_desc(h_pad, w_pad);
 
             cudnnConvolutionBwdFilterAlgo_t algo;
+            size_t workspace_size;
+
             ConvArgs args = {n, c_i, c_o, h_in, w_in, h_ker, w_ker, h_pad, w_pad};
             auto it = perf_results.find(args);
             if (it == perf_results.end()) {
@@ -333,16 +344,16 @@ namespace cuda_backend {
                     CUDNN_CONVOLUTION_BWD_FILTER_ALGO_COUNT, &returned_algo_count, returned_algo_results
                 ));
                 algo = returned_algo_results[0].algo;
-                perf_results.emplace(args, algo);
+                with_check(cudnnGetConvolutionBackwardFilterWorkspaceSize(
+                    default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
+                ));
+                perf_results.emplace(args, ConvStrategy{algo, workspace_size});
             }
             else {
-                algo = it->second;
+                algo = it->second.algo;
+                workspace_size = it->second.workspace_size;
             }
 
-            size_t workspace_size;
-            with_check(cudnnGetConvolutionBackwardFilterWorkspaceSize(
-                default_cudnn_handle(), in_desc, ker_desc, conv_desc, dst_desc, algo, &workspace_size
-            ));
             Workspace workspace(workspace_size, DeviceType::cuda);
 
             float alpha = 1.0f, beta = 0.0f;
