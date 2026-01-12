@@ -10,8 +10,8 @@ class AdamOptimizer : public Optimizer {
 
 public:
     explicit AdamOptimizer(float init_learning_rate,
-                            float first_moment_attenuation = 0.9,
-                            float second_moment_attenuation = 0.999) :
+                           float first_moment_attenuation = 0.9,
+                           float second_moment_attenuation = 0.999) :
         Optimizer(init_learning_rate),
         first_moment_attenuation_(first_moment_attenuation),
         second_moment_attenuation_(second_moment_attenuation),
@@ -24,15 +24,12 @@ public:
         }
     }
 
-    void register_layer(Layer &layer) override {
-        std::vector<Tensor> layer_params = layer.enum_params();
-        for (auto &t: layer_params) {
-            params_.emplace_back(
-                t,
-                t->alloc_data(nullptr),
-                t->alloc_data(nullptr)
-            );
-        }
+    void register_tensor(Tensor &tensor) override {
+        params_.emplace_back(
+            tensor,
+            tensor->alloc_data(nullptr),
+            tensor->alloc_data(nullptr)
+        );
     }
 
     void step() override {

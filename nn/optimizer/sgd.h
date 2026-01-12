@@ -8,11 +8,8 @@ public:
 
     ~SgdOptimizer() override = default;
 
-    void register_layer(Layer &layer) override {
-        std::vector<Tensor> layer_params = layer.enum_params();
-        for (auto &p: layer_params) {
-            params_.push_back(p);
-        }
+    void register_tensor(Tensor &tensor) override {
+        params_.push_back(tensor);
     }
 
     void step() override {

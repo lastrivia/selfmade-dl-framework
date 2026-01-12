@@ -9,10 +9,16 @@ public:
 
     virtual ~Optimizer() = default;
 
-    virtual void register_layer(Layer &layer) = 0;
+    virtual void register_tensor(Tensor &tensor) = 0;
+
+    virtual void register_layer(Layer &layer) {
+        std::vector<Tensor> layer_params = layer.enum_params();
+        for (auto &t: layer_params)
+            register_tensor(t);
+    }
 
     virtual void register_model(Model &model) {
-        for (auto &layer : model.layers_)
+        for (auto &layer: model.layers_)
             register_layer(*layer);
     }
 
