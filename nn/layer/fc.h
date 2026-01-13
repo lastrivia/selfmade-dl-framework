@@ -6,12 +6,12 @@
 
 class FCLayer : public Layer {
 public:
-    FCLayer(const size_t input_size, const size_t output_size) :
+    FCLayer(const size_t input_size, const size_t output_size, size_t seed = 0) :
         weight_({input_size, output_size}),
         bias_({output_size}) {
 
-        std::random_device rd;
-        std::mt19937 gen(rd());
+        // std::random_device rd;
+        std::mt19937 gen(seed);
         std::normal_distribution<> dis(0.0, sqrt(2.0 / static_cast<double>(input_size)));
         for (size_t i = 0; i < input_size; ++i)
             for (size_t j = 0; j < output_size; ++j)

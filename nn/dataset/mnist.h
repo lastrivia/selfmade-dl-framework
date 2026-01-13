@@ -83,6 +83,7 @@ public:
         }
         delete[] image_buf;
         delete[] label_buf;
+        // todo use RAII
         return result;
     }
 };

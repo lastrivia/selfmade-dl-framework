@@ -10,28 +10,28 @@ set(CMAKE_CUDA_STANDARD 20)
 
 find_package(CUDAToolkit REQUIRED)
 
-add_executable(dl_framework_demo demo.cu)
+add_executable(cs3339_demo cs3339_demo.cu)
 
-set_target_properties(dl_framework_demo PROPERTIES
+set_target_properties(cs3339_demo PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)
 
-set_target_properties(dl_framework_demo PROPERTIES
+set_target_properties(cs3339_demo PROPERTIES
         CUDA_ARCHITECTURES "native"
 )
 
-target_include_directories(dl_framework_demo
+target_include_directories(cs3339_demo
         PUBLIC
         ${CMAKE_SOURCE_DIR}/nn/
         ${CMAKE_SOURCE_DIR}/nn/codegen/generated
 )
 
-target_compile_options(dl_framework_demo
+target_compile_options(cs3339_demo
         PRIVATE
         $<$<COMPILE_LANGUAGE:CUDA>:
         -Xcompiler "/Ox /arch:AVX2 /Oi /Ot /GS-"
         >
 )
 
-target_link_libraries(dl_framework_demo PRIVATE cublas cudnn)
+target_link_libraries(cs3339_demo PRIVATE cublas cudnn)
 
 # todo cpu version
