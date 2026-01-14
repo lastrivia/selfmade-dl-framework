@@ -438,6 +438,120 @@
     "grad_args": "result, a, b, std::move(a_mask_workspace), std::move(b_mask_workspace)"
   },
   {
+    "name": "sub_broadcast",
+    "args": "const Tensor &a, const Tensor &b",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "shape": "broadcast",
+    "broadcast_args": [
+      "a",
+      "b"
+    ],
+    "procedure": [
+      {
+        "kernel": "sub_broadcast",
+        "args": [
+          "result->shape_.size",
+          "result->shape_.ndim",
+          "result->shape_.lengths.data()",
+          "a_mask",
+          "b_mask",
+          "result->data_",
+          "a->data_",
+          "b->data_"
+        ],
+        "indent": 0,
+        "raw": "sub_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"
+      }
+    ],
+    "allow_grad": false
+  },
+  {
+    "name": "mul_broadcast",
+    "args": "const Tensor &a, const Tensor &b",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "shape": "broadcast",
+    "broadcast_args": [
+      "a",
+      "b"
+    ],
+    "procedure": [
+      {
+        "kernel": "mul_broadcast",
+        "args": [
+          "result->shape_.size",
+          "result->shape_.ndim",
+          "result->shape_.lengths.data()",
+          "a_mask",
+          "b_mask",
+          "result->data_",
+          "a->data_",
+          "b->data_"
+        ],
+        "indent": 0,
+        "raw": "mul_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"
+      }
+    ],
+    "allow_grad": false
+  },
+  {
+    "name": "div_broadcast",
+    "args": "const Tensor &a, const Tensor &b",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "a",
+      "b"
+    ],
+    "shape": "broadcast",
+    "broadcast_args": [
+      "a",
+      "b"
+    ],
+    "procedure": [
+      {
+        "kernel": "div_broadcast",
+        "args": [
+          "result->shape_.size",
+          "result->shape_.ndim",
+          "result->shape_.lengths.data()",
+          "a_mask",
+          "b_mask",
+          "result->data_",
+          "a->data_",
+          "b->data_"
+        ],
+        "indent": 0,
+        "raw": "div_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"
+      }
+    ],
+    "allow_grad": false
+  },
+  {
     "name": "sum",
     "args": "const Tensor &t, std::vector<size_t> dims",
     "fixed_dtype": false,

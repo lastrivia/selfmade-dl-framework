@@ -40,7 +40,10 @@ public:
         k.relu_fp32 = cpu_backend::relu_fp32;
         k.relu_backward_fp32 = cpu_backend::relu_backward_fp32;
 
-        k.add_broadcast_fp32 = cpu_backend::add_broadcast_fp32;
+        k.add_broadcast_fp32 = cpu_backend::broadcast_arithmetics_fp32<BroadcastArithType::add>;
+        k.sub_broadcast_fp32 = cpu_backend::broadcast_arithmetics_fp32<BroadcastArithType::sub>;
+        k.mul_broadcast_fp32 = cpu_backend::broadcast_arithmetics_fp32<BroadcastArithType::mul>;
+        k.div_broadcast_fp32 = cpu_backend::broadcast_arithmetics_fp32<BroadcastArithType::div>;
         k.sum_fp32 = cpu_backend::sum_fp32;
 
         k.softmax_fp32 = cpu_backend::softmax_fp32;
@@ -88,7 +91,10 @@ public:
         k.relu_fp32 = cuda_backend::relu_fp32;
         k.relu_backward_fp32 = cuda_backend::relu_backward_fp32;
 
-        k.add_broadcast_fp32 = cuda_backend::add_broadcast_fp32;
+        k.add_broadcast_fp32 = cuda_backend::broadcast_arithmetics_fp32<BroadcastArithType::add>;
+        k.sub_broadcast_fp32 = cuda_backend::broadcast_arithmetics_fp32<BroadcastArithType::sub>;
+        k.mul_broadcast_fp32 = cuda_backend::broadcast_arithmetics_fp32<BroadcastArithType::mul>;
+        k.div_broadcast_fp32 = cuda_backend::broadcast_arithmetics_fp32<BroadcastArithType::div>;
         k.sum_fp32 = cuda_backend::sum_fp32;
 
         k.softmax_fp32 = cuda_backend::softmax_fp32;

@@ -111,7 +111,7 @@ public:
     kernel_func::fp32::unary relu_fp32;
     kernel_func::fp32::binary relu_backward_fp32;
 
-    kernel_func::fp32::binary_ndim add_broadcast_fp32;
+    kernel_func::fp32::binary_ndim add_broadcast_fp32, sub_broadcast_fp32, mul_broadcast_fp32, div_broadcast_fp32;
     kernel_func::fp32::unary_ndim sum_fp32;
 
     kernel_func::fp32::unary_tile softmax_fp32, log_softmax_fp32;

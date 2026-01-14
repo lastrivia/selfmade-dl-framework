@@ -444,6 +444,195 @@ inline Tensor add_broadcast(const Tensor &a, const Tensor &b) {
     }
 }
 
+inline Tensor sub_broadcast(const Tensor &a, const Tensor &b) {
+    if (a->device_ != b->device_)
+        throw FatalExcept("tensor: operands for sub_broadcast are on different devices", __FILE__, __LINE__);
+    if (a->dtype_ != b->dtype_)
+        throw FatalExcept("tensor: operands for sub_broadcast have different data types", __FILE__, __LINE__);
+
+    // [codegen] shape: broadcast
+    size_t ndim = std::max({a->shape_.ndim, b->shape_.ndim});
+    Workspace a_mask_workspace(ndim * sizeof(bool), DeviceType::cpu), b_mask_workspace(ndim * sizeof(bool), DeviceType::cpu), ret_dims_workspace(ndim * sizeof(size_t), DeviceType::cpu);
+    bool *a_mask = a_mask_workspace, *b_mask = b_mask_workspace;
+    size_t *ret_dims = ret_dims_workspace;
+    size_t *a_dims = a->shape_.lengths.data(), *b_dims = b->shape_.lengths.data();
+    for (size_t i = 0; i < ndim; ++i) {
+        ret_dims[i] = 1;
+        if (i < a->shape_.ndim) {
+            if (a_dims[i] == 1)
+                a_mask[i] = false;
+            else {
+                ret_dims[i] = a_dims[i];
+                a_mask[i] = true;
+            }
+        }
+        else
+            a_mask[i] = false;
+        if (i < b->shape_.ndim) {
+            if (b_dims[i] == 1)
+                b_mask[i] = false;
+            else if (ret_dims[i] == 1) {
+                ret_dims[i] = b_dims[i];
+                b_mask[i] = true;
+            }
+            else if (ret_dims[i] == b_dims[i])
+                b_mask[i] = true;
+            else
+                throw FatalExcept(std::string() + "tensor: sub_broadcast cannot handle tensors " + std::string(a->shape_) + " and " + std::string(b->shape_), __FILE__ , __LINE__);
+        }
+        else
+            b_mask[i] = false;
+    }
+
+    switch (a->dtype_) {
+    case ScalarType::fp32: {
+        Tensor result({ndim, ret_dims}, a->device_, a->dtype_);
+        DeviceDesc device = result->device_;
+
+        // [codegen] "sub_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"
+        dispatch_kernel(device).sub_broadcast_fp32(result->shape_.size, result->shape_.ndim, result->shape_.lengths.data(), a_mask, b_mask, result->data_, a->data_, b->data_);
+
+        if ((a->requires_grad_ || b->requires_grad_) && !global_no_grad) {
+            throw FatalExcept("tensor: sub_broadcast does not have a corresponding autograd node", __FILE__, __LINE__);
+        }
+
+        return result;
+    }
+    case ScalarType::int32:
+        throw FatalExcept("tensor: sub_broadcast does not support data type int32", __FILE__, __LINE__);
+        break;
+    default:
+        throw FatalExcept("tensor: unknown data type", __FILE__, __LINE__);
+        break;
+    }
+}
+
+inline Tensor mul_broadcast(const Tensor &a, const Tensor &b) {
+    if (a->device_ != b->device_)
+        throw FatalExcept("tensor: operands for mul_broadcast are on different devices", __FILE__, __LINE__);
+    if (a->dtype_ != b->dtype_)
+        throw FatalExcept("tensor: operands for mul_broadcast have different data types", __FILE__, __LINE__);
+
+    // [codegen] shape: broadcast
+    size_t ndim = std::max({a->shape_.ndim, b->shape_.ndim});
+    Workspace a_mask_workspace(ndim * sizeof(bool), DeviceType::cpu), b_mask_workspace(ndim * sizeof(bool), DeviceType::cpu), ret_dims_workspace(ndim * sizeof(size_t), DeviceType::cpu);
+    bool *a_mask = a_mask_workspace, *b_mask = b_mask_workspace;
+    size_t *ret_dims = ret_dims_workspace;
+    size_t *a_dims = a->shape_.lengths.data(), *b_dims = b->shape_.lengths.data();
+    for (size_t i = 0; i < ndim; ++i) {
+        ret_dims[i] = 1;
+        if (i < a->shape_.ndim) {
+            if (a_dims[i] == 1)
+                a_mask[i] = false;
+            else {
+                ret_dims[i] = a_dims[i];
+                a_mask[i] = true;
+            }
+        }
+        else
+            a_mask[i] = false;
+        if (i < b->shape_.ndim) {
+            if (b_dims[i] == 1)
+                b_mask[i] = false;
+            else if (ret_dims[i] == 1) {
+                ret_dims[i] = b_dims[i];
+                b_mask[i] = true;
+            }
+            else if (ret_dims[i] == b_dims[i])
+                b_mask[i] = true;
+            else
+                throw FatalExcept(std::string() + "tensor: mul_broadcast cannot handle tensors " + std::string(a->shape_) + " and " + std::string(b->shape_), __FILE__ , __LINE__);
+        }
+        else
+            b_mask[i] = false;
+    }
+
+    switch (a->dtype_) {
+    case ScalarType::fp32: {
+        Tensor result({ndim, ret_dims}, a->device_, a->dtype_);
+        DeviceDesc device = result->device_;
+
+        // [codegen] "mul_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"
+        dispatch_kernel(device).mul_broadcast_fp32(result->shape_.size, result->shape_.ndim, result->shape_.lengths.data(), a_mask, b_mask, result->data_, a->data_, b->data_);
+
+        if ((a->requires_grad_ || b->requires_grad_) && !global_no_grad) {
+            throw FatalExcept("tensor: mul_broadcast does not have a corresponding autograd node", __FILE__, __LINE__);
+        }
+
+        return result;
+    }
+    case ScalarType::int32:
+        throw FatalExcept("tensor: mul_broadcast does not support data type int32", __FILE__, __LINE__);
+        break;
+    default:
+        throw FatalExcept("tensor: unknown data type", __FILE__, __LINE__);
+        break;
+    }
+}
+
+inline Tensor div_broadcast(const Tensor &a, const Tensor &b) {
+    if (a->device_ != b->device_)
+        throw FatalExcept("tensor: operands for div_broadcast are on different devices", __FILE__, __LINE__);
+    if (a->dtype_ != b->dtype_)
+        throw FatalExcept("tensor: operands for div_broadcast have different data types", __FILE__, __LINE__);
+
+    // [codegen] shape: broadcast
+    size_t ndim = std::max({a->shape_.ndim, b->shape_.ndim});
+    Workspace a_mask_workspace(ndim * sizeof(bool), DeviceType::cpu), b_mask_workspace(ndim * sizeof(bool), DeviceType::cpu), ret_dims_workspace(ndim * sizeof(size_t), DeviceType::cpu);
+    bool *a_mask = a_mask_workspace, *b_mask = b_mask_workspace;
+    size_t *ret_dims = ret_dims_workspace;
+    size_t *a_dims = a->shape_.lengths.data(), *b_dims = b->shape_.lengths.data();
+    for (size_t i = 0; i < ndim; ++i) {
+        ret_dims[i] = 1;
+        if (i < a->shape_.ndim) {
+            if (a_dims[i] == 1)
+                a_mask[i] = false;
+            else {
+                ret_dims[i] = a_dims[i];
+                a_mask[i] = true;
+            }
+        }
+        else
+            a_mask[i] = false;
+        if (i < b->shape_.ndim) {
+            if (b_dims[i] == 1)
+                b_mask[i] = false;
+            else if (ret_dims[i] == 1) {
+                ret_dims[i] = b_dims[i];
+                b_mask[i] = true;
+            }
+            else if (ret_dims[i] == b_dims[i])
+                b_mask[i] = true;
+            else
+                throw FatalExcept(std::string() + "tensor: div_broadcast cannot handle tensors " + std::string(a->shape_) + " and " + std::string(b->shape_), __FILE__ , __LINE__);
+        }
+        else
+            b_mask[i] = false;
+    }
+
+    switch (a->dtype_) {
+    case ScalarType::fp32: {
+        Tensor result({ndim, ret_dims}, a->device_, a->dtype_);
+        DeviceDesc device = result->device_;
+
+        // [codegen] "div_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"
+        dispatch_kernel(device).div_broadcast_fp32(result->shape_.size, result->shape_.ndim, result->shape_.lengths.data(), a_mask, b_mask, result->data_, a->data_, b->data_);
+
+        if ((a->requires_grad_ || b->requires_grad_) && !global_no_grad) {
+            throw FatalExcept("tensor: div_broadcast does not have a corresponding autograd node", __FILE__, __LINE__);
+        }
+
+        return result;
+    }
+    case ScalarType::int32:
+        throw FatalExcept("tensor: div_broadcast does not support data type int32", __FILE__, __LINE__);
+        break;
+    default:
+        throw FatalExcept("tensor: unknown data type", __FILE__, __LINE__);
+        break;
+    }
+}
+
 inline Tensor sum(const Tensor &t, std::vector<size_t> dims) {
     // [codegen] shape: reduction
     size_t ndim = t->shape_.ndim;

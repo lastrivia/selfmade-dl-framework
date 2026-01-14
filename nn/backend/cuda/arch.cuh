@@ -1,7 +1,7 @@
 #pragma once
 
 #include "except.h"
-#include "backend/cpu/ndim.h"
+#include "../ndim.h"
 
 namespace cuda_backend {
 
@@ -49,9 +49,7 @@ namespace cuda_backend {
         return stream.get();
     }
 
-    static constexpr size_t NDIM_STACK_BUF_SIZE = cpu_backend::NDIM_STACK_BUF_SIZE,
-                            NDIM_STACK_BUF_ELEMENTS = 10;
-    using cpu_backend::calc_strides;
+    static constexpr size_t NDIM_STACK_BUF_ELEMENTS = 10;
 
     class NDimDeviceBuf {
     public:

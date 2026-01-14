@@ -94,7 +94,8 @@ namespace cpu_backend {
         }
     }
 
-    inline void add_broadcast_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask_a, const bool *mask_b,
+    template<BroadcastArithType TYPE>
+    void broadcast_arithmetics_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask_a, const bool *mask_b,
                                    float *dst, const float *src_a, const float *src_b) {
         size_t ndim_buf[3][NDIM_STACK_BUF_SIZE];
 
@@ -118,7 +119,15 @@ namespace cpu_backend {
         size_t idx_a = 0, idx_b = 0;
         for (size_t i = 0; i < n; i++) {
             // todo simd
-            dst[i] = src_a[idx_a] + src_b[idx_b];
+            if constexpr (TYPE == BroadcastArithType::add)
+                dst[i] = src_a[idx_a] + src_b[idx_b];
+            else if constexpr (TYPE == BroadcastArithType::sub)
+                dst[i] = src_a[idx_a] - src_b[idx_b];
+            else if constexpr (TYPE == BroadcastArithType::mul)
+                dst[i] = src_a[idx_a] * src_b[idx_b];
+            else if constexpr (TYPE == BroadcastArithType::div)
+                dst[i] = src_a[idx_a] / src_b[idx_b];
+
             for (size_t j = 0; j < ndim; ++j) {
                 coord[j]++;
                 if (coord[j] < lengths[j]) {

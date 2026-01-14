@@ -163,8 +163,9 @@ namespace cuda_backend {
         launch_common_kernel(relu_backward_fp32_worker, n, dst, src, mask);
     }
 
-    __global__ void add_broadcast_fp32_worker(size_t n, size_t ndim, const size_t *lengths, const size_t *stride_a, const size_t *stride_b,
-                                              float *dst, const float *src_a, const float *src_b) {
+    template<BroadcastArithType TYPE>
+    __global__ void broadcast_arithmetics_fp32_worker(size_t n, size_t ndim, const size_t *lengths, const size_t *stride_a, const size_t *stride_b,
+                                                      float *dst, const float *src_a, const float *src_b) {
         size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
         if (idx < n) {
             size_t x = idx, idx_a = 0, idx_b = 0;
@@ -174,12 +175,21 @@ namespace cuda_backend {
                 idx_a += mod * stride_a[i];
                 idx_b += mod * stride_b[i];
             }
-            dst[idx] = src_a[idx_a] + src_b[idx_b];
+
+            if constexpr (TYPE == BroadcastArithType::add)
+                dst[idx] = src_a[idx_a] + src_b[idx_b];
+            else if constexpr (TYPE == BroadcastArithType::sub)
+                dst[idx] = src_a[idx_a] - src_b[idx_b];
+            else if constexpr (TYPE == BroadcastArithType::mul)
+                dst[idx] = src_a[idx_a] * src_b[idx_b];
+            else if constexpr (TYPE == BroadcastArithType::div)
+                dst[idx] = src_a[idx_a] / src_b[idx_b];
         }
     }
 
-    inline void add_broadcast_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask_a, const bool *mask_b,
-                                   float *dst, const float *src_a, const float *src_b) {
+    template<BroadcastArithType TYPE>
+    void broadcast_arithmetics_fp32(size_t n, size_t ndim, const size_t *lengths, const bool *mask_a, const bool *mask_b,
+                                           float *dst, const float *src_a, const float *src_b) {
         size_t ndim_host_buf[2][NDIM_STACK_BUF_SIZE];
 
         Workspace ndim_host_workspace(DeviceType::cpu);
@@ -213,7 +223,10 @@ namespace cuda_backend {
         cudaMemcpyAsync(strides_a_cuda, strides_a, sizeof(size_t) * ndim, cudaMemcpyHostToDevice, default_stream());
         cudaMemcpyAsync(strides_b_cuda, strides_b, sizeof(size_t) * ndim, cudaMemcpyHostToDevice, default_stream());
 
-        launch_common_kernel(add_broadcast_fp32_worker, n, ndim, lengths_cuda, strides_a_cuda, strides_b_cuda, dst, src_a, src_b);
+        launch_common_kernel(
+            broadcast_arithmetics_fp32_worker<TYPE>,
+            n, ndim, lengths_cuda, strides_a_cuda, strides_b_cuda, dst, src_a, src_b
+        );
         cudaStreamSynchronize(default_stream()); // otherwise *_cuda data might be covered or deleted
     }
 

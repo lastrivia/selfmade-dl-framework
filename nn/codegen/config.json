@@ -297,6 +297,42 @@
       }
     },
     {
+      "name": "sub_broadcast",
+      "interface": {
+        "function": "sub_broadcast"
+      },
+      "shape": {
+        "broadcast": ["a", "b"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["sub_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"],
+      "backward": "reject"
+    },
+    {
+      "name": "mul_broadcast",
+      "interface": {
+        "function": "mul_broadcast"
+      },
+      "shape": {
+        "broadcast": ["a", "b"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["mul_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"],
+      "backward": "reject"
+    },
+    {
+      "name": "div_broadcast",
+      "interface": {
+        "function": "div_broadcast"
+      },
+      "shape": {
+        "broadcast": ["a", "b"]
+      },
+      "dtypes": ["fp32"],
+      "forward": ["div_broadcast(size, ndim, lengths, a.mask, b.mask, result, a, b)"],
+      "backward": "reject"
+    },
+    {
       "name": "sum",
       "interface": {
         "function": "sum"
