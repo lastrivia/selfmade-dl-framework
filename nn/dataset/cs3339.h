@@ -14,6 +14,9 @@ public:
     void load(const std::string &filename, size_t batch_size = 0) {
 
         std::ifstream fin(filename, std::ios::binary);
+        if (!fin.is_open()) {
+            throw FatalExcept(std::string("dataset file ") + filename + " not found", __FILE__, __LINE__);
+        }
 
         int32_t samples;
         fin.read(reinterpret_cast<char *>(&samples), sizeof(int32_t));

@@ -16,7 +16,7 @@ public:
     void fit(Tensor features, Tensor labels) override {
         size_t n_samples = features->shape().lengths[1];
         if (n_samples != labels->shape().lengths[1])
-            throw FatalExcept("Sample counts in features and labels mismatch", __FILE__, __LINE__);
+            throw FatalExcept("sample counts in features and labels mismatch", __FILE__, __LINE__);
         size_t n_features = features->shape().lengths[0];
         size_t n_classes = labels->shape().lengths[0];
 
