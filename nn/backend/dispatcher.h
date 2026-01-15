@@ -36,6 +36,7 @@ public:
 
         k.square_fp32 = cpu_backend::square_fp32;
         k.sqrt_fp32 = cpu_backend::sqrt_fp32;
+        k.log_fp32 = cpu_backend::log_fp32;
 
         k.relu_fp32 = cpu_backend::relu_fp32;
         k.relu_backward_fp32 = cpu_backend::relu_backward_fp32;
@@ -87,6 +88,7 @@ public:
 
         k.square_fp32 = cuda_backend::square_fp32;
         k.sqrt_fp32 = cuda_backend::sqrt_fp32;
+        k.log_fp32 = cuda_backend::log_fp32;
 
         k.relu_fp32 = cuda_backend::relu_fp32;
         k.relu_backward_fp32 = cuda_backend::relu_backward_fp32;

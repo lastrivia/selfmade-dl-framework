@@ -151,6 +151,24 @@
       }
     },
     {
+      "name": "log",
+      "interface": {
+        "function": "log"
+      },
+      "shape": {
+        "identity": "t"
+      },
+      "dtypes": ["fp32"],
+      "forward": ["log(size, result, t)"],
+      "backward": {
+        "t": [
+          "workspace tmp t.size",
+          "div_ewise(t.size, tmp, grad, t)",
+          "apply tmp"
+        ]
+      }
+    },
+    {
       "name": "relu",
       "interface": {
         "function": "relu"

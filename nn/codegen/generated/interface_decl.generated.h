@@ -5,6 +5,7 @@ Tensor operator*(const Tensor &b) const;
 Tensor operator/(const Tensor &b) const;
 friend Tensor square(const Tensor &t);
 friend Tensor sqrt(const Tensor &t);
+friend Tensor log(const Tensor &t);
 friend Tensor relu(const Tensor &t);
 Tensor operator+(float scalar) const;
 Tensor operator-(float scalar) const;

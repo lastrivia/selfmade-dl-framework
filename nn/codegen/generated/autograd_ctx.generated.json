@@ -457,6 +457,50 @@
     }
   },
   {
+    "internal_name": "log",
+    "dtype": "fp32",
+    "shape": "identity",
+    "tensors": [
+      "t"
+    ],
+    "init_args": "const Tensor &result, const Tensor &t",
+    "init_proc": "GradNode(result), t_(t), t_ver_(t->version_)",
+    "members": [
+      "Tensor t_",
+      "size_t t_ver_"
+    ],
+    "procedure": {
+      "t": [
+        {
+          "statement": "workspace",
+          "name": "tmp",
+          "size": {
+            "fp32": "t_->shape_.size * sizeof(float)"
+          },
+          "indent": 0,
+          "raw": "workspace tmp t.size"
+        },
+        {
+          "kernel": "div_ewise",
+          "args": [
+            "t_->shape_.size",
+            "tmp",
+            "tensor_->grad_data_",
+            "t_->data_"
+          ],
+          "indent": 0,
+          "raw": "div_ewise(t.size, tmp, grad, t)"
+        },
+        {
+          "statement": "apply",
+          "grad": "tmp",
+          "indent": 0,
+          "raw": "apply tmp"
+        }
+      ]
+    }
+  },
+  {
     "internal_name": "relu",
     "dtype": "fp32",
     "shape": "identity",

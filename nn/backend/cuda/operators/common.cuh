@@ -143,6 +143,16 @@ namespace cuda_backend {
         launch_common_kernel(sqrt_fp32_worker, n, dst, src);
     }
 
+    __global__ void log_fp32_worker(size_t n, float *dst, const float *src) {
+        size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+        if (idx < n)
+            dst[idx] = logf(src[idx]);
+    }
+
+    inline void log_fp32(size_t n, float *dst, const float *src) {
+        launch_common_kernel(log_fp32_worker, n, dst, src);
+    }
+
     __global__ void relu_fp32_worker(size_t n, float *dst, const float *src) {
         size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
         if (idx < n)

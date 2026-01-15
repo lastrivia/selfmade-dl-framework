@@ -240,6 +240,33 @@ inline Tensor sqrt(const Tensor &t) {
     }
 }
 
+inline Tensor log(const Tensor &t) {
+    // [codegen] shape: identity
+
+    switch (t->dtype_) {
+    case ScalarType::fp32: {
+        Tensor result(t->shape_, t->device_, t->dtype_);
+        DeviceDesc device = result->device_;
+
+        // [codegen] "log(size, result, t)"
+        dispatch_kernel(device).log_fp32(result->shape_.size, result->data_, t->data_);
+
+        if ((t->requires_grad_) && !global_no_grad) {
+            result->requires_grad_ = true;
+            result->grad_node_ = new GradNodeLogFp32(result, t);
+        }
+
+        return result;
+    }
+    case ScalarType::int32:
+        throw FatalExcept("tensor: log does not support data type int32", __FILE__, __LINE__);
+        break;
+    default:
+        throw FatalExcept("tensor: unknown data type", __FILE__, __LINE__);
+        break;
+    }
+}
+
 inline Tensor relu(const Tensor &t) {
     // [codegen] shape: identity
 

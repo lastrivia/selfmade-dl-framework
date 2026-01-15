@@ -6,6 +6,7 @@ friend class GradNodeMulFp32;
 friend class GradNodeDivFp32;
 friend class GradNodeSquareFp32;
 friend class GradNodeSqrtFp32;
+friend class GradNodeLogFp32;
 friend class GradNodeReluFp32;
 friend class GradNodeAddScalarFp32;
 friend class GradNodeSubScalarFp32;

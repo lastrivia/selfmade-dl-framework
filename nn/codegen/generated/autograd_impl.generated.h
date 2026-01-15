@@ -364,6 +364,45 @@ private:
     size_t t_ver_;
 };
 
+class GradNodeLogFp32 : public GradNode {
+public:
+    GradNodeLogFp32(const Tensor &result, const Tensor &t) :
+        GradNode(result), t_(t), t_ver_(t->version_) {}
+
+    ~GradNodeLogFp32() override = default;
+
+    std::vector<TensorImpl *> inputs() override {
+        std::vector<TensorImpl *> ret;
+        ret.reserve(1);
+        if (t_->requires_grad_)
+            ret.push_back(t_.object_);
+        return ret;
+    }
+
+    void backward() override {
+        if (t_ver_ != t_->version_)
+            throw FatalExcept("autograd: operands modified before backward", __FILE__, __LINE__);
+        DeviceDesc device = tensor_->device();
+
+        // [codegen] backward: t
+        if (t_->requires_grad_) {
+
+            // [codegen] "workspace tmp t.size"
+            Workspace tmp(t_->shape_.size * sizeof(float), device);
+
+            // [codegen] "div_ewise(t.size, tmp, grad, t)"
+            dispatch_kernel(device).div_ewise_fp32(t_->shape_.size, tmp, tensor_->grad_data_, t_->data_);
+
+            // [codegen] "apply tmp"
+            dispatch_kernel(device).add_ewise_fp32(t_->shape_.size, t_->grad_data_, t_->grad_data_, tmp);
+        }
+    }
+
+private:
+    Tensor t_;
+    size_t t_ver_;
+};
+
 class GradNodeReluFp32 : public GradNode {
 public:
     GradNodeReluFp32(const Tensor &result, const Tensor &t) :

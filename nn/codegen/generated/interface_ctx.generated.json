@@ -237,6 +237,36 @@
     "grad_args": "result, t"
   },
   {
+    "name": "log",
+    "args": "const Tensor &t",
+    "fixed_dtype": false,
+    "dtypes": [
+      "fp32"
+    ],
+    "dtypes_unsupported": [
+      "int32"
+    ],
+    "tensors": [
+      "t"
+    ],
+    "shape": "identity",
+    "procedure": [
+      {
+        "kernel": "log",
+        "args": [
+          "result->shape_.size",
+          "result->data_",
+          "t->data_"
+        ],
+        "indent": 0,
+        "raw": "log(size, result, t)"
+      }
+    ],
+    "allow_grad": true,
+    "internal_name": "log",
+    "grad_args": "result, t"
+  },
+  {
     "name": "relu",
     "args": "const Tensor &t",
     "fixed_dtype": false,

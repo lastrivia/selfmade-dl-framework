@@ -82,6 +82,12 @@ namespace cpu_backend {
         }
     }
 
+    inline void log_fp32(size_t n, float *dst, const float *src) {
+        for (size_t i = 0; i < n; i++) {
+            dst[i] = logf(src[i]);
+        }
+    }
+
     inline void relu_fp32(size_t n, float *dst, const float *src) {
         for (size_t i = 0; i < n; i++) {
             dst[i] = fmaxf(src[i], 0.0f);

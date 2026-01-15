@@ -105,8 +105,7 @@ public:
     kernel_func::fp32::binary add_ewise_fp32, sub_ewise_fp32, mul_ewise_fp32, div_ewise_fp32;
     kernel_func::fp32::unary_scalar add_scalar_fp32, mul_scalar_fp32, pow_fp32;
 
-
-    kernel_func::fp32::unary square_fp32, sqrt_fp32;
+    kernel_func::fp32::unary square_fp32, sqrt_fp32, log_fp32;
 
     kernel_func::fp32::unary relu_fp32;
     kernel_func::fp32::binary relu_backward_fp32;
