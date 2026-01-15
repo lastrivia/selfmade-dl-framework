@@ -41,7 +41,7 @@ public:
             optimizer.register_tensor(weight_);
             optimizer.register_tensor(bias_);
 
-            SgdOptimizer regularizer(learning_rate_ * 0.5 / C_);
+            SgdOptimizer regularizer(learning_rate_ * 0.5f / C_);
             regularizer.register_tensor(weight_);
 
             for (size_t i = 0; i < iter_; ++i) {

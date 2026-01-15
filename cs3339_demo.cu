@@ -34,15 +34,15 @@ int main() {
 
     // NB
 
-    // std::cout << "\nTesting NB model...\n" << std::endl;
-    //
-    // GaussianNB nb_model("cuda");
-    // nb_model.fit(train_data.data(), train_data.label());
-    // Tensor nb_logits = nb_model.predict(val_data.data());
-    // std::cout << "correct: " <<
-    //     static_cast<double>(correct_count(nb_logits, val_data.label())) /
-    //         static_cast<double>(val_data.samples()) * 100.0
-    // << "%" << std::endl;
+    std::cout << "\nTesting NB model...\n" << std::endl;
+
+    GaussianNB nb_model("cuda");
+    nb_model.fit(train_data.data(), train_data.label());
+    Tensor nb_logits = nb_model.predict(val_data.data());
+    std::cout << "correct: " <<
+        static_cast<double>(correct_count(nb_logits, val_data.label())) /
+            static_cast<double>(val_data.samples()) * 100.0
+    << "%" << std::endl;
 
 
     // LDA
